@@ -1,0 +1,22 @@
+.page {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    .logo {
+        width: 200px;
+        aspect-ratio: 300/61;
+        mask-image: url(../../public/next.svg);
+        mask-position: center;
+        mask-size: contain;
+        mask-repeat: no-repeat;
+        background-color: var(--accent-color);
+        margin: 0 auto;
+    }
+
+    .btn {
+        margin: 0 auto;
+        display: block;
+    }
+}

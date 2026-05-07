@@ -1,0 +1,7 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run ASP.NET Backend + Next.js App" type="CompoundRunConfigurationType">
+    <toRun name="aspnext.Server: http" type="LaunchSettings" />
+    <toRun name="client: run" type="js.build_tools.npm" />
+    <method v="2" />
+  </configuration>
+</component>

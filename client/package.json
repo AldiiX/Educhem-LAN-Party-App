@@ -1,0 +1,29 @@
+{
+    "name": "aspnext",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev --turbopack -p 3596",
+        "build": "next build --turbopack",
+        "start": "next start -p 3000",
+        "lint": "eslint"
+    },
+    "dependencies": {
+        "next": "16.2.4",
+        "react": "19.2.5",
+        "react-dom": "19.2.5",
+        "sass": "^1.99.0"
+    },
+    "devDependencies": {
+        "@eslint/eslintrc": "^3",
+        "@types/node": "^25",
+        "@types/react": "^19",
+        "@types/react-dom": "^19",
+        "eslint": "^9",
+        "eslint-config-next": "16.2.4",
+        "typescript": "^6"
+    },
+    "overrides": {
+        "postcss": "^8.5.10"
+    }
+}

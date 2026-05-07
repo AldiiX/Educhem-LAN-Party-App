@@ -1,0 +1,33 @@
+:root {
+    color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --background-color: #141415;
+    --text-color: #e8e8e8;
+    --accent-color: #6d11dd;
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+
+    --background-color: #e8e8e8;
+    --text-color: #141415;
+    --accent-color: #6d11dd;
+}
+
+html,
+body {
+    min-height: 100%;
+    transition-duration: 0.3s;
+    transition-property: background-color;
+}
+
+body {
+    margin: 0;
+    background: var(--background-color);
+    color: var(--text-color);
+    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}

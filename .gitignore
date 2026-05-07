@@ -1,0 +1,9 @@
+.idea
+.vs
+.env
+package.g.props
+obj
+bin
+node_modules
+.output
+.next
