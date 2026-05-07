@@ -1,0 +1,311 @@
+.page {
+    width: min(var(--container-width), calc(100% - 40px));
+    margin: 0 auto;
+    padding: calc(var(--header-height) + 64px) 0 88px;
+}
+
+.narrow {
+    width: min(820px, calc(100% - 40px));
+}
+
+.pageHeader {
+    margin-bottom: 40px;
+}
+
+.eyebrow {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 6px 12px;
+    border: 1px solid var(--accent-line);
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.title {
+    max-width: 820px;
+    margin-top: 16px;
+    font-size: clamp(2.25rem, 6vw, 4.9rem);
+    line-height: 0.94;
+    font-weight: 800;
+}
+
+.description {
+    max-width: 720px;
+    margin-top: 18px;
+    margin-bottom: 20px;
+    color: var(--text-color-secondary);
+    font-size: 1.08rem;
+}
+
+.twoCol {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+}
+
+.stickySidebar {
+    position: sticky;
+    top: calc(var(--header-height) + 24px);
+}
+
+.toc {
+    padding: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--element-bg) 92%, transparent);
+    box-shadow: 0 18px 42px var(--shadow-color);
+}
+
+.tocTitle {
+    margin-bottom: 12px;
+    color: var(--text-color);
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.tocList {
+    display: grid;
+    gap: 6px;
+}
+
+.tocLink {
+    display: block;
+    padding: 9px 10px;
+    border-radius: var(--radius-sm);
+    color: var(--text-color-secondary);
+    font-size: 0.94rem;
+    transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+
+    &:hover {
+        background: var(--accent-soft);
+        color: var(--text-color);
+        transform: translateX(3px);
+    }
+}
+
+.search {
+    position: relative;
+    margin-bottom: 40px;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--text-color-darker);
+    border-radius: 50%;
+    transform: translateY(-50%);
+
+    &::after {
+        content: "";
+        position: absolute;
+        width: 7px;
+        height: 2px;
+        right: -5px;
+        bottom: -3px;
+        background: var(--text-color-darker);
+        transform: rotate(45deg);
+    }
+}
+
+.input {
+    width: 100%;
+    min-height: 54px;
+    padding: 0 18px 0 48px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--element-bg);
+    color: var(--text-color);
+    font: inherit;
+    outline: none;
+    box-shadow: 0 14px 30px var(--shadow-color);
+    transition: border 160ms ease, box-shadow 160ms ease;
+
+    &:focus {
+        border-color: var(--accent-line);
+        box-shadow: 0 0 0 4px var(--accent-soft), 0 14px 30px var(--shadow-color);
+    }
+}
+
+.section {
+    margin-bottom: 48px;
+    scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.sectionTitle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    font-size: clamp(1.45rem, 3vw, 2.05rem);
+    line-height: 1.08;
+    font-weight: 800;
+}
+
+.sectionMark {
+    width: 13px;
+    height: 32px;
+    border-radius: 999px;
+    background: var(--accent-color);
+    box-shadow: 0 0 26px var(--accent-line);
+    flex: 0 0 auto;
+}
+
+.grid2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--element-bg) 96%, white 4%), var(--element-bg));
+    box-shadow: 0 18px 44px var(--shadow-color);
+    transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.card:hover {
+    border-color: var(--accent-line);
+    box-shadow: 0 22px 52px var(--shadow-color);
+}
+
+.copyCard {
+    padding: 22px;
+    color: var(--text-color-secondary);
+}
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 46px;
+    padding: 0 18px;
+    border-radius: var(--radius);
+    font-weight: 800;
+    transition: transform 160ms ease, box-shadow 160ms ease, border 160ms ease, background 160ms ease;
+
+    &:hover {
+        transform: translateY(-2px);
+    }
+}
+
+.primaryButton {
+    background: var(--accent-color);
+    color: var(--accent-color-text);
+    box-shadow: 0 14px 30px color-mix(in srgb, var(--accent-color) 30%, transparent);
+}
+
+.secondaryButton {
+    border: 1px solid var(--border-color);
+    background: color-mix(in srgb, var(--element-bg) 88%, transparent);
+    color: var(--text-color);
+}
+
+.buttonDot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 14px 0 0 currentColor;
+}
+
+.alert {
+    display: flex;
+    gap: 16px;
+    padding: 18px;
+    border: 1px solid var(--accent-line);
+    border-radius: var(--radius);
+    background: var(--warning-background);
+}
+
+.leadAlert {
+    margin-bottom: 32px;
+}
+
+.alertError {
+    border-color: color-mix(in srgb, var(--error-color) 42%, transparent);
+    background: var(--error-background);
+}
+
+.alertIcon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-color);
+    color: var(--accent-color-text);
+    font-weight: 800;
+    flex: 0 0 auto;
+}
+
+.alertError .alertIcon {
+    background: var(--error-color);
+    color: white;
+}
+
+.alertTitle {
+    color: var(--text-color);
+    font-weight: 800;
+}
+
+.alertDescription,
+.empty {
+    color: var(--text-color-secondary);
+}
+
+@media (max-width: 900px) {
+    .page {
+        padding-top: calc(var(--header-height) + 38px);
+    }
+
+    .twoCol {
+        grid-template-columns: 1fr;
+        gap: 28px;
+    }
+
+    .stickySidebar {
+        position: static;
+    }
+
+    .tocList {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 620px) {
+    .page,
+    .narrow {
+        width: min(100% - 28px, var(--container-width));
+    }
+
+    .grid2,
+    .tocList {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card,
+    .button,
+    .tocLink {
+        transition: none;
+    }
+
+    .card:hover,
+    .button:hover,
+    .tocLink:hover {
+        transform: none;
+    }
+}

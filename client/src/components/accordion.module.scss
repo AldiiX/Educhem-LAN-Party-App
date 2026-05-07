@@ -1,0 +1,48 @@
+.root {
+    display: grid;
+    gap: 12px;
+}
+
+.item {
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--element-bg);
+    box-shadow: 0 14px 34px var(--shadow-color);
+}
+
+.trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 18px;
+    padding: 18px 20px;
+    color: var(--text-color);
+    text-align: left;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.chevron {
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 160ms ease;
+    flex: 0 0 auto;
+}
+
+.open {
+    transform: rotate(-135deg);
+}
+
+.content {
+    padding: 0 20px 20px;
+    color: var(--text-color-secondary);
+}
+
+.hidden {
+    display: none;
+}

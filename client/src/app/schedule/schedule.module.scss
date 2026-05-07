@@ -1,0 +1,56 @@
+.timeline {
+    position: relative;
+    display: grid;
+    gap: 16px;
+
+    &::before {
+        content: "";
+        position: absolute;
+        top: 18px;
+        bottom: 18px;
+        left: 21px;
+        width: 2px;
+        background: linear-gradient(var(--accent-color), transparent);
+    }
+}
+
+.item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 18px;
+}
+
+.dot {
+    position: relative;
+    z-index: 1;
+    width: 44px;
+    height: 44px;
+    border: 8px solid var(--background-bg);
+    border-radius: 50%;
+    background: var(--accent-color);
+    box-shadow: 0 0 0 1px var(--accent-line), 0 0 28px var(--accent-line);
+}
+
+.content {
+    padding: 20px;
+}
+
+.time {
+    color: var(--accent-color);
+    font-size: 0.88rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.title {
+    margin-top: 5px;
+    font-size: 1.25rem;
+    line-height: 1.14;
+    font-weight: 800;
+}
+
+.description {
+    margin-top: 8px;
+    color: var(--text-color-secondary);
+}

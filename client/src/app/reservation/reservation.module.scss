@@ -1,0 +1,109 @@
+.steps {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 48px;
+}
+
+.step {
+    display: grid;
+    grid-template-columns: 50px 1fr;
+    gap: 18px;
+    padding: 20px;
+}
+
+.number {
+    display: grid;
+    place-items: center;
+    width: 50px;
+    height: 50px;
+    border-radius: var(--radius);
+    background: var(--accent-color);
+    color: var(--accent-color-text);
+    font-weight: 800;
+}
+
+.stepTitle {
+    font-size: 1.2rem;
+    line-height: 1.18;
+    font-weight: 800;
+}
+
+.details {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.detail {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: var(--text-color-secondary);
+}
+
+.bullet {
+    width: 7px;
+    height: 7px;
+    margin-top: 9px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    flex: 0 0 auto;
+}
+
+.alerts {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 48px;
+}
+
+.stepQr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: center;
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid var(--accent-line);
+    border-radius: var(--radius);
+    background: var(--warning-background);
+}
+
+.stepQrTitle {
+    color: var(--accent-color);
+    font-size: 0.84rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.stepQrText {
+    margin-top: 6px;
+    color: var(--text-color-secondary);
+}
+
+.qrCode {
+    width: clamp(116px, 22vw, 164px);
+    aspect-ratio: 1;
+    margin-left: auto;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: white;
+    object-fit: contain;
+    flex: 0 0 auto;
+    pointer-events: none;
+}
+
+@media (max-width: 620px) {
+    .step {
+        grid-template-columns: 1fr;
+    }
+
+    .stepQr {
+        grid-template-columns: 1fr;
+    }
+
+    .qrCode {
+        width: min(164px, 100%);
+        margin-left: 0;
+    }
+}

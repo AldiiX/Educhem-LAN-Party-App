@@ -1,0 +1,13 @@
+﻿.layout {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+
+    .panel {
+        width: 264px;
+    }
+
+    .content {
+        flex: 1;
+    }
+}

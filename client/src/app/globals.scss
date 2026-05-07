@@ -1,33 +1,145 @@
+@import url('https://fonts.googleapis.com/css2?family=Gabarito:wght@400;500;600;700;800&display=swap');
+
+$accent-dark: #ffb303;
+$accent-light: #ff8300;
+$header-height: 70px;
+$container-width: 1200px;
+$radius: 8px;
+$radius-sm: 8px;
+
 :root {
-    color-scheme: light;
+    --accent-color: #{$accent-dark};
+    --accent-color-text: black;
+    --accent-color-darker: #d39706;
+    --accent-soft: rgba(255, 179, 3, 0.13);
+    --accent-line: rgba(255, 179, 3, 0.34);
+    --element-bg: #151515;
+    --element-bg-colored: #221d11;
+    --bg: black;
+    --background-bg: #101010;
+    --background-bg-2: #1b1b1b;
+    --text-color: #f3f3f3;
+    --text-color-darker: #979797;
+    --text-color-secondary: #d7d7d7;
+    --text-color-3: #2a2a2a;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --shadow-color: rgba(0, 0, 0, 0.38);
+    --error-color: #de2828;
+    --error-background: #2c1717;
+    --warning-background: rgba(255, 179, 3, 0.12);
+
+    --header-height: #{$header-height};
+    --container-width: #{$container-width};
+    --radius: #{$radius};
+    --radius-sm: #{$radius-sm};
 }
 
-:root[data-theme="dark"] {
-    color-scheme: dark;
-
-    --background-color: #141415;
-    --text-color: #e8e8e8;
-    --accent-color: #6d11dd;
+html[data-theme='light'] {
+    --accent-color: #{$accent-light};
+    --accent-color-text: white;
+    --accent-color-darker: #d96f01;
+    --accent-soft: rgba(255, 131, 0, 0.13);
+    --accent-line: rgba(255, 131, 0, 0.28);
+    --element-bg: white;
+    --element-bg-colored: #fff1df;
+    --bg: white;
+    --background-bg: #f6f4ee;
+    --background-bg-2: #fffdf8;
+    --text-color: #0c0c0c;
+    --text-color-darker: #76716a;
+    --text-color-secondary: #4f4b45;
+    --text-color-3: #e8e2d8;
+    --border-color: rgba(24, 20, 14, 0.12);
+    --shadow-color: rgba(64, 45, 20, 0.12);
+    --error-color: #ff0000;
+    --error-background: #fff0f0;
+    --warning-background: rgba(255, 131, 0, 0.12);
 }
 
-:root[data-theme="light"] {
-    color-scheme: light;
-
-    --background-color: #e8e8e8;
-    --text-color: #141415;
-    --accent-color: #6d11dd;
-}
-
-html,
-body {
-    min-height: 100%;
-    transition-duration: 0.3s;
-    transition-property: background-color;
-}
-
-body {
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
     margin: 0;
-    background: var(--background-color);
+    padding: 0;
+}
+
+::selection{
+    background-color: var(--accent-color);
+    color: var(--accent-color-text);
+}
+
+// custom scrollbar
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    background-color: var(--accent-color);
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Gabarito', system-ui, sans-serif;
+    background-color: var(--background-bg);
+    background-image: linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
     color: var(--text-color);
-    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+ul, ol {
+    list-style: none;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+.container {
+    width: 100%;
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
 }
