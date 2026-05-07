@@ -1,0 +1,121 @@
+﻿.layout {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+
+    .panel {
+        min-width: 312px;
+        display: flex;
+        flex-direction: column;
+        padding: 48px;
+        border-right: 1px solid var(--border-color);
+        border-radius: 0 64px 0 0;
+        background: var(--element-bg);
+        box-shadow: 0 16px 38px var(--shadow-color);
+
+        .logo {
+            align-items: center;
+            gap: 16px;
+            width: fit-content;
+            text-decoration: none;
+            transition-duration: .3s;
+            display: flex;
+
+            >div {
+                width:  80px;
+                height: 80px;
+                mask-image: url("/images/logo.svg");
+                mask-repeat: no-repeat;
+                mask-position: center center;
+                mask-size: contain;
+                background-color: var(--accent-color);
+            }
+
+            p {
+                color: var(--accent-color);
+                line-height: 32px;
+                font-size: 32px;
+                font-weight: bold;
+            }
+        }
+
+        >nav {
+            user-select: none;
+            flex-direction: column;
+            flex-shrink: 1;
+            flex-grow: 1;
+            gap: 4px;
+            margin-top: 80px;
+            display: flex;
+            overflow: auto;
+
+            >a {
+                background-color: #0000;
+                border-radius: 48px;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 24px;
+                text-decoration: none;
+                transition-duration: 0.3s;
+                display: flex;
+
+
+                &:is(.active){
+                    background-color: var(--accent-soft);
+
+                    >.icon {
+                        background-color: var(--accent-color);
+                    }
+
+                    >p {
+                        color: var(--accent-color);
+                    }
+                }
+
+                >.icon {
+                    background-color: var(--text-color);
+                    width: 20px;
+                    height: 20px;
+                    mask-position: 0;
+                    mask-size: cover;
+                    mask-repeat: no-repeat;
+                    transition-duration: 0.3s;
+                }
+
+                >p {
+                    transition-duration: 0.3s;
+                }
+            }
+        }
+
+        >footer {
+            align-content: end;
+            max-width: 280px;
+            padding-top: 24px;
+
+            p {
+                text-align: center;
+                color: var(--text-color-3);
+                text-align: center;
+                font-size: 14px;
+                text-decoration: none;
+                transition-duration: .3s;
+                height: 16px;
+            }
+        }
+    }
+
+    .content {
+        position: relative;
+        flex: 1;
+        padding: 48px;
+
+        .login {
+            position: absolute;
+            top: 32px;
+            right: 48px;
+            z-index: 1;
+        }
+    }
+}

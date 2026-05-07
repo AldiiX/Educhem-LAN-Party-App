@@ -1,5 +1,5 @@
 ﻿import {Metadata} from "next";
-import Client from "@/app/app/reservations/client";
+import Client from "@/app/app/(withlayout)/reservations/client";
 
 export const metadata: Metadata = {
     title: 'Rezervace',

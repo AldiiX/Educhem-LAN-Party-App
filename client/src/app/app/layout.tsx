@@ -1,20 +1,14 @@
-﻿import type { Metadata } from 'next';
-import {ReactNode} from "react";
-import LayoutClient from "@/app/app/layoutclient";
-import {siteConfig} from "@/data/site";
+﻿import {siteConfig} from "@/data/site";
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
     title: {
-        default: "Systém » " + siteConfig.currentEvent.title,
-        template: `%s » Systém ${siteConfig.currentEvent.title}`,
+        default: "Systém » " + siteConfig.brandName,
+        template: `%s » Systém ${siteConfig.brandName}`,
     },
-    description: 'Systém pro správu a organizaci akce, včetně registrace účastníků, správy programů a dalších funkcí.',
 }
 
-export default function({ children }: { children: ReactNode }) {
-    return <>
-        <LayoutClient>
-            {children}
-        </LayoutClient>
-    </>
+
+export default function({ children }: {children: React.ReactNode}) {
+    return children;
 }

@@ -39,6 +39,33 @@ function getServerResolvedTheme(theme: WebTheme): ResolvedWebTheme {
 
 function createThemeInitScript(initialTheme: WebTheme) {
     return `
+    
+    
+    
+    
+    
+    
+    
+    
+    /*
+    
+        EDUCHEM LAN Party
+
+        Vytvořili:
+            Stanislav Škudrna
+            Serhii Yavorskyi
+    
+        v roce 2024
+    
+    */
+    
+    
+    
+    
+    
+    
+    
+    
 (function() {
     try {
         var theme = ${JSON.stringify(initialTheme)};
