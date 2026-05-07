@@ -8,6 +8,10 @@ import {Avatar} from "@/components/Avatar";
 import If from "@/components/util/If";
 import {Button} from "@/components/Button";
 
+
+const LOGGED_IN = true;
+
+
 export default function({ children }: { children: ReactNode }) {
     const pathname = usePathname();
 
@@ -39,10 +43,12 @@ export default function({ children }: { children: ReactNode }) {
                     <p>Rezervace</p>
                 </Link>
 
-                <Link href="/app/chat" className={pathname === "/app/chat" ? style.active : ""}>
-                    <div className={style.icon} style={{ maskImage: 'url(/icons/chat.svg)' }}></div>
-                    <p>Chat</p>
-                </Link>
+                <If condition={LOGGED_IN}>
+                    <Link href="/app/chat" className={pathname === "/app/chat" ? style.active : ""}>
+                        <div className={style.icon} style={{ maskImage: 'url(/icons/chat.svg)' }}></div>
+                        <p>Chat</p>
+                    </Link>
+                </If>
 
                 <Link href="/app/tournaments" className={pathname === "/app/tournaments" ? style.active : ""}>
                     <div className={style.icon} style={{ maskImage: 'url(/icons/trophy_star.svg)' }}></div>
@@ -54,15 +60,19 @@ export default function({ children }: { children: ReactNode }) {
                     <p>Nahlásit problém</p>
                 </Link>
 
-                <Link href="/app/administration" className={pathname === "/app/administration" ? style.active : ""}>
-                    <div className={style.icon} style={{ maskImage: 'url(/icons/user_with_shield.svg)' }}></div>
-                    <p>Administrace</p>
-                </Link>
+                <If condition={LOGGED_IN}>
+                    <Link href="/app/administration" className={pathname === "/app/administration" ? style.active : ""}>
+                        <div className={style.icon} style={{ maskImage: 'url(/icons/user_with_shield.svg)' }}></div>
+                        <p>Administrace</p>
+                    </Link>
+                </If>
 
-                <Link href="/app/profile" className={pathname === "/app/profile" ? style.active : ""} style={{ marginTop: "auto" }}>
-                    <Avatar name={"Stanislav Škudrna"} size="24px" className={style.avatar} />
-                    <p>Tvůj profil</p>
-                </Link>
+                <If condition={LOGGED_IN}>
+                    <Link href="/app/profile" className={pathname === "/app/profile" ? style.active : ""} style={{ marginTop: "auto" }}>
+                        <Avatar name={"Stanislav Škudrna"} size="24px" className={style.avatar} />
+                        <p>Tvůj profil</p>
+                    </Link>
+                </If>
             </nav>
 
             <footer>
@@ -74,7 +84,7 @@ export default function({ children }: { children: ReactNode }) {
 
         <div className={style.content}>
             <div className={style.login}>
-                <If condition={false} fallback={
+                <If condition={LOGGED_IN} fallback={
                     // uzivatel neni lognuty
                     <Link href="/app/login">
                         <Button type="primary" text="Přihlásit se" style={{ padding: "10px 32px" }} />

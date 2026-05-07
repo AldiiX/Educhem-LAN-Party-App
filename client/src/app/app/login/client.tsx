@@ -1,15 +1,16 @@
 ﻿"use client";
 
 import style from "./client.module.scss"
+import Link from "next/link";
 
 export default function() {
     return (
         <div className={style.parent}>
             <div className={style["left-side"]}>
-                <div className={style["title"]}>
+                <Link href="/app" className={style["title"]}>
                     <div className={style["logo"]}></div>
                     <h1>EDUCHEM<br/>LAN Party</h1>
-                </div>
+                </Link>
 
                 <div className={style["login-container"]}>
                     <div>
