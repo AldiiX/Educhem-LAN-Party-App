@@ -11,8 +11,6 @@ export default function HomePage() {
 
     return (
         <>
-            <Header />
-
             <section className={styles.hero}>
                 <div className={`${styles.heroImage} ${styles.heroImageDark}`}>
                     <img src="/images/banner3.jpeg" alt=""/>
@@ -151,8 +149,6 @@ export default function HomePage() {
                     </div>
                 </div>
             </section>
-
-            <Footer />
         </>
     )
 }

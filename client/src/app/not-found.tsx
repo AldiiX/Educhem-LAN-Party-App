@@ -1,7 +1,6 @@
 ﻿"use client"
 
-import style from "./error.module.scss"
-import Link from "next/link";
+import style from "./not-found.module.scss"
 
 export default function NotFound() {
     return (

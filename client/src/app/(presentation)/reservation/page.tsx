@@ -69,8 +69,6 @@ const faqItems = [
 export default function() {
     return (
         <>
-            <Header/>
-
             <div className={`${shell.page} ${shell.narrow}`}>
                 <div className={shell.pageHeader}>
                     <span className={shell.eyebrow}>Rezervace</span>
@@ -154,8 +152,6 @@ export default function() {
                     </Accordion>
                 </section>
             </div>
-
-            <Footer />
         </>
     )
 }

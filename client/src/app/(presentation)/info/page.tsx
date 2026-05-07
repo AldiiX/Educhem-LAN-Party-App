@@ -111,8 +111,6 @@ export default function() {
 
     return (
         <>
-            <Header />
-
             <div className={shell.page}>
                 <div className={shell.pageHeader}>
                     <span className={shell.eyebrow}>Informace</span>
@@ -239,8 +237,6 @@ export default function() {
                     </div>
                 </div>
             </div>
-
-            <Footer />
         </>
     )
 }

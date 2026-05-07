@@ -12,8 +12,6 @@ export const metadata: Metadata = {
 export default function() {
     return (
         <>
-            <Header />
-
             <div className={shell.page}>
                 <div className={shell.pageHeader}>
                     <span className={shell.eyebrow}>Historie</span>
@@ -57,8 +55,6 @@ export default function() {
                     ))}
                 </div>
             </div>
-
-            <Footer />
         </>
     )
 }

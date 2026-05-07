@@ -62,8 +62,6 @@ const faqItems = [
 export default function() {
     return (
         <>
-            <Header />
-
             <div className={`${shell.page} ${shell.narrow}`}>
                 <div className={shell.pageHeader}>
                     <span className={shell.eyebrow}>FAQ</span>
@@ -82,8 +80,6 @@ export default function() {
                     ))}
                 </Accordion>
             </div>
-
-            <Footer />
         </>
     )
 }

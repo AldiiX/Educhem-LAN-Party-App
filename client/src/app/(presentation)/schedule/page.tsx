@@ -48,8 +48,6 @@ const timelineItems = [
 export default function SchedulePage() {
     return (
         <>
-            <Header />
-
             <div className={`${shell.page} ${shell.narrow}`}>
                 <div className={shell.pageHeader}>
                     <span className={shell.eyebrow}>Harmonogram</span>
@@ -73,8 +71,6 @@ export default function SchedulePage() {
                     ))}
                 </div>
             </div>
-
-            <Footer />
         </>
     )
 }
