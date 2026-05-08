@@ -8,6 +8,7 @@ public static class EntityFrameworkIncludes {
 
 	public static IQueryable<Account> AccountsEf(this AppDbContext db) {
 		return db.Accounts
+			.Include(a => a.School)
 			.AsSplitQuery();
 	}
 }

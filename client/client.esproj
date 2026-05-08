@@ -9,6 +9,7 @@
     <BuildOutputFolder>$(MSBuildProjectDirectory)\dist</BuildOutputFolder>
   </PropertyGroup>
   <ItemGroup>
+    <Folder Include="src\app\app\(withlayout)\profile\_components\" />
     <Folder Include="src\hooks\" />
     <Folder Include="src\layouts\" />
   </ItemGroup>

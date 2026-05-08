@@ -71,7 +71,6 @@ public static class Program {
                 $"Host={ENV["PSQL_DB_HOST"]};Port={ENV["PSQL_DB_PORT"]};Database={ENV["PSQL_DB_NAME"]};Username={ENV["PSQL_DB_USER"]};Password={ENV["PSQL_DB_PASSWORD"]}",
                 o => o
                         .MapEnum<Gender>("AccountGender", "public", new NpgsqlNullNameTranslator())
-                        .MapEnum<School>("AccountSchool", "public", new NpgsqlNullNameTranslator())
                         .MapEnum<AccountType>("AccountType", "public", new NpgsqlNullNameTranslator())
             );
         });

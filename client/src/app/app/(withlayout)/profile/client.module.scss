@@ -1,0 +1,57 @@
+﻿.banner {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 364px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 16px;
+    position: relative;
+
+
+    .avatar {
+        box-sizing: content-box;
+        position: absolute;
+        bottom: -108px;
+        left: 64px;
+        border: 16px solid var(--background-bg);
+    }
+}
+
+.flex {
+    display: flex;
+    padding: 0 64px;
+
+    .left {
+        width: calc(408px + 64px);
+        margin-top: 124px;
+
+        >p {
+            color: var(--text-color-darker);
+        }
+    }
+
+    .right {
+        flex: 1;
+        margin-top: 32px;
+
+        .school {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+            width: fit-content;
+            user-select: none;
+
+            .img {
+                width: 32px;
+                aspect-ratio: 1/1;
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                border-radius: 6px;
+            }
+        }
+    }
+}

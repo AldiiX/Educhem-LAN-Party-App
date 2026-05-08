@@ -4,25 +4,27 @@ namespace server.Dto.Mappers;
 
 public static class AccountMapper {
 	extension(Account account) {
-		public AccountBaseDto ToBaseDto() {
-			return new AccountBaseDto {
+		public ProfileDto ToProfileDto(bool deep = true) {
+			return new ProfileDto {
 				Id = account.Id,
 				FirstName = account.FirstName,
 				LastName = account.LastName,
 				Class = account.Class,
-				School = account.School,
+				School = deep ? account.School?.ToDto() : null,
 				AvatarUrl = account.AvatarUrl,
 				BannerUrl = account.BannerUrl,
+				Gender = account.Gender,
+				CreatedAtUtc = account.CreatedAtUtc,
 			};
 		}
 
-		public AccountDto ToDto() {
+		public AccountDto ToDto(bool deep = true) {
 			return new AccountDto {
 				Id = account.Id,
 				FirstName = account.FirstName,
 				LastName = account.LastName,
 				Class = account.Class,
-				School = account.School,
+				School = deep ? account.School?.ToDto() : null,
 				AvatarUrl = account.AvatarUrl,
 				BannerUrl = account.BannerUrl,
 				UpdatedAtUtc = account.UpdatedAtUtc,
@@ -35,13 +37,13 @@ public static class AccountMapper {
 			};
 		}
 
-		public AccountSessionDto ToSessionDto() {
+		public AccountSessionDto ToSessionDto(bool deep = true) {
 			return new AccountSessionDto() {
 				Id = account.Id,
 				FirstName = account.FirstName,
 				LastName = account.LastName,
 				Class = account.Class,
-				School = account.School,
+				School = deep ? account.School?.ToDto() : null,
 				AvatarUrl = account.AvatarUrl,
 				BannerUrl = account.BannerUrl,
 				UpdatedAtUtc = account.UpdatedAtUtc,

@@ -13,8 +13,8 @@ using server.Data.Entities;
 namespace server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260507233228_Initial")]
-    partial class Initial
+    [Migration("20260508150556_SmallUpdate")]
+    partial class SmallUpdate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,6 @@ namespace server.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "public", "AccountGender", new[] { "Female", "Male", "Other" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "public", "AccountSchool", new[] { "Educhem", "SSŠMEP" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "public", "AccountType", new[] { "Admin", "Student", "SuperAdmin", "Teacher", "TeacherOrg" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
@@ -37,7 +36,9 @@ namespace server.Migrations
                         .HasDefaultValueSql("uuidv7()");
 
                     b.Property<AccountType>("AccountType")
-                        .HasColumnType("public.\"AccountType\"");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("public.\"AccountType\"")
+                        .HasDefaultValue(AccountType.Student);
 
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(512)
@@ -89,8 +90,8 @@ namespace server.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
-                    b.Property<School?>("School")
-                        .HasColumnType("public.\"AccountSchool\"");
+                    b.Property<int?>("SchoolId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .ValueGeneratedOnAdd()
@@ -102,7 +103,49 @@ namespace server.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("SchoolId");
+
                     b.ToTable("Accounts", "public");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.School", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("IconUrl")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Schools", "public");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.Account", b =>
+                {
+                    b.HasOne("server.Data.Entities.School", "School")
+                        .WithMany()
+                        .HasForeignKey("SchoolId");
+
+                    b.Navigation("School");
                 });
 #pragma warning restore 612, 618
         }

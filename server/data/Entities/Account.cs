@@ -7,7 +7,7 @@ namespace server.Data.Entities;
 
 [Table("Accounts", Schema = "public")]
 [Index(nameof(Email), IsUnique = true)]
-public class Account : Entity<Guid> {
+public class Account : AuditableEntity<Guid> {
 	[MaxLength(32)]
 	public required string FirstName { get; set; }
 
@@ -43,12 +43,6 @@ public enum Gender {
 	Male,
 	Female,
 	Other
-}
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum School {
-	Educhem,
-	SSŠMEP
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]

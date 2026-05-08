@@ -69,7 +69,14 @@ export default function({ children }: { children: ReactNode }) {
                 </If>
 
                 <If condition={loggedAccount !== null}>
-                    <Link href="/app/profile" className={pathname === "/app/profile" ? style.active : ""} style={{ marginTop: "auto" }}>
+                    <Link href="/app/account" className={pathname === "/app/account" ? style.active : ""} style={{ marginTop: "auto" }}>
+                        <div className={style.icon} style={{ maskImage: 'url(/icons/account.svg)' }}></div>
+                        <p>Můj účet</p>
+                    </Link>
+                </If>
+
+                <If condition={loggedAccount !== null}>
+                    <Link href="/app/profile" className={pathname === "/app/profile" ? style.active : ""}>
                         <Avatar name={loggedAccount?.fullName ?? ""} size="24px" className={style.avatar} src={loggedAccount?.avatarUrl} />
                         <p>Veřejný profil</p>
                     </Link>
