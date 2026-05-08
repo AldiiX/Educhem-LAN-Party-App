@@ -3,7 +3,9 @@ using server.Data.Entities;
 
 namespace server.Data;
 
-public class AppDbContext : DbContext {
+public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options) {
+
+	public DbSet<Account> Accounts { get; set; }
 
 
 
@@ -47,7 +49,7 @@ public class AppDbContext : DbContext {
 		modelBuilder.Entity<Account>(e => {
 			e.Property(a => a.Id)
 				.ValueGeneratedOnAdd()
-				.HasDefaultValue("uuidv7()");
+				.HasDefaultValueSql("uuidv7()");
 
 			e.Property(a => a.LastActiveUtc)
 				.HasColumnType("timestamp with time zone")
@@ -57,6 +59,10 @@ public class AppDbContext : DbContext {
 			e.Property(a => a.EnableReservations)
 				.ValueGeneratedOnAdd()
 				.HasDefaultValue(false);
+
+			e.Property(a => a.AccountType)
+				.ValueGeneratedOnAdd()
+				.HasDefaultValue(AccountType.Student);
 		});
 	}
 }

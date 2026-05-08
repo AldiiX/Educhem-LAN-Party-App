@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace server.Data.Entities;
@@ -37,17 +38,20 @@ public class Account : Entity<Guid> {
 	public bool EnableReservations { get; set; } = false;
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum Gender {
 	Male,
 	Female,
 	Other
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum School {
 	Educhem,
 	SSŠMEP
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AccountType {
 	Student,
 	Teacher,

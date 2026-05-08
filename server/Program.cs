@@ -6,6 +6,7 @@ using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Npgsql.NameTranslation;
 using server.Data;
 using server.Data.Entities;
+using server.Services;
 using StackExchange.Redis;
 
 namespace server;
@@ -14,7 +15,6 @@ namespace server;
 
 public static class Program {
 
-    public static ILogger Logger { get; private set; } = null!;
     public static WebApplication Application { get; private set; } = null!;
     public static IDictionary<string, string> ENV { get; private set; } = DotEnv.Read();
 
@@ -93,17 +93,19 @@ public static class Program {
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddHttpClient();
 
+        builder.Services.AddScoped<IAuthService, AuthService>();
+
         Application = builder.Build();
 
         using (var scope = Application.Services.CreateScope()) {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            Logger.LogInformation("NPGSQL provider: {}", db.Database.ProviderName);
+            Application.Logger.LogInformation("NPGSQL provider: {}", db.Database.ProviderName);
         }
 
         Application.UseDefaultFiles();
         Application.MapStaticAssets();
-
+        Application.UseSession();
 
         //app.UseHttpsRedirection();
 
@@ -121,9 +123,6 @@ public static class Program {
 
         //app.MapFallbackToFile("/index.html");
 
-        Logger = Application.Logger;
-
-
-        Application.Run();
+        await Application.RunAsync();
     }
 }

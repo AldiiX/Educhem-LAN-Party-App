@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import type { ResolvedWebTheme, WebTheme } from "@/app/_types";
 import { WebThemeProvider } from "@/app/_providers/WebThemeProvider";
 import {siteConfig} from "@/data/site";
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
     title: {
@@ -119,6 +120,7 @@ export default async function RootLayout({
             initialTheme={initialTheme}
             initialResolvedTheme={initialResolvedTheme}
         >
+            <Toaster position="bottom-right" toastOptions={{ style: { background: 'var(--element-bg)', color: 'var(--text-color)', boxShadow: "0 16px 38px var(--shadow-color)", border: "1px solid var(--border-color)" } }} />
             {children}
         </WebThemeProvider>
         </body>
