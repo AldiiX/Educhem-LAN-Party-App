@@ -7,6 +7,7 @@ public static class Mapper {
 		return new SchoolDto {
 			Id = school.Id,
 			Slug = school.Slug,
+			ShortName = school.ShortName,
 			DisplayName = school.DisplayName,
 			IconUrl = school.IconUrl,
 		};

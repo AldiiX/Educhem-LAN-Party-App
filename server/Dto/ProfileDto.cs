@@ -12,4 +12,5 @@ public class ProfileDto : EntityDto<Guid> {
 	public required string? BannerUrl { get; set; }
 	public required Gender? Gender { get; set; }
 	public required DateTime CreatedAtUtc { get; set; }
+	public required AccountType AccountType { get; set; }
 }

@@ -15,6 +15,7 @@ public static class AccountMapper {
 				BannerUrl = account.BannerUrl,
 				Gender = account.Gender,
 				CreatedAtUtc = account.CreatedAtUtc,
+				AccountType = account.AccountType,
 			};
 		}
 

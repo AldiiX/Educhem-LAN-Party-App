@@ -123,6 +123,11 @@ namespace server.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
+                    b.Property<string>("ShortName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(64)

@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function Page({ params }: PageProps) {
-    const account = await getCachedCurrentLoggedAccount();
+    //const account = await getCachedCurrentLoggedAccount();
 
     const { uuid } = await params;
     const profile = await getProfile(uuid);
@@ -54,7 +54,7 @@ export default async function Page({ params }: PageProps) {
         notFound();
     }
 
-    if(profile.id == account?.id) redirect("/app/profile")
+    //if(profile.id == account?.id) redirect("/app/profile")
 
     return <Client account={profile} />;
 }

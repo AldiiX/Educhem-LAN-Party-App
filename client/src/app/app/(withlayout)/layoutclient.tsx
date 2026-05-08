@@ -3,18 +3,27 @@
 import {ReactNode} from "react";
 import style from "./layoutclient.module.scss";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {Avatar} from "@/components/Avatar";
 import If from "@/components/util/If";
 import {Button} from "@/components/Button";
-import {Account} from "@/schemas/AccountSchema";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {useWebTheme} from "@/app/_providers/WebThemeProvider";
 
 
 
 export default function({ children }: { children: ReactNode }) {
     const pathname = usePathname();
-    const { account: loggedAccount } = useAuth();
+    const router = useRouter();
+    const { account: loggedAccount, setAccount } = useAuth();
+    const {toggleTheme} = useWebTheme();
+
+    const logout = async () => {
+        await fetch("/api/v1/account/logout", {method: "POST"});
+        setAccount(null);
+        router.push("/app/login");
+        router.refresh();
+    };
 
     return <div className={style.layout}>
         <div className={style.panel}>
@@ -91,18 +100,44 @@ export default function({ children }: { children: ReactNode }) {
         </div>
 
         <div className={style.content}>
-            <div className={style.login}>
-                <If condition={loggedAccount !== null} fallback={
-                    // uzivatel neni lognuty
-                    <Link href="/app/login">
-                        <Button type="primary" text="Přihlásit se" style={{ padding: "10px 32px" }} />
-                    </Link>
-                }>
-                    <div>
-                        <p>Přihlášen{loggedAccount?.gender === "Female" ? "a" : ''} jako</p>
+            <div className={style.loginShell}>
+                <div className={style.login}>
+                    <If condition={loggedAccount !== null} fallback={
+                        // uzivatel neni lognuty
+                        <Link href="/app/login">
+                            <Button type="primary" text="Přihlásit se" style={{ padding: "10px 32px" }} />
+                        </Link>
+                    }>
+                        <div>
+                            <p>Přihlášen{loggedAccount?.gender === "Female" ? "a" : ''} jako</p>
+                            <h2>{ loggedAccount?.fullName }</h2>
+                        </div>
+                        <Avatar name={loggedAccount?.fullName ?? ""} size="48px" src={loggedAccount?.avatarUrl} />
+                    </If>
+                </div>
+
+                <If condition={loggedAccount !== null}>
+                    <div className={style.accountPopover}>
+                        <Avatar name={loggedAccount?.fullName ?? ""} size="160px" src={loggedAccount?.avatarUrl} className={style.popoverAvatar} />
                         <h2>{ loggedAccount?.fullName }</h2>
+                        <p>{ loggedAccount?.email }</p>
+
+                        <div className={style.popoverActions}>
+                            <Link href="/app/profile">
+                                <span className={style.actionIcon} style={{ maskImage: "url(/icons/account_outline.svg)" }}></span>
+                                <span>Můj účet</span>
+                            </Link>
+                            <button type="button" onClick={toggleTheme}>
+                                <span className={style.actionIcon} style={{ maskImage: "url(/icons/theme.svg)" }}></span>
+                                <span>Změnit theme</span>
+                            </button>
+                        </div>
+
+                        <button type="button" className={style.logoutButton} onClick={logout}>
+                            <span className={style.actionIcon} style={{ maskImage: "url(/icons/logout.svg)" }}></span>
+                            <span>Odhlásit se</span>
+                        </button>
                     </div>
-                    <Avatar name={loggedAccount?.fullName ?? ""} size="48px" src={loggedAccount?.avatarUrl} />
                 </If>
             </div>
 

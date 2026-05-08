@@ -21,18 +21,20 @@ namespace server.Migrations
                 .Annotation("Npgsql:Enum:public.AccountType", "Admin,Student,SuperAdmin,Teacher,TeacherOrg");
 
             migrationBuilder.CreateTable(
-                name: "School",
+                name: "Schools",
+                schema: "public",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Slug = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    DisplayName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    ShortName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    DisplayName = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     IconUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_School", x => x.Id);
+                    table.PrimaryKey("PK_Schools", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -60,9 +62,10 @@ namespace server.Migrations
                 {
                     table.PrimaryKey("PK_Accounts", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Accounts_School_SchoolId",
+                        name: "FK_Accounts_Schools_SchoolId",
                         column: x => x.SchoolId,
-                        principalTable: "School",
+                        principalSchema: "public",
+                        principalTable: "Schools",
                         principalColumn: "Id");
                 });
 
@@ -78,6 +81,13 @@ namespace server.Migrations
                 schema: "public",
                 table: "Accounts",
                 column: "SchoolId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Schools_Slug",
+                schema: "public",
+                table: "Schools",
+                column: "Slug",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -88,7 +98,8 @@ namespace server.Migrations
                 schema: "public");
 
             migrationBuilder.DropTable(
-                name: "School");
+                name: "Schools",
+                schema: "public");
         }
     }
 }

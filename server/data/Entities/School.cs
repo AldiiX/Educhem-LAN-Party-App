@@ -10,6 +10,9 @@ public sealed class School : Entity<ushort> {
 	[MaxLength(64)]
 	public required string Slug { get; set; }
 
+	[MaxLength(64)]
+	public required string ShortName { get; set; }
+
 	[MaxLength(128)]
 	public required string DisplayName { get; set; }
 

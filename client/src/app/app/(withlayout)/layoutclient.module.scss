@@ -110,24 +110,133 @@
         position: relative;
         flex: 1;
         padding: 48px;
+        overflow: auto;
 
-        .login {
+        .loginShell {
             position: absolute;
             top: 32px;
             right: 48px;
             z-index: 1;
-            display: flex;
-            align-items: center;
-            text-align: right;
-            gap: 16px;
+            padding-bottom: 18px;
 
-            h2 {
-                color: var(--accent-color);
-                font-size: 20px;
+            &:hover,
+            &:focus-within {
+                z-index: 5;
+
+                .accountPopover {
+                    opacity: 1;
+                    visibility: visible;
+                    transform: translateY(0) scale(1);
+                    pointer-events: auto;
+                }
             }
 
-            p {
-                margin-bottom: -6px;
+            .login {
+                display: flex;
+                align-items: center;
+                text-align: right;
+                gap: 16px;
+
+                h2 {
+                    color: var(--accent-color);
+                    font-size: 20px;
+                    font-weight: 600;
+                }
+
+                p {
+                    margin-bottom: -6px;
+                    font-weight: 400;
+                }
+            }
+
+            .accountPopover {
+                position: absolute;
+                top: calc(100% - 4px);
+                right: 0;
+                width: 278px;
+                padding: 32px;
+                border: 1px solid var(--border-color);
+                border-radius: 14px;
+                background: var(--element-bg);
+                box-shadow: 0 20px 42px var(--shadow-color);
+                text-align: center;
+                opacity: 0;
+                visibility: hidden;
+                transform: translateY(-8px) scale(.98);
+                transform-origin: top right;
+                transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+                pointer-events: none;
+
+                .popoverAvatar {
+                    margin: 0 auto 18px;
+                }
+
+                >h2 {
+                    color: var(--accent-color);
+                    font-size: 26px;
+                    line-height: 1.1;
+                    font-weight: 600;
+                }
+
+                >p {
+                    color: var(--text-color-3);
+                    font-size: 17px;
+                    line-height: 1.2;
+                    margin-top: 4px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    font-weight: 400;
+                }
+
+                .popoverActions {
+                    display: grid;
+                    gap: 12px;
+                    margin-top: 34px;
+                    padding-bottom: 20px;
+                    border-bottom: 1px solid var(--border-color);
+                }
+
+                a,
+                button {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    color: var(--text-color);
+                    font-weight: 500;
+                    font-size: 19px;
+                    line-height: 1;
+                    text-align: left;
+                    transition: color .2s ease;
+
+                    &:hover {
+                        color: var(--accent-color);
+
+                        .actionIcon {
+                            background: var(--accent-color);
+                        }
+                    }
+                }
+
+                .logoutButton {
+                    width: 100%;
+                    margin-top: 18px;
+                    color: var(--error-color);
+
+                    .actionIcon {
+                        background: var(--error-color);
+                    }
+                }
+
+                .actionIcon {
+                    width: 24px;
+                    height: 24px;
+                    flex: 0 0 24px;
+                    background: currentColor;
+                    mask-position: center;
+                    mask-repeat: no-repeat;
+                    mask-size: contain;
+                    transition: background .2s ease;
+                }
             }
         }
     }
