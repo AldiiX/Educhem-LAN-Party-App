@@ -12,6 +12,14 @@ using server.Services;
 
 namespace server.Controllers;
 
+/**
+ *	TODO:
+ *	- udělat aby role nemohly upravovat/vytvářet/deletovat uživatele se stejnou nebo vyšší rolí
+ *	  na frontendu tam nebude tlačítko upravit a bude tam výstraha že nejde upravit stejnou nebo vyšší roli
+ *	  superadmin má vyjímku - může všechno udělat, klidně smazat i sám sebe
+ *
+ */
+
 [ApiController]
 [Route("api/v1/account")]
 public class AccountControllerV1(IAuthService auth, AppDbContext db, IServiceProvider serviceProvider) : Controller {
@@ -115,6 +123,8 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 			var school = await db.Set<School>().FirstOrDefaultAsync(s => s.Id == request.SchoolId, ct);
 			if(school == null) return BadRequest("Unknown school.");
 			account.School = school;
+		} else if(request.SchoolId == null) {
+			account.School = null;
 		}
 
 		string? passwordForEmail = null;

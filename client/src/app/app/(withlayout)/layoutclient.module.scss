@@ -63,6 +63,7 @@
 
                 &:is(.active){
                     background-color: var(--accent-soft);
+                    pointer-events: none;
 
                     >.icon {
                         background-color: var(--accent-color);
@@ -153,8 +154,8 @@
                 position: absolute;
                 top: calc(100% - 4px);
                 right: 0;
-                width: 278px;
-                padding: 32px;
+                width: 248px;
+                padding: 24px;
                 border: 1px solid var(--border-color);
                 border-radius: 14px;
                 background: var(--element-bg);
@@ -173,14 +174,14 @@
 
                 >h2 {
                     color: var(--accent-color);
-                    font-size: 26px;
+                    font-size: 22px;
                     line-height: 1.1;
                     font-weight: 600;
                 }
 
                 >p {
                     color: var(--text-color-3);
-                    font-size: 17px;
+                    font-size: 16px;
                     line-height: 1.2;
                     margin-top: 4px;
                     overflow: hidden;
@@ -192,7 +193,7 @@
                     display: grid;
                     gap: 12px;
                     margin-top: 34px;
-                    padding-bottom: 20px;
+                    padding-bottom: 16px;
                     border-bottom: 1px solid var(--border-color);
                 }
 
@@ -202,8 +203,7 @@
                     align-items: center;
                     gap: 10px;
                     color: var(--text-color);
-                    font-weight: 500;
-                    font-size: 19px;
+                    font-size: 16px;
                     line-height: 1;
                     text-align: left;
                     transition: color .2s ease;
@@ -219,7 +219,7 @@
 
                 .logoutButton {
                     width: 100%;
-                    margin-top: 18px;
+                    margin-top: 14px;
                     color: var(--error-color);
 
                     .actionIcon {
@@ -228,9 +228,9 @@
                 }
 
                 .actionIcon {
-                    width: 24px;
-                    height: 24px;
-                    flex: 0 0 24px;
+                    width: 20px;
+                    height: 20px;
+                    flex: 0 0 20px;
                     background: currentColor;
                     mask-position: center;
                     mask-repeat: no-repeat;

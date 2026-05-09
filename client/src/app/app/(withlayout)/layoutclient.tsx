@@ -85,7 +85,7 @@ export default function({ children }: { children: ReactNode }) {
                 </If>
 
                 <If condition={loggedAccount !== null}>
-                    <Link href="/app/profile" className={pathname === "/app/profile" ? style.active : ""}>
+                    <Link href="/app/profile" className={pathname === "/app/profile" || pathname === `/app/profile/${loggedAccount?.id}` ? style.active : ""}>
                         <Avatar name={loggedAccount?.fullName ?? ""} size="24px" className={style.avatar} src={loggedAccount?.avatarUrl} />
                         <p>Veřejný profil</p>
                     </Link>
@@ -118,12 +118,12 @@ export default function({ children }: { children: ReactNode }) {
 
                 <If condition={loggedAccount !== null}>
                     <div className={style.accountPopover}>
-                        <Avatar name={loggedAccount?.fullName ?? ""} size="160px" src={loggedAccount?.avatarUrl} className={style.popoverAvatar} />
+                        <Avatar name={loggedAccount?.fullName ?? ""} size="128px" src={loggedAccount?.avatarUrl} className={style.popoverAvatar} />
                         <h2>{ loggedAccount?.fullName }</h2>
                         <p>{ loggedAccount?.email }</p>
 
                         <div className={style.popoverActions}>
-                            <Link href="/app/profile">
+                            <Link href="/app/account">
                                 <span className={style.actionIcon} style={{ maskImage: "url(/icons/account_outline.svg)" }}></span>
                                 <span>Můj účet</span>
                             </Link>

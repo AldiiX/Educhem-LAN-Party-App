@@ -1,15 +1,17 @@
 "use client"
 
-import {FormEvent, useMemo, useState} from "react";
+import {FormEvent, useEffect, useMemo, useState} from "react";
 import Link from "next/link";
+import useSWR from "swr";
 import {toast} from "react-hot-toast";
 import style from "./client.module.scss";
-import {Account, AccountGender} from "@/schemas/AccountSchema";
+import {Account, AccountGender, AccountSchema} from "@/schemas/AccountSchema";
 import {Avatar} from "@/components/Avatar";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {Modal} from "@/components/Modal";
 import {ModalDestructive, ModalInformative} from "@/components/ModalDialog";
 import {accountTypeFilterLabel, accountTypeLabel, genderLabel, schoolLabel} from "@/lib/enumLabels";
+import {fetcher} from "@/lib/swr";
 
 type AccountType = NonNullable<Account["accountType"]>;
 type FilterKey = "accountType" | "gender" | "class" | "school" | "reservations";
@@ -56,6 +58,14 @@ const emptyForm: AccountForm = {
     password: "",
 };
 
+const emptyAccounts: Account[] = [];
+
+const accountsFetcher = async (url: string) => {
+    const response = await fetcher<unknown>(url);
+
+    return AccountSchema.array().parse(response ?? []);
+};
+
 function formatDate(value?: Date | null) {
     if(!value) return "";
 
@@ -69,9 +79,9 @@ function formatDate(value?: Date | null) {
     }).format(value);
 }
 
-function accountToForm(account: Account | null, fallbackSchoolId: string): AccountForm {
+function accountToForm(account: Account | null): AccountForm {
     if(!account) {
-        return {...emptyForm, schoolId: fallbackSchoolId};
+        return {...emptyForm };
     }
 
     return {
@@ -81,7 +91,7 @@ function accountToForm(account: Account | null, fallbackSchoolId: string): Accou
         email: account.email ?? "",
         class: account.class ?? "",
         gender: account.gender ?? "",
-        schoolId: String(account.school?.id ?? fallbackSchoolId),
+        schoolId: String(account.school?.id),
         accountType: account.accountType ?? "Student",
         avatarUrl: account.avatarUrl ?? "",
         bannerUrl: account.bannerUrl ?? "",
@@ -133,9 +143,10 @@ function uniqueOptions(accounts: Account[], selector: (account: Account) => stri
         });
 }
 
-export default function AdministrationClient({accounts: initialAccounts}: { accounts: Account[] }) {
+export default function AdministrationClient() {
     const {account: loggedAccount, setAccount: setLoggedAccount} = useAuth();
-    const [accounts, setAccounts] = useState(initialAccounts);
+    const {data: fetchedAccounts, error: accountsError, isLoading: accountsLoading, mutate: mutateAccounts} = useSWR<Account[]>("/api/v1/account/all", accountsFetcher);
+    const accounts = fetchedAccounts ?? emptyAccounts;
     const [search, setSearch] = useState("");
     const [filters, setFilters] = useState<Record<FilterKey, string[]>>({
         accountType: [],
@@ -214,23 +225,12 @@ export default function AdministrationClient({accounts: initialAccounts}: { acco
     }, [accounts, filters, search, sort]);
 
     const refreshAccounts = async () => {
-        const response = await fetch("/api/v1/account/all");
-        if(!response.ok) throw new Error("Fetch failed");
-        const data = await response.json() as Account[];
-        const parsed = data.map(account => ({
-            ...account,
-            createdAtUtc: account.createdAtUtc ? new Date(account.createdAtUtc) : null,
-            updatedAtUtc: account.updatedAtUtc ? new Date(account.updatedAtUtc) : null,
-            lastActiveUtc: account.lastActiveUtc ? new Date(account.lastActiveUtc) : null,
-        })) as Account[];
-        setAccounts(parsed);
-        return parsed;
+        return await mutateAccounts() ?? emptyAccounts;
     };
 
     const openModal = (mode: ModalMode, account: Account | null = null) => {
-        const fallbackSchoolId = String(schoolOptions[0]?.id ?? "");
         setSelectedAccount(account);
-        setForm(accountToForm(account, fallbackSchoolId));
+        setForm(accountToForm(account));
         setModalMode(mode);
     };
 
@@ -310,9 +310,10 @@ export default function AdministrationClient({accounts: initialAccounts}: { acco
 
             if(!response.ok) throw new Error("Save failed");
 
-            const data = await response.json() as {account: Account, loginCredentialsEmailSent?: boolean};
+            const data = await response.json() as {account: unknown, loginCredentialsEmailSent?: boolean};
+            const savedAccount = AccountSchema.parse(data.account);
             const refreshed = await refreshAccounts();
-            const nextSelected = refreshed.find(account => account.id === data.account.id) ?? data.account;
+            const nextSelected = refreshed.find(account => account.id === savedAccount.id) ?? savedAccount;
 
             if(loggedAccount?.id === nextSelected.id) {
                 setLoggedAccount(nextSelected);
@@ -320,7 +321,7 @@ export default function AdministrationClient({accounts: initialAccounts}: { acco
 
             setSelectedAccount(nextSelected);
             setModalMode("detail");
-            toast.success(modalMode === "create" ? "Uživatel vytvořen." : "Uživatel upraven.");
+            toast.success(modalMode === "create" ? `Uživatel ${nextSelected.fullName} vytvořen.` : `Uživatel ${nextSelected.fullName} upraven.`);
             if(form.sendLoginCredentialsEmail) {
                 if(data.loginCredentialsEmailSent) {
                     toast.success("Přihlašovací údaje byly odeslány na email.");
@@ -371,7 +372,31 @@ export default function AdministrationClient({accounts: initialAccounts}: { acco
         }
     };
 
+    useEffect(() => {
+        if(!selectedAccount) return;
+
+        const nextSelectedAccount = accounts.find(account => account.id === selectedAccount.id);
+        if(nextSelectedAccount) {
+            setSelectedAccount(nextSelectedAccount);
+        }
+    }, [accounts, selectedAccount?.id]);
+
     const canMutateUsers = loggedAccount?.accountType === "Admin" || loggedAccount?.accountType === "SuperAdmin";
+
+    /*if(accountsLoading) {
+        return <main className={style.administration}>
+            <h1>Administrace</h1>
+            <p>Načítám uživatele...</p>
+        </main>
+    }*/
+
+    if(accountsError) {
+        return <main className={style.administration}>
+            <h1>Administrace</h1>
+            <p>Uživatele se nepodařilo načíst.</p>
+            <button type="button" onClick={() => mutateAccounts()}>Zkusit znovu</button>
+        </main>
+    }
 
     return <main className={style.administration}>
         <h1>Administrace</h1>
@@ -464,9 +489,9 @@ export default function AdministrationClient({accounts: initialAccounts}: { acco
                             <td title={account.school?.displayName}>{schoolLabel(account.school)}</td>
                             <td>{account.class}</td>
                             <td>{accountTypeLabel(account.accountType, account.gender)}</td>
-                            <td>{formatDate(account.createdAtUtc)}</td>
-                            <td>{formatDate(account.updatedAtUtc)}</td>
-                            <td>{formatDate(account.lastActiveUtc)}</td>
+                            <td title={formatDate(account.createdAtUtc)}>{formatDate(account.createdAtUtc)}</td>
+                            <td title={formatDate(account.updatedAtUtc)}>{formatDate(account.updatedAtUtc)}</td>
+                            <td title={formatDate(account.lastActiveUtc)}>{formatDate(account.lastActiveUtc)}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -576,7 +601,7 @@ function AccountDetailModal({account, canMutate, onEdit, onDelete, onResetPasswo
                 <InfoRow icon="/icons/class.svg">{account.class || "-"}</InfoRow>
                 <InfoRow icon="/icons/gender.svg">{genderLabel(account.gender)}</InfoRow>
                 <InfoRow icon="/icons/user_with_shield.svg">{accountTypeLabel(account.accountType, account.gender)}</InfoRow>
-                <InfoRow icon="/icons/organization.svg" title={account.school?.displayName}>{schoolLabel(account.school)}</InfoRow>
+                <InfoRow icon="/icons/organization.svg" title={account.school?.displayName}>{schoolLabel(account.school) || "-" }</InfoRow>
             </div>
 
             {canMutate && <div className={style.modalActions}>

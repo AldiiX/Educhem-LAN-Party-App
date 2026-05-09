@@ -1,4 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Gabarito:wght@400;500;600;700;800&display=swap');
+@font-face {
+    font-family: "Gabarito";
+    src: url("../../public/fonts/gabarito.ttf");
+}
+
+@font-face {
+    font-family: "leaguespartan";
+    src: url("../../public/fonts/leaguespartan.ttf");
+}
 
 $accent-dark: #ffb303;
 $accent-light: #ff8300;

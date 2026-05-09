@@ -5,7 +5,7 @@ namespace server.Dto;
 public class ProfileDto : EntityDto<Guid> {
 	public required string FirstName { get; set; }
 	public required string LastName { get; set; }
-	public string FullName => $"{FirstName} {LastName}";
+	public string FullName => $"{FirstName} {LastName}".Trim();
 	public required string? Class { get; set; }
 	public required SchoolDto? School { get; set; }
 	public required string? AvatarUrl { get; set; }

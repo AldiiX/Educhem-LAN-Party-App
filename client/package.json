@@ -13,7 +13,8 @@
         "react": "19.2.5",
         "react-dom": "19.2.5",
         "react-hot-toast": "^2.6.0",
-        "sass": "^1.99.0"
+        "sass": "^1.99.0",
+        "swr": "^2.4.1"
     },
     "devDependencies": {
         "@eslint/eslintrc": "^3",

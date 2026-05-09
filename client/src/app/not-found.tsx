@@ -12,7 +12,7 @@ export default function NotFound() {
             </div>
 
             <h2>Stránka nenalezena</h2>
-            <p>Omlouváme se, ale stránka, kterou hledáte, nebyla nalezena.</p>
+            <p>Omlouváme se, ale stránka, kterou hledáš, nebyla nalezena.</p>
         </div>
     )
 }
