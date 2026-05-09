@@ -12,13 +12,9 @@ using server.Services;
 
 namespace server.Controllers;
 
-/**
- *	TODO:
- *	- udělat aby role nemohly upravovat/vytvářet/deletovat uživatele se stejnou nebo vyšší rolí
- *	  na frontendu tam nebude tlačítko upravit a bude tam výstraha že nejde upravit stejnou nebo vyšší roli
- *	  superadmin má vyjímku - může všechno udělat, klidně smazat i sám sebe
- *
- */
+
+
+
 
 [ApiController]
 [Route("api/v1/account")]
@@ -36,7 +32,7 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 	public async Task<IActionResult> GetAllAccounts(CancellationToken ct = default) {
 		var acc = await auth.ReAuthAsync(ct);
 		if(acc == null) return new UnauthorizedResult();
-		if(acc.AccountType is not (AccountType.TeacherOrg or AccountType.Admin or AccountType.SuperAdmin))
+		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
 			return Forbid();
 
 		var accounts = await db.AccountsEf()
@@ -53,11 +49,15 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 	public async Task<IActionResult> CreateAccount([FromBody] AccountMutationRequest request, CancellationToken ct = default) {
 		var acc = await auth.ReAuthAsync(ct);
 		if(acc == null) return new UnauthorizedResult();
-		if(acc.AccountType is not (AccountType.Admin or AccountType.SuperAdmin))
+		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
 			return Forbid();
 
 		if(string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName) || string.IsNullOrWhiteSpace(request.Email))
 			return BadRequest("Missing required account fields.");
+
+		var requestedAccountType = request.AccountType ?? AccountType.Student;
+		if(!CanManageRole(acc, requestedAccountType))
+			return Forbid();
 
 		School? school = null;
 		if(request.SchoolId != null) {
@@ -75,7 +75,7 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 			Class = NormalizeOptional(request.Class),
 			Gender = request.Gender,
 			School = school,
-			AccountType = request.AccountType ?? AccountType.Student,
+			AccountType = requestedAccountType,
 			AvatarUrl = NormalizeOptional(request.AvatarUrl),
 			BannerUrl = NormalizeOptional(request.BannerUrl),
 			EnableReservations = request.EnableReservations ?? false,
@@ -102,11 +102,17 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 	public async Task<IActionResult> UpdateAccount(Guid id, [FromBody] AccountMutationRequest request, CancellationToken ct = default) {
 		var acc = await auth.ReAuthAsync(ct);
 		if(acc == null) return new UnauthorizedResult();
-		if(acc.AccountType is not (AccountType.Admin or AccountType.SuperAdmin))
+		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
 			return Forbid();
 
 		var account = await db.AccountsEf().FirstOrDefaultAsync(a => a.Id == id, ct);
 		if(account == null) return NotFound();
+		if(!CanManageAccount(acc, account))
+			return Forbid();
+
+		var requestedAccountType = request.AccountType ?? account.AccountType;
+		if(!CanManageRole(acc, requestedAccountType))
+			return Forbid();
 
 		if(!string.IsNullOrWhiteSpace(request.FirstName)) account.FirstName = request.FirstName.Trim();
 		if(!string.IsNullOrWhiteSpace(request.LastName)) account.LastName = request.LastName.Trim();
@@ -114,7 +120,7 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 
 		account.Class = NormalizeOptional(request.Class);
 		account.Gender = request.Gender;
-		account.AccountType = request.AccountType ?? account.AccountType;
+		account.AccountType = requestedAccountType;
 		account.AvatarUrl = NormalizeOptional(request.AvatarUrl);
 		account.BannerUrl = NormalizeOptional(request.BannerUrl);
 		account.EnableReservations = request.EnableReservations ?? account.EnableReservations;
@@ -156,12 +162,13 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 	public async Task<IActionResult> DeleteAccount(Guid id, CancellationToken ct = default) {
 		var acc = await auth.ReAuthAsync(ct);
 		if(acc == null) return new UnauthorizedResult();
-		if(acc.AccountType is not (AccountType.Admin or AccountType.SuperAdmin))
+		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
 			return Forbid();
-		if(acc.Id == id) return BadRequest("Cannot delete currently logged account.");
 
 		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == id, ct);
 		if(account == null) return NotFound();
+		if(!CanManageAccount(acc, account))
+			return Forbid();
 
 		db.Accounts.Remove(account);
 		await db.SaveChangesAsync(ct);
@@ -172,11 +179,13 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 	public async Task<IActionResult> ResetPassword(Guid id, CancellationToken ct = default) {
 		var acc = await auth.ReAuthAsync(ct);
 		if(acc == null) return new UnauthorizedResult();
-		if(acc.AccountType is not (AccountType.Admin or AccountType.SuperAdmin))
+		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
 			return Forbid();
 
 		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == id, ct);
 		if(account == null) return NotFound();
+		if(!CanManageAccount(acc, account))
+			return Forbid();
 
 		var password = GenerateRandomPassword();
 		account.PasswordHash = AuthService.HashPassword(password);
@@ -227,6 +236,18 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 
 	private static string? NormalizeOptional(string? value) {
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+	}
+
+	private static bool HasRoleAtLeast(Account account, AccountType accountType) {
+		return account.AccountType >= accountType;
+	}
+
+	private static bool CanManageRole(Account actor, AccountType targetAccountType) {
+		return actor.AccountType == AccountType.SuperAdmin || actor.AccountType > targetAccountType;
+	}
+
+	private static bool CanManageAccount(Account actor, Account target) {
+		return CanManageRole(actor, target.AccountType);
 	}
 
 	private static string GenerateRandomPassword(int length = 24) {

@@ -47,9 +47,9 @@ public enum Gender {
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AccountType {
-	Student,
-	Teacher,
-	TeacherOrg,
-	Admin,
-	SuperAdmin
+	Student = 0,
+	Teacher = 1,
+	TeacherOrg = 2,
+	Admin = 3,
+	SuperAdmin = 4
 }

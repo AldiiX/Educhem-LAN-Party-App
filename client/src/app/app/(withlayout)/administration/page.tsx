@@ -2,6 +2,7 @@ import {Metadata} from "next";
 import {getCachedCurrentLoggedAccount} from "@/lib/auth";
 import {redirect} from "next/navigation";
 import Client from "@/app/app/(withlayout)/administration/client";
+import {hasRoleAtLeast} from "@/lib/roles";
 
 export const metadata: Metadata = {
     title: "Administrace",
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 export default async function() {
     const account = await getCachedCurrentLoggedAccount();
     if(!account) redirect("/app");
-    if(account.accountType !== "TeacherOrg" && account.accountType !== "SuperAdmin" && account.accountType !== "Admin") {
+    if(!hasRoleAtLeast(account, "TeacherOrg")) {
         redirect("/app");
     }
 

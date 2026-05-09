@@ -9,6 +9,7 @@ import If from "@/components/util/If";
 import {Button} from "@/components/Button";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {useWebTheme} from "@/app/_providers/WebThemeProvider";
+import {hasRoleAtLeast} from "@/lib/roles";
 
 
 
@@ -70,7 +71,7 @@ export default function({ children }: { children: ReactNode }) {
                     <p>Nahlásit problém</p>
                 </Link>
 
-                <If condition={loggedAccount !== null  && (loggedAccount.accountType === "TeacherOrg" || loggedAccount.accountType === "Admin" || loggedAccount.accountType === "SuperAdmin")}>
+                <If condition={hasRoleAtLeast(loggedAccount, "TeacherOrg")}>
                     <Link href="/app/administration" className={pathname === "/app/administration" ? style.active : ""}>
                         <div className={style.icon} style={{ maskImage: 'url(/icons/user_with_shield.svg)' }}></div>
                         <p>Administrace</p>
