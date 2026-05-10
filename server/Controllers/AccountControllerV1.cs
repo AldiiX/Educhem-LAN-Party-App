@@ -40,6 +40,57 @@ public class AccountControllerV1(
 		return Ok(acc.ToDto());
 	}
 
+	[HttpGet("dashboard")]
+	public async Task<IActionResult> GetDashboard(CancellationToken ct = default) {
+		var acc = await auth.ReAuthAsync(ct);
+		var nowUtc = DateTime.UtcNow;
+		var accounts = await db.AccountsEf()
+			.AsNoTracking()
+			.Select(a => new {
+				a.Id,
+				a.FirstName,
+				a.LastName,
+				a.Class,
+				a.AccountType,
+				a.EnableReservations,
+				a.CreatedAtUtc,
+				a.LastActiveUtc,
+			})
+			.ToListAsync(ct);
+
+		var activeNow = accounts.Count(a => a.LastActiveUtc >= nowUtc.AddMinutes(-15));
+		var activeToday = accounts.Count(a => a.LastActiveUtc >= nowUtc.Date);
+		var reservationsEnabled = accounts.Count(a => a.EnableReservations);
+		var staffCount = accounts.Count(a => a.AccountType >= AccountType.Teacher);
+		var latestAccounts = acc == null ? [] : accounts
+			.OrderByDescending(a => a.CreatedAtUtc)
+			.Take(4)
+			.Select(a => new DashboardRecentAccount(
+				$"{a.FirstName} {a.LastName}",
+				a.Class,
+				a.CreatedAtUtc
+			))
+			.ToList();
+		var classBreakdown = accounts
+			.Where(a => a.EnableReservations && !string.IsNullOrWhiteSpace(a.Class))
+			.GroupBy(a => a.Class!)
+			.OrderByDescending(group => group.Count())
+			.ThenBy(group => group.Key)
+			.Take(6)
+			.Select(group => new DashboardClassStat(group.Key, group.Count()))
+			.ToList();
+
+		return Ok(new DashboardResponse(
+			accounts.Count,
+			activeNow,
+			activeToday,
+			reservationsEnabled,
+			staffCount,
+			latestAccounts,
+			classBreakdown
+		));
+	}
+
 	[HttpGet("all")]
 	public async Task<IActionResult> GetAllAccounts(CancellationToken ct = default) {
 		var acc = await auth.ReAuthAsync(ct);
@@ -426,6 +477,17 @@ public class AccountControllerV1(
 
 	public sealed record AccountMutationResponse(AccountDto Account, bool LoginCredentialsEmailSent = false);
 	public sealed record PasswordResetResponse(bool LoginCredentialsEmailSent);
+	public sealed record DashboardResponse(
+		int TotalAccounts,
+		int ActiveNow,
+		int ActiveToday,
+		int ReservationsEnabled,
+		int StaffCount,
+		IReadOnlyList<DashboardRecentAccount> LatestAccounts,
+		IReadOnlyList<DashboardClassStat> ClassBreakdown
+	);
+	public sealed record DashboardRecentAccount(string FullName, string? Class, DateTime CreatedAtUtc);
+	public sealed record DashboardClassStat(string Class, int Count);
 	public sealed record MyAccountMutationRequest(Gender? Gender, string? AvatarUrl, string? BannerUrl);
 	public sealed record ChangeMyPasswordRequest(string OldPassword, string NewPassword);
 	public sealed record ForgotPasswordRequest(string Email);
