@@ -24,10 +24,27 @@ if [ ! -f /app/client/package.json ]; then
     exit 1
 fi
 
+if [ ! -f /app/client/server.js ]; then
+    echo "error: /app/client/server.js neexistuje"
+    exit 1
+fi
+
+backend_pid=""
+frontend_pid=""
+nginx_pid=""
+
 terminate() {
     echo "info: ukoncuju procesy"
-    kill -TERM "$backend_pid" "$frontend_pid" "$nginx_pid" 2>/dev/null || true
-    wait "$backend_pid" "$frontend_pid" "$nginx_pid" 2>/dev/null || true
+    for pid in "$backend_pid" "$frontend_pid" "$nginx_pid"; do
+        if [ -n "$pid" ]; then
+            kill -TERM "$pid" 2>/dev/null || true
+        fi
+    done
+    for pid in "$backend_pid" "$frontend_pid" "$nginx_pid"; do
+        if [ -n "$pid" ]; then
+            wait "$pid" 2>/dev/null || true
+        fi
+    done
 }
 
 trap terminate INT TERM
@@ -38,7 +55,7 @@ backend_pid=$!
 
 echo "info: startuju frontend na 0.0.0.0:${PORT}"
 cd /app/client
-npm run start &
+node server.js &
 frontend_pid=$!
 
 echo "info: startuju nginx na portu 80"
