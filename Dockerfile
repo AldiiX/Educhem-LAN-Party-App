@@ -20,8 +20,13 @@ RUN dotnet restore "./server/server.csproj"
 COPY . .
 WORKDIR "/src/server"
 
-# vytvoreni prazdnyho .env souboru v tomto direktory pokud .env neexistuje
-RUN if [ ! -f ".env" ]; then touch .env; fi
+# vytvoreni .env z BACKEND_ENV_B64 secretu (pokud existuje a .env neexistuje), nebo prazdneho .env pokud zadna data nejsou k dispozici
+RUN --mount=type=secret,id=BACKEND_ENV_B64 \
+    sh -c 'set -eu; \
+      if [ -f .env ] && [ -s .env ]; then echo ".env uz existuje, preskakuju envb64"; \
+      elif [ -f /run/secrets/BACKEND_ENV_B64 ] && [ -s /run/secrets/BACKEND_ENV_B64 ]; then echo "vytvarim .env z BACKEND_ENV_B64"; \
+        base64 -d /run/secrets/BACKEND_ENV_B64 > .env; chmod 600 .env; \
+      else echo "neni .env a neni secret, vytvarim prazdny .env"; : > .env; chmod 600 .env; fi'
 
 # buildnuti backendu
 RUN dotnet build "./server.csproj" -c $BUILD_CONFIGURATION -o /app/build
