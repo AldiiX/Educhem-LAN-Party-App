@@ -46,16 +46,6 @@ public class AccountControllerV1(
 		var nowUtc = DateTime.UtcNow;
 		var accounts = await db.AccountsEf()
 			.AsNoTracking()
-			.Select(a => new {
-				a.Id,
-				a.FirstName,
-				a.LastName,
-				a.Class,
-				a.AccountType,
-				a.EnableReservations,
-				a.CreatedAtUtc,
-				a.LastActiveUtc,
-			})
 			.ToListAsync(ct);
 
 		var activeNow = accounts.Count(a => a.LastActiveUtc >= nowUtc.AddMinutes(-15));
@@ -65,11 +55,7 @@ public class AccountControllerV1(
 		var latestAccounts = acc == null ? [] : accounts
 			.OrderByDescending(a => a.CreatedAtUtc)
 			.Take(4)
-			.Select(a => new DashboardRecentAccount(
-				$"{a.FirstName} {a.LastName}",
-				a.Class,
-				a.CreatedAtUtc
-			))
+			.Select(a => a.ToProfileDto())
 			.ToList();
 		var classBreakdown = accounts
 			.Where(a => a.EnableReservations && !string.IsNullOrWhiteSpace(a.Class))
@@ -483,10 +469,9 @@ public class AccountControllerV1(
 		int ActiveToday,
 		int ReservationsEnabled,
 		int StaffCount,
-		IReadOnlyList<DashboardRecentAccount> LatestAccounts,
+		IReadOnlyList<ProfileDto> LatestAccounts,
 		IReadOnlyList<DashboardClassStat> ClassBreakdown
 	);
-	public sealed record DashboardRecentAccount(string FullName, string? Class, DateTime CreatedAtUtc);
 	public sealed record DashboardClassStat(string Class, int Count);
 	public sealed record MyAccountMutationRequest(Gender? Gender, string? AvatarUrl, string? BannerUrl);
 	public sealed record ChangeMyPasswordRequest(string OldPassword, string NewPassword);
