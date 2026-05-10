@@ -63,6 +63,7 @@ export default function AdministrationClient() {
             schoolOptions={administration.schoolOptions}
             manageableAccountTypes={administration.manageableAccountTypes}
             canManageSelectedAccount={administration.canManageSelectedAccount}
+            canImpersonateSelectedAccount={administration.canImpersonateSelectedAccount}
             selectedAccountRoleBlocked={administration.selectedAccountRoleBlocked}
             selectedAccountWarningMessage={administration.selectedAccountWarningMessage}
             saving={administration.saving}
@@ -73,6 +74,7 @@ export default function AdministrationClient() {
             onOpenDelete={account => administration.openModal("delete", account)}
             onOpenResetPassword={account => administration.openModal("reset-password", account)}
             onDelete={administration.deleteAccount}
+            onImpersonate={administration.impersonateAccount}
             onResetPassword={administration.resetPassword}
         />
     </main>

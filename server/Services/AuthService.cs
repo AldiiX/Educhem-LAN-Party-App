@@ -58,6 +58,20 @@ public sealed class AuthService(
             .FirstOrDefaultAsync(a => a.Id == acc.Id, ct);
     }
 
+    public async Task<Account?> SignInAsAsync(Guid accountId, CancellationToken ct = default) {
+        var acc = await db.AccountsEf()
+            .AsNoTracking()
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(a => a.Id == accountId, ct);
+        if (acc == null) return null;
+
+        var dto = acc.ToSessionDto();
+        http.HttpContext!.Session.SetString("loggedaccount", JsonSerializer.Serialize(dto));
+        http.HttpContext.Items["loggedaccount"] = dto;
+
+        return acc;
+    }
+
 
     public async Task<Account?> ReAuthAsync(CancellationToken ct = default) {
         var json = http.HttpContext?.Session.GetString("loggedaccount");

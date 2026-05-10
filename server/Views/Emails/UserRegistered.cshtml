@@ -3,7 +3,7 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-    <title>Register Email</title>
+    <title>Přihlašovací údaje</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -38,6 +38,7 @@
 
         .content p {
             color: black;
+            line-height: 1.5;
         }
 
         .cta-button {
@@ -67,7 +68,7 @@
         </div>
 
         <div class="content">
-            <p>Ahoj, díky, že se účastníš LAN Party.</p>
+            <p>Ahoj @Model.GreetingName, díky, že se účastníš LAN Party.</p>
             <p>Pokud nemáš vlastní setup, rezervuj si počítač, na kterém po celou dobu budeš.</p>
             <p>Pokud si bereš svůj vlastní setup, rezervuj místnost, kde svůj setup budeš mít. Nezapomeň si s sebou vzít i příslušenství včetně monitorů a prodlužováku.</p>
             <p>Rezervuj si to co nejdříve, protože kapacita je omezená.</p>
@@ -84,7 +85,7 @@
 
             <br>
 
-            <a href="@Model.WebLink" class="cta-button">PŘIHLÁSIT SE</a>
+            <a href="@Model.WebLink" class="cta-button">Přihlásit se</a>
         </div>
 
         <div class="footer">

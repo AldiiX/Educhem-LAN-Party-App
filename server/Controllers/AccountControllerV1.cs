@@ -140,7 +140,10 @@ public class AccountControllerV1(
 				created.Email,
 				"EDUCHEM LAN Party - přihlašovací údaje",
 				"/Views/Emails/UserRegistered.cshtml",
-				password
+				password,
+				created.FirstName,
+				created.LastName,
+				created.Gender
 			);
 		}
 
@@ -200,7 +203,10 @@ public class AccountControllerV1(
 				updated.Email,
 				"EDUCHEM LAN Party - nové přihlašovací údaje",
 				"/Views/Emails/UserResetPassword.cshtml",
-				passwordForEmail
+				passwordForEmail,
+				updated.FirstName,
+				updated.LastName,
+				updated.Gender
 			);
 		}
 
@@ -244,10 +250,31 @@ public class AccountControllerV1(
 			account.Email,
 			"EDUCHEM LAN Party - nové heslo",
 			"/Views/Emails/UserResetPassword.cshtml",
-			password
+			password,
+			account.FirstName,
+			account.LastName,
+			account.Gender
 		);
 
 		return Ok(new PasswordResetResponse(emailSent));
+	}
+
+	[HttpPost("{id:guid}/impersonate")]
+	public async Task<IActionResult> Impersonate(Guid id, CancellationToken ct = default) {
+		var acc = await auth.ReAuthAsync(ct);
+		if(acc == null) return new UnauthorizedResult();
+		if(!HasRoleAtLeast(acc, AccountType.Admin))
+			return Forbid();
+
+		var account = await db.Accounts.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id, ct);
+		if(account == null) return NotFound();
+		if(!CanManageAccount(acc, account))
+			return Forbid();
+
+		var signedInAccount = await auth.SignInAsAsync(account.Id, ct);
+		if(signedInAccount == null) return NotFound();
+
+		return Ok(signedInAccount.ToDto());
 	}
 
 	[HttpPost("login")]
@@ -312,7 +339,10 @@ public class AccountControllerV1(
 			account.Email,
 			"EDUCHEM LAN Party - reset hesla",
 			"/Views/Emails/UserForgotPassword.cshtml",
-			resetLink
+			resetLink,
+			account.FirstName,
+			account.LastName,
+			account.Gender
 		);
 
 		return Ok(new PasswordResetResponse(emailSent));
@@ -394,16 +424,16 @@ public class AccountControllerV1(
 		return passwordBuilder.ToString();
 	}
 
-	private async Task<bool> SendCredentialsEmailAsync(string email, string subject, string viewPath, string password) {
+	private async Task<bool> SendCredentialsEmailAsync(string email, string subject, string viewPath, string password, string? firstName = null, string? lastName = null, Gender? gender = null) {
 		var webLink = GetWebLink(email, password);
-		var model = new EmailUserRegisterModel(password, webLink, email);
+		var model = new EmailUserRegisterModel(password, webLink, email, firstName, lastName, gender);
 		var fallbackBody = $"Email: {email}\nHeslo: {password}\n{webLink}";
 
 		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
 	}
 
-	private async Task<bool> SendPasswordResetLinkEmailAsync(string email, string subject, string viewPath, string resetLink) {
-		var model = new EmailPasswordResetLinkModel(resetLink, email);
+	private async Task<bool> SendPasswordResetLinkEmailAsync(string email, string subject, string viewPath, string resetLink, string? firstName = null, string? lastName = null, Gender? gender = null) {
+		var model = new EmailPasswordResetLinkModel(resetLink, email, firstName, lastName, gender);
 		var fallbackBody = $"Email: {email}\nReset hesla: {resetLink}";
 
 		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);

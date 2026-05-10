@@ -29,6 +29,9 @@ export function useAdministrationAccounts() {
     const canManageSelectedAccount = canCreateUsers && modalState.selectedAccount
         ? canManageAccount(loggedAccount, modalState.selectedAccount)
         : false;
+    const canImpersonateSelectedAccount = hasRoleAtLeast(loggedAccount, "Admin") && modalState.selectedAccount
+        ? canManageAccount(loggedAccount, modalState.selectedAccount)
+        : false;
     const manageableAccountTypes = accountTypeOrder.filter(type => canManageAccountRole(loggedAccount, type));
 
     const accountMutations = useAccountMutations({
@@ -52,6 +55,7 @@ export function useAdministrationAccounts() {
         ...modalState,
         ...accountMutations,
         canCreateUsers,
+        canImpersonateSelectedAccount,
         canManageSelectedAccount,
         loggedAccount,
         manageableAccountTypes,
