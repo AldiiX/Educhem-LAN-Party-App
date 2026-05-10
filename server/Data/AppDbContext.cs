@@ -6,6 +6,11 @@ namespace server.Data;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options) {
 
 	public DbSet<Account> Accounts { get; set; }
+			public DbSet<Achievement> Achievements { get; set; }
+			public DbSet<Badge> Badges { get; set; }
+			public DbSet<BadgeAchievement> BadgeAchievements { get; set; }
+			public DbSet<AccountAchievement> AccountAchievements { get; set; }
+			public DbSet<AccountBadge> AccountBadges { get; set; }
 
 
 
@@ -63,6 +68,42 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 			e.Property(a => a.AccountType)
 				.ValueGeneratedOnAdd()
 				.HasDefaultValue(AccountType.Student);
+		});
+
+		modelBuilder.Entity<Achievement>(e => {
+			e.Property(a => a.Id)
+				.ValueGeneratedOnAdd()
+				.HasDefaultValueSql("uuidv7()");
+				e.Property(a => a.IsHidden)
+					.ValueGeneratedOnAdd()
+					.HasDefaultValue(false);
+		});
+
+		modelBuilder.Entity<Badge>(e => {
+			e.Property(a => a.Id)
+				.ValueGeneratedOnAdd()
+				.HasDefaultValueSql("uuidv7()");
+		});
+
+		modelBuilder.Entity<BadgeAchievement>(e => {
+			e.HasIndex("BadgeId", "AchievementId").IsUnique();
+			e.HasOne(b => b.Badge).WithMany(x => x.BadgeAchievements).OnDelete(DeleteBehavior.Cascade);
+			e.HasOne(b => b.Achievement).WithMany(x => x.BadgeRequirements).OnDelete(DeleteBehavior.Cascade);
+			e.Property(x => x.Id).ValueGeneratedOnAdd().HasDefaultValueSql("uuidv7()");
+		});
+
+		modelBuilder.Entity<AccountAchievement>(e => {
+			e.HasIndex("AccountId", "AchievementId").IsUnique();
+			e.HasOne(x => x.Account).WithMany().OnDelete(DeleteBehavior.Cascade);
+			e.HasOne(x => x.Achievement).WithMany(a => a.AccountAchievements).OnDelete(DeleteBehavior.Cascade);
+			e.Property(x => x.Id).ValueGeneratedOnAdd().HasDefaultValueSql("uuidv7()");
+		});
+
+		modelBuilder.Entity<AccountBadge>(e => {
+			e.HasIndex("AccountId", "BadgeId").IsUnique();
+			e.HasOne(x => x.Account).WithMany().OnDelete(DeleteBehavior.Cascade);
+			e.HasOne(x => x.Badge).WithMany(b => b.AccountBadges).OnDelete(DeleteBehavior.Cascade);
+			e.Property(x => x.Id).ValueGeneratedOnAdd().HasDefaultValueSql("uuidv7()");
 		});
 	}
 }
