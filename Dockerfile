@@ -59,7 +59,10 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
 RUN --mount=type=secret,id=BACKEND_ENV_B64 \
     set -eu; \
     echo "info: env cache bust ${ENV_CACHE_BUST}"; \
-    if [ -f /run/secrets/BACKEND_ENV_B64 ] && [ -s /run/secrets/BACKEND_ENV_B64 ]; then \
+    if [ -f /src/server/.env ] && [ -s /src/server/.env ]; then \
+        echo "info: vytvarim /app/publish/.env z lokalniho server/.env"; \
+        cp /src/server/.env /app/publish/.env; \
+    elif [ -f /run/secrets/BACKEND_ENV_B64 ] && [ -s /run/secrets/BACKEND_ENV_B64 ]; then \
         echo "info: vytvarim /app/publish/.env z BACKEND_ENV_B64 secretu"; \
         base64 -d /run/secrets/BACKEND_ENV_B64 > /app/publish/.env; \
     else \
