@@ -1,47 +1,40 @@
 .home {
     min-height: 100%;
     display: grid;
-    align-content: center;
+    grid-template-rows: auto auto 1fr;
     gap: 28px;
-    padding-top: 36px;
+    padding-top: 64px;
 
     .hero {
         display: grid;
-        justify-items: center;
-        gap: 24px;
-        text-align: center;
-
-        >p {
-            justify-self: start;
-            color: var(--accent-color);
-            font-size: 22px;
-            font-weight: 800;
-            line-height: 1;
-        }
+        grid-template-columns: minmax(340px, 1fr) minmax(520px, 1.15fr);
+        gap: 32px;
+        align-items: end;
 
         >h1 {
-            margin-top: 140px;
             color: var(--accent-color);
-            font-size: clamp(42px, 5vw, 72px);
-            line-height: 1;
-            font-weight: 800;
+            font-size: clamp(44px, 4.2vw, 76px);
+            line-height: .95;
+            font-weight: 900;
+            letter-spacing: 0;
+            max-width: 720px;
         }
 
         .quickLinks {
             display: grid;
-            grid-template-columns: repeat(6, minmax(130px, 1fr));
-            gap: 16px;
-            width: min(1080px, 100%);
+            grid-template-columns: repeat(3, minmax(128px, 1fr));
+            gap: 14px;
 
             >a {
-                min-height: 98px;
+                min-height: 92px;
                 display: grid;
-                place-items: center;
-                gap: 10px;
+                grid-template-columns: 40px 1fr;
+                align-items: center;
+                gap: 14px;
                 padding: 18px;
                 border: 1px solid var(--border-color);
                 border-radius: 8px;
-                background: var(--element-bg);
+                background: rgba(21, 21, 21, .86);
                 color: var(--text-color-secondary);
                 transition: transform .2s ease, border-color .2s ease, color .2s ease, background .2s ease;
 
@@ -57,12 +50,12 @@
                 }
 
                 >span {
-                    width: 32px;
-                    height: 32px;
+                    width: 40px;
+                    height: 40px;
                     background: var(--text-color);
                     mask-position: center;
                     mask-repeat: no-repeat;
-                    mask-size: contain;
+                    mask-size: 30px;
                     transition: background .2s ease;
                 }
 
@@ -77,29 +70,32 @@
 
     .statsGrid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-        width: min(1080px, 100%);
-        justify-self: center;
+        grid-template-columns: 1.15fr 1fr 1fr;
+        gap: 18px;
 
         .statCard {
+            min-height: 126px;
             display: grid;
-            grid-template-columns: 54px 1fr;
-            gap: 16px;
+            grid-template-columns: 70px 1fr;
+            gap: 18px;
             align-items: center;
-            padding: 18px;
+            padding: 24px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            background: linear-gradient(135deg, var(--element-bg), rgba(255, 179, 3, .05));
+            background:
+                radial-gradient(circle at 85% 20%, rgba(255, 179, 3, .13), transparent 32%),
+                linear-gradient(135deg, rgba(255, 179, 3, .08), rgba(21, 21, 21, .92) 52%),
+                var(--element-bg);
+            box-shadow: 0 18px 38px rgba(0, 0, 0, .18);
 
             >span {
-                width: 54px;
-                height: 54px;
+                width: 70px;
+                height: 70px;
                 border-radius: 8px;
                 background: var(--accent-color);
                 mask-position: center;
                 mask-repeat: no-repeat;
-                mask-size: 28px;
+                mask-size: 34px;
             }
 
             >div {
@@ -107,24 +103,24 @@
 
                 >p {
                     color: var(--text-color-secondary);
-                    font-size: 14px;
-                    font-weight: 700;
+                    font-size: 15px;
+                    font-weight: 800;
                     line-height: 1.1;
                 }
 
                 >strong {
                     display: block;
-                    margin-top: 4px;
+                    margin-top: 6px;
                     color: var(--text-color);
-                    font-size: 36px;
-                    line-height: 1;
+                    font-size: 46px;
+                    line-height: .9;
                 }
 
                 >small {
                     display: block;
-                    margin-top: 8px;
+                    margin-top: 12px;
                     color: var(--text-color-darker);
-                    font-size: 13px;
+                    font-size: 14px;
                     line-height: 1.25;
                 }
             }
@@ -133,40 +129,40 @@
 
     .insights {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 16px;
-        width: min(1080px, 100%);
-        justify-self: center;
+        grid-template-columns: minmax(360px, .95fr) minmax(420px, 1.1fr) minmax(360px, .95fr);
+        gap: 18px;
+        min-height: 0;
 
         .panel {
-            min-height: 244px;
-            padding: 20px;
+            min-height: 310px;
+            padding: 26px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            background: var(--element-bg);
+            background: rgba(21, 21, 21, .88);
+            box-shadow: 0 18px 38px rgba(0, 0, 0, .16);
 
             .panelHeader {
                 display: flex;
                 align-items: start;
                 justify-content: space-between;
                 gap: 16px;
-                margin-bottom: 22px;
+                margin-bottom: 28px;
 
                 h2 {
-                    font-size: 20px;
-                    line-height: 1.1;
+                    font-size: 24px;
+                    line-height: 1.05;
                 }
 
                 p {
-                    margin-top: 4px;
+                    margin-top: 6px;
                     color: var(--text-color-darker);
-                    font-size: 14px;
+                    font-size: 16px;
                     line-height: 1.25;
                 }
 
                 >span {
                     color: var(--accent-color);
-                    font-size: 28px;
+                    font-size: 32px;
                     font-weight: 900;
                     line-height: 1;
                 }
@@ -175,7 +171,9 @@
             .rings {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 18px;
+                gap: 26px;
+                align-items: center;
+                padding-top: 8px;
 
                 .ring {
                     --progress: 0%;
@@ -184,7 +182,7 @@
                     place-items: center;
                     border-radius: 100%;
                     background:
-                        radial-gradient(circle at center, var(--element-bg) 0 58%, transparent 59%),
+                        radial-gradient(circle at center, rgba(21, 21, 21, .98) 0 57%, transparent 58%),
                         conic-gradient(var(--accent-color) var(--progress), var(--background-bg-2) 0);
 
                     >div {
@@ -197,14 +195,14 @@
                         background: var(--background-bg);
 
                         >strong {
-                            font-size: 24px;
+                            font-size: 30px;
                             line-height: 1;
                         }
 
                         >span {
                             color: var(--text-color-darker);
-                            font-size: 13px;
-                            font-weight: 700;
+                            font-size: 14px;
+                            font-weight: 800;
                         }
                     }
                 }
@@ -212,23 +210,24 @@
 
             .bars {
                 display: grid;
-                gap: 12px;
+                gap: 14px;
 
                 .barRow {
                     display: grid;
-                    grid-template-columns: 52px 1fr 26px;
-                    gap: 10px;
+                    grid-template-columns: 58px 1fr 34px;
+                    gap: 14px;
                     align-items: center;
 
                     >span,
                     >strong {
                         color: var(--text-color-secondary);
-                        font-size: 14px;
+                        font-size: 15px;
                         line-height: 1;
+                        font-weight: 800;
                     }
 
                     >div {
-                        height: 9px;
+                        height: 12px;
                         overflow: hidden;
                         border-radius: 999px;
                         background: var(--background-bg-2);
@@ -249,17 +248,17 @@
 
             .recent {
                 display: grid;
-                gap: 14px;
+                gap: 16px;
 
                 >div {
                     display: grid;
-                    grid-template-columns: 38px 1fr;
-                    gap: 12px;
+                    grid-template-columns: 46px 1fr;
+                    gap: 14px;
                     align-items: center;
 
                     >span {
-                        width: 38px;
-                        height: 38px;
+                        width: 46px;
+                        height: 46px;
                         display: grid;
                         place-items: center;
                         border-radius: 100%;
@@ -275,6 +274,7 @@
                             display: block;
                             overflow: hidden;
                             color: var(--text-color);
+                            font-size: 17px;
                             line-height: 1.1;
                             text-overflow: ellipsis;
                             white-space: nowrap;
@@ -282,7 +282,7 @@
 
                         >p {
                             color: var(--text-color-darker);
-                            font-size: 13px;
+                            font-size: 14px;
                             line-height: 1.2;
                         }
                     }
@@ -295,19 +295,19 @@
             }
 
             .privatePanel {
-                min-height: 150px;
+                min-height: 210px;
                 display: grid;
                 place-items: center;
                 align-content: center;
-                gap: 10px;
-                padding: 18px;
+                gap: 12px;
+                padding: 24px;
                 border: 1px dashed var(--border-color);
                 border-radius: 8px;
                 text-align: center;
 
                 >span {
-                    width: 34px;
-                    height: 34px;
+                    width: 42px;
+                    height: 42px;
                     background: var(--accent-color);
                     mask-position: center;
                     mask-repeat: no-repeat;
@@ -316,24 +316,24 @@
 
                 >strong {
                     color: var(--text-color);
-                    font-size: 17px;
+                    font-size: 19px;
                     line-height: 1.1;
                 }
 
                 >p {
-                    max-width: 260px;
+                    max-width: 280px;
                     color: var(--text-color-darker);
                     font-size: 14px;
                     line-height: 1.3;
                 }
 
                 >a {
-                    min-height: 34px;
+                    min-height: 38px;
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
                     margin-top: 4px;
-                    padding: 0 18px;
+                    padding: 0 20px;
                     border-radius: 8px;
                     background: var(--accent-color);
                     color: var(--accent-color-text);
@@ -349,14 +349,12 @@
     }
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1500px) {
     .home {
-        align-content: start;
+        padding-top: 52px;
 
         .hero {
-            >h1 {
-                margin-top: 60px;
-            }
+            grid-template-columns: 1fr;
 
             .quickLinks {
                 grid-template-columns: repeat(3, 1fr);
@@ -364,23 +362,27 @@
         }
 
         .insights {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
+
+            .panel:first-child {
+                grid-column: 1 / -1;
+
+                .rings {
+                    grid-template-columns: minmax(160px, 260px) minmax(160px, 260px);
+                    justify-content: center;
+                }
+            }
         }
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 980px) {
     .home {
         padding-top: 92px;
 
         .hero {
-            >p {
-                justify-self: center;
-            }
-
             >h1 {
-                margin-top: 20px;
-                font-size: 42px;
+                font-size: 44px;
             }
 
             .quickLinks {
@@ -388,8 +390,33 @@
             }
         }
 
-        .statsGrid {
+        .statsGrid,
+        .insights {
             grid-template-columns: 1fr;
+        }
+
+        .insights {
+            .panel:first-child {
+                grid-column: auto;
+            }
+        }
+    }
+}
+
+@media (max-width: 620px) {
+    .home {
+        .hero {
+            .quickLinks {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .insights {
+            .panel {
+                .rings {
+                    grid-template-columns: 1fr;
+                }
+            }
         }
     }
 }
