@@ -22,8 +22,8 @@ export async function getCurrentLoggedAccount(): Promise<Account | null> {
 }
 
 export async function requireLoggedAccountOrRedirect(): Promise<Account> {
-    const user = await getCurrentLoggedAccount();
-    if (! user) {
+    const user = await getCachedCurrentLoggedAccount();
+    if (!user) {
         redirect("/app/login");
     }
     return user;

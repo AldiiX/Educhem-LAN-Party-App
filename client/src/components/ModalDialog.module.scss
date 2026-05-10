@@ -1,80 +1,144 @@
 .dialog {
-    width: min(690px, 94vw);
+    width: min(414px, calc(100vw - 32px));
+    border: 1px solid rgba(255, 179, 3, .12);
     border-radius: 28px;
-}
+    background: var(--element-bg);
+    box-shadow: 0 26px 72px rgba(0, 0, 0, .54);
 
-.content {
-    padding: 38px;
-
-    h2 {
-        margin: 0;
-        font-size: 34px;
-        line-height: 1.05;
-        font-weight: 600;
-    }
-
-    p {
-        max-width: 360px;
-        margin-top: 36px;
-        color: var(--text-color-secondary);
-        font-size: 22px;
-        line-height: 1.28;
-        font-weight: 500;
-    }
-}
-
-.actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    margin-top: 44px;
-    padding-top: 28px;
-    border-top: 1px solid var(--border-color);
-
-    button {
-        min-height: 36px;
-        display: inline-flex;
-        align-items: center;
-        gap: 9px;
-        color: var(--text-color);
-        font-size: 18px;
-        font-weight: 600;
-
-        &:disabled {
-            opacity: .55;
-        }
-    }
-}
-
-.primary {
-    color: var(--accent-color) !important;
-}
-
-.destructive {
-    color: var(--error-color) !important;
-
-    span {
-        width: 17px;
-        height: 17px;
-        background: currentColor;
-        mask-size: contain;
-        mask-repeat: no-repeat;
-        mask-position: center;
-    }
-}
-
-@media (max-width: 560px) {
     .content {
-        padding: 30px;
+        display: grid;
+        gap: 16px;
+        padding: 32px 30px 30px;
+        text-align: center;
 
-        h2 {
-            font-size: 28px;
+        .icon {
+            justify-self: center;
+            width: 76px;
+            height: 76px;
+            margin-bottom: 10px;
+            background: var(--accent-color);
+            mask-position: center;
+            mask-repeat: no-repeat;
+            mask-size: contain;
         }
 
-        p {
-            margin-top: 26px;
-            font-size: 18px;
+        >h2 {
+            margin: 0;
+            color: var(--text-color);
+            font-size: 24px;
+            line-height: 1.05;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        >p {
+            max-width: 330px;
+            justify-self: center;
+            color: var(--text-color-secondary);
+            font-size: 16px;
+            line-height: 1.18;
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+            margin-top: 12px;
+
+            >button {
+                min-height: 54px;
+                border-radius: 16px;
+                font-size: 18px;
+                line-height: 1;
+                transition: background .2s ease, border-color .2s ease, color .2s ease, opacity .2s ease;
+
+                &:disabled {
+                    opacity: .58;
+                }
+            }
+
+            .primary {
+                background: var(--accent-color);
+                color: var(--accent-color-text);
+
+                &:hover:not(:disabled) {
+                    background: var(--accent-color-darker);
+                }
+            }
+
+            .cancel {
+                border: 1px solid var(--text-color-darker);
+                background: transparent;
+                color: var(--text-color);
+
+                &:hover:not(:disabled) {
+                    border-color: var(--accent-color);
+                    color: var(--accent-color);
+                }
+            }
+        }
+    }
+}
+
+.informativeDialog {
+    .content {
+        .icon {
+            mask-image: url("../../public/icons/info.svg");
+        }
+    }
+}
+
+.destructiveDialog {
+    .content {
+        .icon {
+            width: 80px;
+            height: 70px;
+            mask-image: url("../../public/icons/warn.svg");
+        }
+
+        .actions {
+            grid-template-columns: 1fr 1fr;
+            margin-top: 18px;
+        }
+    }
+}
+
+@media (max-width: 520px) {
+    .dialog {
+        width: min(100%, calc(100vw - 28px));
+        border-radius: 24px;
+
+        .content {
+            padding: 28px 24px 24px;
+
+            .icon {
+                width: 66px;
+                height: 66px;
+            }
+
+            >h2 {
+                font-size: 26px;
+            }
+
+            >p {
+                font-size: 17px;
+            }
+
+            .actions {
+                >button {
+                    min-height: 50px;
+                    border-radius: 18px;
+                    font-size: 18px;
+                }
+            }
+        }
+    }
+
+    .destructiveDialog {
+        .content {
+            .actions {
+                grid-template-columns: 1fr;
+            }
         }
     }
 }

@@ -18,13 +18,13 @@ export function ModalDestructive({
                                      open,
                                      title,
                                      description,
-                                     confirmText = "Smazat",
-                                     cancelText = "Zrušit",
+                                     confirmText = "Ano",
+                                     cancelText = "Ne",
                                      loading = false,
                                      onClose,
                                      onConfirm,
                                  }: ModalDialogProps) {
-    return <Modal open={open} onClose={onClose} className={style.dialog}>
+    return <Modal open={open} onClose={onClose} className={`${style.dialog} ${style.destructiveDialog}`}>
         <DialogContent
             title={title}
             description={description}
@@ -35,20 +35,20 @@ export function ModalDestructive({
             onClose={onClose}
             onConfirm={onConfirm}
         />
-    </Modal>
+    </Modal>;
 }
 
 export function ModalInformative({
                                      open,
                                      title,
                                      description,
-                                     confirmText = "Potvrdit",
-                                     cancelText = "Zrušit",
+                                     confirmText = "Rozumím",
+                                     cancelText = "Zavřít",
                                      loading = false,
                                      onClose,
                                      onConfirm,
                                  }: ModalDialogProps) {
-    return <Modal open={open} onClose={onClose} className={style.dialog}>
+    return <Modal open={open} onClose={onClose} className={`${style.dialog} ${style.informativeDialog}`}>
         <DialogContent
             title={title}
             description={description}
@@ -58,7 +58,7 @@ export function ModalInformative({
             onClose={onClose}
             onConfirm={onConfirm}
         />
-    </Modal>
+    </Modal>;
 }
 
 function DialogContent({
@@ -74,15 +74,17 @@ function DialogContent({
     destructive?: boolean;
     onConfirm?: () => void;
 }) {
+    const confirm = onConfirm ?? onClose;
+
     return <div className={style.content}>
+        <div className={style.icon} aria-hidden="true"></div>
         <h2>{title}</h2>
         <p>{description}</p>
         <div className={style.actions}>
-            <button type="button" onClick={onClose}>{cancelText}</button>
-            {onConfirm && <button type="button" className={destructive ? style.destructive : style.primary} disabled={loading} onClick={onConfirm}>
-                {destructive && <span style={{maskImage: "url(/icons/trash.svg)"}}></span>}
+            {destructive && <button type="button" className={style.cancel} onClick={onClose}>{cancelText}</button>}
+            <button type="button" className={style.primary} disabled={loading} onClick={confirm}>
                 {loading ? "Pracuji..." : confirmText}
-            </button>}
+            </button>
         </div>
-    </div>
+    </div>;
 }

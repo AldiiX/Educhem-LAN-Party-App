@@ -41,7 +41,32 @@ export default function useLogin() {
         redirect("/app");
     }
 
+    async function resetPassword(email: string) {
+        const promise = fetch("/api/v1/account/forgot-password", {
+            method: "POST",
+            body: JSON.stringify({email}),
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+
+        await toast.promise(promise, {
+            loading: "Generuji nové heslo...",
+        });
+
+        const res = await promise;
+
+        if(!res.ok) {
+            toast.error("Reset hesla se nepodařil.");
+            return false;
+        }
+
+        toast.success("Pokud účet existuje, resetovací odkaz dorazí na e-mail.");
+        return true;
+    }
+
     return {
         login,
+        resetPassword,
     }
 }
