@@ -13,7 +13,7 @@ export const AccountSchema = z.object({
     avatarUrl: z.string().nullish(),
     bannerUrl: z.string().nullish(),
     accountType: AccountTypeSchema.nullish(),
-    createdAtUtc: z.coerce.date().nullish(),
+    createdAtUtc: z.coerce.date(),
     updatedAtUtc: z.coerce.date().nullish(),
     lastActiveUtc: z.coerce.date().nullish(),
     gender: AccountGenderSchema.nullish(),

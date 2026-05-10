@@ -5,7 +5,7 @@ import {Avatar} from "@/components/Avatar";
 import {Account} from "@/schemas/AccountSchema";
 import {translateGender} from "@/lib/translateEnums";
 import If from "@/components/util/If";
-import {accountTypeLabel} from "@/lib/enumLabels";
+import {accountTypeLabel, genderLabel} from "@/lib/enumLabels";
 
 export default function({ account }: { account: Account }) {
     /*const els = [
@@ -24,6 +24,23 @@ export default function({ account }: { account: Account }) {
                 <h1>{ account.fullName }</h1>
                 {/*<p>{ els.join("   •   ") }</p>*/}
                 <p>{ accountTypeLabel(account.accountType, account.gender) }</p>
+
+                <div className={style.items}>
+                    <If condition={account.class != null} as="div" className={style.item}>
+                        <div className={style.icon} style={{ maskImage: `url(/icons/class.svg)` }}></div>
+                        <p>{ account.class }</p>
+                    </If>
+
+                    <If condition={account.gender != null} as="div" className={style.item}>
+                        <div className={style.icon} style={{ maskImage: `url(/icons/gender.svg)` }}></div>
+                        <p>{ genderLabel(account.gender) }</p>
+                    </If>
+
+                    <If condition={account.createdAtUtc != null} as="div" className={style.item}>
+                        <div className={style.icon} style={{ maskImage: `url(/icons/plus.svg)` }}></div>
+                        <p>{ account.createdAtUtc.toLocaleDateString() }</p>
+                    </If>
+                </div>
             </div>
 
             <div className={style.right}>
