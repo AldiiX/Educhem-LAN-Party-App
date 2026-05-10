@@ -26,17 +26,17 @@ export default function({ account }: { account: Account }) {
                 <p>{ accountTypeLabel(account.accountType, account.gender) }</p>
 
                 <div className={style.items}>
-                    <If condition={account.class != null} as="div" className={style.item}>
+                    <If condition={account.class != null} as="div" className={style.item} title={`Třída: ${account.class}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/class.svg)` }}></div>
                         <p>{ account.class }</p>
                     </If>
 
-                    <If condition={account.gender != null} as="div" className={style.item}>
+                    <If condition={account.gender != null} as="div" className={style.item} title={`Pohlaví: ${translateGender(account.gender)}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/gender.svg)` }}></div>
                         <p>{ genderLabel(account.gender) }</p>
                     </If>
 
-                    <If condition={account.createdAtUtc != null} as="div" className={style.item}>
+                    <If condition={account.createdAtUtc != null} as="div" className={style.item} title={`Datum registrace: ${account.createdAtUtc.toLocaleDateString()}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/plus.svg)` }}></div>
                         <p>{ account.createdAtUtc.toLocaleDateString() }</p>
                     </If>
