@@ -6,6 +6,7 @@ using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Npgsql.NameTranslation;
 using server.Data;
 using server.Data.Entities;
+using server.Hubs;
 using server.Services;
 using StackExchange.Redis;
 
@@ -54,6 +55,7 @@ public static class Program {
 
         builder.Services.AddControllersWithViews();
         builder.Services.AddHttpContextAccessor();
+        builder.Services.AddSignalR();
         builder.Services.AddDataProtection()
             .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
             .SetApplicationName("EduchemLANPartyApp");
@@ -119,6 +121,7 @@ public static class Program {
 
 
         Application.MapControllers();
+        Application.MapHub<ReservationsHub>("/hubs/reservations");
 
         //app.MapFallbackToFile("/index.html");
 

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using server.Data;
@@ -12,9 +13,11 @@ using server.Data.Entities;
 namespace server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260511135104_AddReservations")]
+    partial class AddReservations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -142,11 +145,6 @@ namespace server.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasMaxLength(21)
-                        .HasColumnType("character varying(21)");
-
                     b.Property<string>("Note")
                         .HasColumnType("text");
 
@@ -158,10 +156,6 @@ namespace server.Migrations
                     b.HasKey("AccountId");
 
                     b.ToTable("Reservations", "reservations");
-
-                    b.HasDiscriminator<string>("Discriminator").HasValue("Reservation");
-
-                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("server.Data.Entities.Room", b =>
@@ -231,34 +225,6 @@ namespace server.Migrations
                     b.ToTable("Schools", "public");
                 });
 
-            modelBuilder.Entity("server.Data.Entities.ComputerReservation", b =>
-                {
-                    b.HasBaseType("server.Data.Entities.Reservation");
-
-                    b.Property<string>("ComputerId")
-                        .HasColumnType("character varying(255)");
-
-                    b.HasIndex("ComputerId");
-
-                    b.ToTable("Reservations", "reservations");
-
-                    b.HasDiscriminator().HasValue("ComputerReservation");
-                });
-
-            modelBuilder.Entity("server.Data.Entities.RoomReservation", b =>
-                {
-                    b.HasBaseType("server.Data.Entities.Reservation");
-
-                    b.Property<string>("RoomId")
-                        .HasColumnType("character varying(255)");
-
-                    b.HasIndex("RoomId");
-
-                    b.ToTable("Reservations", "reservations");
-
-                    b.HasDiscriminator().HasValue("RoomReservation");
-                });
-
             modelBuilder.Entity("server.Data.Entities.Account", b =>
                 {
                     b.HasOne("server.Data.Entities.School", "School")
@@ -286,24 +252,6 @@ namespace server.Migrations
                         .IsRequired();
 
                     b.Navigation("Account");
-                });
-
-            modelBuilder.Entity("server.Data.Entities.ComputerReservation", b =>
-                {
-                    b.HasOne("server.Data.Entities.Computer", "Computer")
-                        .WithMany()
-                        .HasForeignKey("ComputerId");
-
-                    b.Navigation("Computer");
-                });
-
-            modelBuilder.Entity("server.Data.Entities.RoomReservation", b =>
-                {
-                    b.HasOne("server.Data.Entities.Room", "Room")
-                        .WithMany()
-                        .HasForeignKey("RoomId");
-
-                    b.Navigation("Room");
                 });
 #pragma warning restore 612, 618
         }

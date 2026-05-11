@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
             {
                 source: '/api/:path*',
                 destination: 'http://localhost:8080/api/:path*' // Proxy to Backend
+            },
+
+            {
+                source: '/hubs/:path*',
+                destination: 'http://localhost:8080/hubs/:path*' // Proxy to Backend
             }
         ]
     },
