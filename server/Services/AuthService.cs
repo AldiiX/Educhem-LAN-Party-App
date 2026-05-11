@@ -15,7 +15,9 @@ namespace server.Services;
 
 public sealed class AuthService(
     AppDbContext db,
-    IHttpContextAccessor http
+    IHttpContextAccessor http,
+    IServiceScopeFactory scopeFactory,
+    ILogger<AuthService> logger
 ) : IAuthService {
 
     private const HashType EnhancedType = HashType.SHA384;
@@ -50,6 +52,7 @@ public sealed class AuthService(
         if (!VerifyPassword(plainPassword, acc.PasswordHash)) return null;
         http.HttpContext!.Session.SetString("loggedaccount", JsonSerializer.Serialize(dto));
         http.HttpContext.Items["loggedaccount"] = dto;
+        QueueLastActiveUpdate(acc.Id);
         
         // Load full account with relationships for the response
         return await db.AccountsEf()
@@ -68,6 +71,7 @@ public sealed class AuthService(
         var dto = acc.ToSessionDto();
         http.HttpContext!.Session.SetString("loggedaccount", JsonSerializer.Serialize(dto));
         http.HttpContext.Items["loggedaccount"] = dto;
+        QueueLastActiveUpdate(acc.Id);
 
         return acc;
     }
@@ -90,15 +94,8 @@ public sealed class AuthService(
         var sessionDto = accLight.ToSessionDto();
         http.HttpContext!.Items["loggedaccount"] = sessionDto;
         http.HttpContext!.Session.SetString("loggedaccount", JsonSerializer.Serialize(sessionDto));
-
-        // asynchronni zmeneni LastActive
-        /*_ = Task.Run(async () => {
-            var _a = await db.Accounts.FirstOrDefaultAsync(a => a.Id == sessionAcc.Id, ct);
-            if (_a != null) {
-                _a.LastActiveUtc = DateTime.UtcNow;
-                await db.SaveChangesAsync(ct);
-            }
-        }, ct);*/
+        if (accLight.LastActiveUtc <= DateTime.UtcNow.AddMinutes(-1))
+            QueueLastActiveUpdate(accLight.Id);
         
         // Load full account with relationships for the response
         return await db.AccountsEf()
@@ -151,5 +148,22 @@ public sealed class AuthService(
         http.HttpContext.Items.Remove("loggedaccount");
         http.HttpContext.Session.Remove("loggedaccount");
         return true;
+    }
+
+    private void QueueLastActiveUpdate(Guid accountId) {
+        _ = Task.Run(async () => {
+            try {
+                await using var scope = scopeFactory.CreateAsyncScope();
+                var scopedDb = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var nowUtc = DateTime.UtcNow;
+
+                await scopedDb.Accounts
+                    .Where(a => a.Id == accountId)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(a => a.LastActiveUtc, nowUtc), CancellationToken.None);
+            } catch (Exception ex) {
+                logger.LogWarning(ex, "Failed to update LastActiveUtc for account {AccountId}", accountId);
+            }
+        });
     }
 }

@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using server.Data;
 using server.Data.Entities;
 using server.Dto;
@@ -24,11 +25,14 @@ public class AccountControllerV1(
 	IAuthService auth,
 	AppDbContext db,
 	IServiceProvider serviceProvider,
-	IDataProtectionProvider dataProtectionProvider
+	IDataProtectionProvider dataProtectionProvider,
+	IDistributedCache distributedCache
 ) : Controller {
 
 	private readonly IDataProtector passwordResetProtector = dataProtectionProvider.CreateProtector("account-password-reset");
-	private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromMinutes(30);
+	private readonly IDataProtector loginLinkProtector = dataProtectionProvider.CreateProtector("account-login-link");
+	private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromMinutes(15);
+	private static readonly TimeSpan LoginLinkTokenLifetime = TimeSpan.FromMinutes(30);
 
 
 
@@ -137,6 +141,7 @@ public class AccountControllerV1(
 		var emailSent = false;
 		if(request.SendLoginCredentialsEmail == true) {
 			emailSent = await SendCredentialsEmailAsync(
+				created,
 				created.Email,
 				"EDUCHEM LAN Party - přihlašovací údaje",
 				"/Views/Emails/UserRegistered.cshtml",
@@ -200,6 +205,7 @@ public class AccountControllerV1(
 		var emailSent = false;
 		if(request.SendLoginCredentialsEmail == true && passwordForEmail != null) {
 			emailSent = await SendCredentialsEmailAsync(
+				updated,
 				updated.Email,
 				"EDUCHEM LAN Party - nové přihlašovací údaje",
 				"/Views/Emails/UserResetPassword.cshtml",
@@ -247,6 +253,7 @@ public class AccountControllerV1(
 		await db.SaveChangesAsync(ct);
 
 		var emailSent = await SendCredentialsEmailAsync(
+			account,
 			account.Email,
 			"EDUCHEM LAN Party - nové heslo",
 			"/Views/Emails/UserResetPassword.cshtml",
@@ -370,9 +377,26 @@ public class AccountControllerV1(
 	}
 
 	[HttpGet("login-link")]
-	public async Task<IActionResult> LoginLink([FromQuery] string email, [FromQuery] string password, CancellationToken ct = default) {
-		var acc = await auth.LoginAsync(email, password, ct);
+	public async Task<IActionResult> LoginLink([FromQuery] string token, CancellationToken ct = default) {
+		var loginToken = ReadLoginLinkToken(token);
+		if(loginToken == null) return Redirect("/app/login");
+		if(DateTime.UtcNow - loginToken.CreatedAtUtc > LoginLinkTokenLifetime) return Redirect("/app/login");
+		if(await distributedCache.GetStringAsync(GetUsedLoginLinkCacheKey(loginToken.TokenId), ct) != null) return Redirect("/app/login");
+
+		var account = await db.Accounts
+			.AsNoTracking()
+			.FirstOrDefaultAsync(a => a.Id == loginToken.AccountId, ct);
+		if(account == null || account.PasswordHash != loginToken.PasswordHash) return Redirect("/app/login");
+
+		var acc = await auth.SignInAsAsync(account.Id, ct);
 		if(acc == null) return Redirect("/app/login");
+
+		await distributedCache.SetStringAsync(
+			GetUsedLoginLinkCacheKey(loginToken.TokenId),
+			"1",
+			new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = LoginLinkTokenLifetime },
+			ct
+		);
 
 		return Redirect("/app");
 	}
@@ -424,8 +448,8 @@ public class AccountControllerV1(
 		return passwordBuilder.ToString();
 	}
 
-	private async Task<bool> SendCredentialsEmailAsync(string email, string subject, string viewPath, string password, string? firstName = null, string? lastName = null, Gender? gender = null) {
-		var webLink = GetWebLink(email, password);
+	private async Task<bool> SendCredentialsEmailAsync(Account account, string email, string subject, string viewPath, string password, string? firstName = null, string? lastName = null, Gender? gender = null) {
+		var webLink = GetWebLink(account);
 		var model = new EmailUserRegisterModel(password, webLink, email, firstName, lastName, gender);
 		var fallbackBody = $"Email: {email}\nHeslo: {password}\n{webLink}";
 
@@ -439,16 +463,15 @@ public class AccountControllerV1(
 		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
 	}
 
-	private string GetWebLink(string email, string password) {
-		var encodedEmail = Uri.EscapeDataString(email);
-		var encodedPassword = Uri.EscapeDataString(password);
+	private string GetWebLink(Account account) {
+		var encodedToken = Uri.EscapeDataString(CreateLoginLinkToken(account));
 
 		if(Program.ENV.TryGetValue("WEB_URL", out var webUrl) && !string.IsNullOrWhiteSpace(webUrl)) {
-			return $"{webUrl.TrimEnd('/')}/api/v1/account/login-link?email={encodedEmail}&password={encodedPassword}";
+			return $"{webUrl.TrimEnd('/')}/api/v1/account/login-link?token={encodedToken}";
 		}
 
 		var request = HttpContext.Request;
-		return $"{request.Scheme}://{request.Host}/api/v1/account/login-link?email={encodedEmail}&password={encodedPassword}";
+		return $"{request.Scheme}://{request.Host}/api/v1/account/login-link?token={encodedToken}";
 	}
 
 	private string GetPasswordResetLink(string token) {
@@ -467,10 +490,28 @@ public class AccountControllerV1(
 		return passwordResetProtector.Protect(JsonSerializer.Serialize(payload));
 	}
 
+	private string CreateLoginLinkToken(Account account) {
+		var payload = new LoginLinkToken(account.Id, account.PasswordHash, DateTime.UtcNow, Guid.NewGuid().ToString("N"));
+		return loginLinkProtector.Protect(JsonSerializer.Serialize(payload));
+	}
+
+	private static string GetUsedLoginLinkCacheKey(string tokenId) {
+		return $"account-login-link-used:{tokenId}";
+	}
+
 	private PasswordResetToken? ReadPasswordResetToken(string token) {
 		try {
 			var json = passwordResetProtector.Unprotect(token);
 			return JsonSerializer.Deserialize<PasswordResetToken>(json);
+		} catch {
+			return null;
+		}
+	}
+
+	private LoginLinkToken? ReadLoginLinkToken(string token) {
+		try {
+			var json = loginLinkProtector.Unprotect(token);
+			return JsonSerializer.Deserialize<LoginLinkToken>(json);
 		} catch {
 			return null;
 		}
@@ -508,4 +549,5 @@ public class AccountControllerV1(
 	public sealed record ForgotPasswordRequest(string Email);
 	public sealed record ConfirmPasswordResetRequest(string Token, string NewPassword);
 	private sealed record PasswordResetToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc);
+	private sealed record LoginLinkToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc, string TokenId);
 }
