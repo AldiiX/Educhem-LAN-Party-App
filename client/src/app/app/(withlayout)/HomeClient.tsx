@@ -99,14 +99,14 @@ export default function HomeClient({account, dashboard}: HomeClientProps) {
                 {account ? (
                     <div className={styles.recent}>
                         {(dashboard?.latestAccounts.length ? dashboard.latestAccounts : []).map(item => (
-                            <div key={`${item.fullName}-${item.createdAtUtc.toISOString()}`}>
+                            <Link href={"/app/profile/" + item.id} key={`${item.fullName}-${item.createdAtUtc.toISOString()}`}>
                                 <Avatar name={item.fullName} size="32px" src={item.avatarUrl} className={styles.avatar} />
                                 
                                 <div>
                                     <strong>{item.fullName}</strong>
                                     <p>{item.class ?? "Bez třídy"} · {item.createdAtUtc.toLocaleDateString("cs-CZ")}</p>
                                 </div>
-                            </div>
+                            </Link>
                         ))}
                         {!dashboard?.latestAccounts.length && <p className={styles.empty}>Zatím nejsou k dispozici žádné účty.</p>}
                     </div>
