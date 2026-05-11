@@ -19,6 +19,7 @@ namespace server.Controllers;
 
 
 
+
 [ApiController]
 [Route("api/v1/account")]
 public class AccountControllerV1(
@@ -407,115 +408,42 @@ public class AccountControllerV1(
 		return NoContent();
 	}
 
+	[HttpPut("me/achievements/{id:guid}")]
+	public async Task<IActionResult> UpdateMyAchievementVisibility(Guid id, [FromBody] AccountAchievementVisibilityRequest request, CancellationToken ct = default) {
+		var acc = await auth.ReAuthAsync(ct);
+		if(acc == null) return new UnauthorizedResult();
 
+		var entry = await db.AccountAchievements
+			.Include(x => x.Achievement)
+			.FirstOrDefaultAsync(x => x.Id == id && x.AccountId == acc.Id, ct);
+		if(entry == null) return NotFound();
 
+		entry.IsHidden = request.IsHidden;
+		await db.SaveChangesAsync(ct);
 
-
-
-
-
-
-
-
-
-	// util metodky
-	private static string? NormalizeOptional(string? value) {
-		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == acc.Id, ct);
+		return Ok(updated.ToDto());
 	}
 
-	private static bool HasRoleAtLeast(Account account, AccountType accountType) {
-		return account.AccountType >= accountType;
+	[HttpPut("me/badges/{id:guid}")]
+	public async Task<IActionResult> UpdateMyBadgeTakenOut(Guid id, [FromBody] AccountBadgeTakeoutRequest request, CancellationToken ct = default) {
+		var acc = await auth.ReAuthAsync(ct);
+		if(acc == null) return new UnauthorizedResult();
+
+		var entry = await db.AccountBadges
+			.Include(x => x.Badge)
+			.FirstOrDefaultAsync(x => x.Id == id && x.AccountId == acc.Id, ct);
+		if(entry == null) return NotFound();
+
+		entry.IsTakenOut = request.IsTakenOut;
+		await db.SaveChangesAsync(ct);
+
+		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == acc.Id, ct);
+		return Ok(updated.ToDto());
 	}
 
-	private static bool CanManageRole(Account actor, AccountType targetAccountType) {
-		return actor.AccountType == AccountType.SuperAdmin || actor.AccountType > targetAccountType;
-	}
-
-	private static bool CanManageAccount(Account actor, Account target) {
-		return CanManageRole(actor, target.AccountType);
-	}
-
-	private static string GenerateRandomPassword(int length = 24) {
-		const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ěščřž!@*";
-		var random = new Random();
-		var passwordBuilder = new StringBuilder(length);
-
-		for (int i = 0; i < length; i++) {
-			var randomIndex = random.Next(chars.Length);
-			passwordBuilder.Append(chars[randomIndex]);
-		}
-
-		return passwordBuilder.ToString();
-	}
-
-	private async Task<bool> SendCredentialsEmailAsync(Account account, string email, string subject, string viewPath, string password, string? firstName = null, string? lastName = null, Gender? gender = null) {
-		var webLink = GetWebLink(account);
-		var model = new EmailUserRegisterModel(password, webLink, email, firstName, lastName, gender);
-		var fallbackBody = $"Email: {email}\nHeslo: {password}\n{webLink}";
-
-		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
-	}
-
-	private async Task<bool> SendPasswordResetLinkEmailAsync(string email, string subject, string viewPath, string resetLink, string? firstName = null, string? lastName = null, Gender? gender = null) {
-		var model = new EmailPasswordResetLinkModel(resetLink, email, firstName, lastName, gender);
-		var fallbackBody = $"Email: {email}\nReset hesla: {resetLink}";
-
-		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
-	}
-
-	private string GetWebLink(Account account) {
-		var encodedToken = Uri.EscapeDataString(CreateLoginLinkToken(account));
-
-		if(Program.ENV.TryGetValue("WEB_URL", out var webUrl) && !string.IsNullOrWhiteSpace(webUrl)) {
-			return $"{webUrl.TrimEnd('/')}/api/v1/account/login-link?token={encodedToken}";
-		}
-
-		var request = HttpContext.Request;
-		return $"{request.Scheme}://{request.Host}/api/v1/account/login-link?token={encodedToken}";
-	}
-
-	private string GetPasswordResetLink(string token) {
-		var encodedToken = Uri.EscapeDataString(token);
-
-		if(Program.ENV.TryGetValue("WEB_URL", out var webUrl) && !string.IsNullOrWhiteSpace(webUrl)) {
-			return $"{webUrl.TrimEnd('/')}/app/reset-password?token={encodedToken}";
-		}
-
-		var request = HttpContext.Request;
-		return $"{request.Scheme}://{request.Host}/app/reset-password?token={encodedToken}";
-	}
-
-	private string CreatePasswordResetToken(Account account) {
-		var payload = new PasswordResetToken(account.Id, account.PasswordHash, DateTime.UtcNow);
-		return passwordResetProtector.Protect(JsonSerializer.Serialize(payload));
-	}
-
-	private string CreateLoginLinkToken(Account account) {
-		var payload = new LoginLinkToken(account.Id, account.PasswordHash, DateTime.UtcNow, Guid.NewGuid().ToString("N"));
-		return loginLinkProtector.Protect(JsonSerializer.Serialize(payload));
-	}
-
-	private static string GetUsedLoginLinkCacheKey(string tokenId) {
-		return $"account-login-link-used:{tokenId}";
-	}
-
-	private PasswordResetToken? ReadPasswordResetToken(string token) {
-		try {
-			var json = passwordResetProtector.Unprotect(token);
-			return JsonSerializer.Deserialize<PasswordResetToken>(json);
-		} catch {
-			return null;
-		}
-	}
-
-	private LoginLinkToken? ReadLoginLinkToken(string token) {
-		try {
-			var json = loginLinkProtector.Unprotect(token);
-			return JsonSerializer.Deserialize<LoginLinkToken>(json);
-		} catch {
-			return null;
-		}
-	}
+	public sealed record AccountAchievementVisibilityRequest(bool IsHidden);
+	public sealed record AccountBadgeTakeoutRequest(bool IsTakenOut);
 
 	public sealed record AccountMutationRequest(
 		string? FirstName,
@@ -550,4 +478,107 @@ public class AccountControllerV1(
 	public sealed record ConfirmPasswordResetRequest(string Token, string NewPassword);
 	private sealed record PasswordResetToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc);
 	private sealed record LoginLinkToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc, string TokenId);
+
+	private static string? NormalizeOptional(string? value) {
+		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+	}
+
+	private static bool HasRoleAtLeast(Account account, AccountType accountType) {
+		return account.AccountType >= accountType;
+	}
+
+	private static bool CanManageRole(Account actor, AccountType targetAccountType) {
+		return actor.AccountType == AccountType.SuperAdmin || actor.AccountType > targetAccountType;
+	}
+
+	private static bool CanManageAccount(Account actor, Account target) {
+		return CanManageRole(actor, target.AccountType);
+	}
+
+	private static string GenerateRandomPassword(int length = 24) {
+		const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ěščřž!@*";
+		var random = new Random();
+		var passwordBuilder = new StringBuilder(length);
+		for (var i = 0; i < length; i++) {
+			var randomIndex = random.Next(chars.Length);
+			passwordBuilder.Append(chars[randomIndex]);
+		}
+		return passwordBuilder.ToString();
+	}
+
+	private async Task<bool> SendCredentialsEmailAsync(
+		Account account,
+		string email,
+		string subject,
+		string viewPath,
+		string password,
+		string? firstName,
+		string? lastName,
+		Gender? gender
+	) {
+		var webLink = GetLoginLink(account);
+		var model = new EmailUserRegisterModel(password, webLink, email, firstName, lastName, gender);
+		var fallbackBody = $"Email: {email}\nHeslo: {password}\n{webLink}";
+		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
+	}
+
+	private async Task<bool> SendPasswordResetLinkEmailAsync(
+		string email,
+		string subject,
+		string viewPath,
+		string resetLink,
+		string? firstName,
+		string? lastName,
+		Gender? gender
+	) {
+		var model = new EmailPasswordResetLinkModel(resetLink, email, firstName, lastName, gender);
+		var fallbackBody = $"Reset link: {resetLink}";
+		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
+	}
+
+	private PasswordResetToken CreatePasswordResetToken(Account account) {
+		return new PasswordResetToken(account.Id, account.PasswordHash, DateTime.UtcNow);
+	}
+
+	private string GetPasswordResetLink(PasswordResetToken token) {
+		var protectedToken = passwordResetProtector.Protect(JsonSerializer.Serialize(token));
+		return BuildAbsoluteUrl($"/app/reset-password?token={Uri.EscapeDataString(protectedToken)}");
+	}
+
+	private PasswordResetToken? ReadPasswordResetToken(string token) {
+		try {
+			var json = passwordResetProtector.Unprotect(token);
+			return JsonSerializer.Deserialize<PasswordResetToken>(json);
+		} catch {
+			return null;
+		}
+	}
+
+	private string GetLoginLink(Account account) {
+		var loginToken = new LoginLinkToken(account.Id, account.PasswordHash, DateTime.UtcNow, Guid.NewGuid().ToString("N"));
+		var protectedToken = loginLinkProtector.Protect(JsonSerializer.Serialize(loginToken));
+		return BuildAbsoluteUrl($"/api/v1/account/login-link?token={Uri.EscapeDataString(protectedToken)}");
+	}
+
+	private LoginLinkToken? ReadLoginLinkToken(string token) {
+		try {
+			var json = loginLinkProtector.Unprotect(token);
+			return JsonSerializer.Deserialize<LoginLinkToken>(json);
+		} catch {
+			return null;
+		}
+	}
+
+	private static string GetUsedLoginLinkCacheKey(string tokenId) {
+		return $"login-link:{tokenId}";
+	}
+
+	private string BuildAbsoluteUrl(string pathAndQuery) {
+		if(Program.ENV.TryGetValue("WEB_URL", out var webUrl) && !string.IsNullOrWhiteSpace(webUrl)) {
+			return $"{webUrl.TrimEnd('/')}{pathAndQuery}";
+		}
+
+		var request = HttpContext.Request;
+		return $"{request.Scheme}://{request.Host}{pathAndQuery}";
+	}
 }

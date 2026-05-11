@@ -58,6 +58,9 @@
     .right {
         flex: 1;
         margin-top: 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
 
         .school {
             display: flex;
@@ -76,5 +79,160 @@
                 border-radius: 6px;
             }
         }
+
+        .achievementBar,
+        .badgeBar {
+            padding: 16px;
+            border-radius: 12px;
+            background: var(--element-bg);
+        }
+
+        .barHeader {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+
+            > h3 {
+                font-size: 16px;
+            }
+
+            > span {
+                font-weight: 700;
+                color: var(--accent-color);
+            }
+        }
+
+        .barEmpty {
+            color: var(--text-muted);
+        }
+
+        .barItems {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .barItem {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--accent-soft);
+            color: var(--accent-color);
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+
+            > img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 10px;
+            }
+        }
+
+        .achievementBar {
+            max-height: 300px;
+        }
+
+        .achievementList {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .achievementRow {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+
+            > p {
+                font-size: 14px;
+                color: var(--text-muted);
+            }
+        }
+
+        .achievementCover {
+            width: 100%;
+            height: 120px;
+            border-radius: 12px;
+            background: var(--accent-soft);
+            background-size: cover;
+            background-position: center;
+            display: grid;
+            place-items: center;
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+
+        .achievementText {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .achievementTitle {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .achievementDescription {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    }
+}
+
+@media (max-width: 960px) {
+    .banner {
+        height: 240px;
+
+        .avatar {
+            --size: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: -90px;
+            border-width: 10px;
+        }
+    }
+
+    .flex {
+        flex-direction: column;
+        padding: 0 24px;
+
+        .left {
+            width: 100%;
+            margin-top: 120px;
+        }
+
+        .right {
+            margin-top: 24px;
+            .achievementBar {
+                max-height: 320px;
+            }
+
+            .achievementList {
+                max-height: 210px;
+            }
+        }
+    }
+}
+
+@media (max-width: 640px) {
+    .banner {
+        height: 200px;
+
+        .avatar {
+            --size: 150px;
+            bottom: -76px;
+        }
+    }
+
+    .flex {
+        padding: 0 16px;
     }
 }

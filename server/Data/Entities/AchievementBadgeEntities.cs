@@ -51,15 +51,19 @@ public sealed class BadgeAchievement : AuditableEntity<Guid> {
 
 [Table("AccountAchievements", Schema = "public")]
 public sealed class AccountAchievement : AuditableEntity<Guid> {
+    public Guid AccountId { get; set; }
     public required Account Account { get; set; }
+    public Guid AchievementId { get; set; }
     public required Achievement Achievement { get; set; }
+    public bool IsHidden { get; set; } = false;
 }
 
 
 [Table("AccountBadges", Schema = "public")]
 public sealed class AccountBadge : AuditableEntity<Guid> {
+    public Guid AccountId { get; set; }
     public required Account Account { get; set; }
+    public Guid BadgeId { get; set; }
     public required Badge Badge { get; set; }
+    public bool IsTakenOut { get; set; } = false;
 }
-
-

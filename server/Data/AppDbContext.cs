@@ -94,16 +94,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
 		modelBuilder.Entity<AccountAchievement>(e => {
 			e.HasIndex("AccountId", "AchievementId").IsUnique();
-			e.HasOne(x => x.Account).WithMany().OnDelete(DeleteBehavior.Cascade);
-			e.HasOne(x => x.Achievement).WithMany(a => a.AccountAchievements).OnDelete(DeleteBehavior.Cascade);
+			e.HasOne(x => x.Account)
+				.WithMany(a => a.AccountAchievements)
+				.HasForeignKey(x => x.AccountId)
+				.OnDelete(DeleteBehavior.Cascade);
+			e.HasOne(x => x.Achievement)
+				.WithMany(a => a.AccountAchievements)
+				.HasForeignKey(x => x.AchievementId)
+				.OnDelete(DeleteBehavior.Cascade);
 			e.Property(x => x.Id).ValueGeneratedOnAdd().HasDefaultValueSql("uuidv7()");
+			e.Property(x => x.IsHidden)
+				.ValueGeneratedOnAdd()
+				.HasDefaultValue(false);
 		});
 
 		modelBuilder.Entity<AccountBadge>(e => {
 			e.HasIndex("AccountId", "BadgeId").IsUnique();
-			e.HasOne(x => x.Account).WithMany().OnDelete(DeleteBehavior.Cascade);
-			e.HasOne(x => x.Badge).WithMany(b => b.AccountBadges).OnDelete(DeleteBehavior.Cascade);
+			e.HasOne(x => x.Account)
+				.WithMany(a => a.AccountBadges)
+				.HasForeignKey(x => x.AccountId)
+				.OnDelete(DeleteBehavior.Cascade);
+			e.HasOne(x => x.Badge)
+				.WithMany(b => b.AccountBadges)
+				.HasForeignKey(x => x.BadgeId)
+				.OnDelete(DeleteBehavior.Cascade);
 			e.Property(x => x.Id).ValueGeneratedOnAdd().HasDefaultValueSql("uuidv7()");
+			e.Property(x => x.IsTakenOut)
+				.ValueGeneratedOnAdd()
+				.HasDefaultValue(false);
 		});
 	}
 }

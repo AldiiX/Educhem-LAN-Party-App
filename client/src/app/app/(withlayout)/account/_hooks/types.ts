@@ -1,7 +1,7 @@
 import {Dispatch, SetStateAction} from "react";
 import {Account, AccountGender} from "@/schemas/AccountSchema";
 
-export type AccountTab = "overview" | "settings";
+export type AccountTab = "overview" | "achievements" | "settings";
 export type AccountModal = "avatar-info" | "banner-info" | "remove-avatar" | "remove-banner" | null;
 
 export type ProfileDraft = {
@@ -43,4 +43,8 @@ export type AccountPageState = {
     changePassword: () => Promise<void>;
     logout: () => Promise<void>;
     toggleTheme: () => void;
+    achievementUpdatingIds: ReadonlySet<string>;
+    badgeUpdatingIds: ReadonlySet<string>;
+    toggleAchievementVisibility: (entryId: string, nextHidden: boolean) => Promise<void>;
+    toggleBadgeTakenOut: (entryId: string, nextTakenOut: boolean) => Promise<void>;
 };
