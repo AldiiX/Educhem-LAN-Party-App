@@ -1,66 +1,107 @@
-# Define the user ID (default value 1000)
+# syntax=docker/dockerfile:1.7
+
 ARG APP_UID=1000
-
-# Base stage
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-WORKDIR /app
-
-# Stage to install Node.js
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS with-node
-RUN apt-get update && apt-get install -y curl
-RUN curl -sL https://deb.nodesource.com/setup_24.x | bash && apt-get install -y nodejs
-
-# Stage to build the backend
-FROM with-node AS build
 ARG BUILD_CONFIGURATION=Release
+ARG NODE_MAJOR=24
+
+# frontend build stage
+FROM node:${NODE_MAJOR}-bookworm-slim AS client-build
+WORKDIR /src/client
+
+COPY client/package*.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund
+
+COPY client/ ./
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build \
+    && test -f .next/standalone/server.js \
+    && test -d .next/static
+
+# backend build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG BUILD_CONFIGURATION
+
 WORKDIR /src
+
 COPY ["server/server.csproj", "server/"]
 COPY ["client/client.esproj", "client/"]
-RUN dotnet restore "./server/server.csproj"
+
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet restore "./server/server.csproj"
+
 COPY . .
-WORKDIR "/src/server"
 
-# vytvoreni prazdnyho .env souboru v tomto direktory pokud .env neexistuje
-RUN if [ ! -f ".env" ]; then touch .env; fi
+WORKDIR /src/server
 
-# buildnuti backendu
-RUN dotnet build "./server.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet build "./server.csproj" \
+    -c "$BUILD_CONFIGURATION" \
+    -o /app/build \
+    /p:ShouldRunNpmInstall=false \
+    --no-restore
 
-# Stage to publish the backend
+# backend publish stage
 FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./server.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+ARG BUILD_CONFIGURATION
+ARG ENV_CACHE_BUST=0
 
-# Final stage
-FROM base AS final
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet publish "./server.csproj" \
+    -c "$BUILD_CONFIGURATION" \
+    -o /app/publish \
+    /p:UseAppHost=false \
+    /p:ShouldRunNpmInstall=false \
+    /p:BuildCommand=true \
+    --no-restore
+
+# vytvoreni .env primo do publish vystupu
+RUN --mount=type=secret,id=BACKEND_ENV_B64 \
+    set -eu; \
+    echo "info: env cache bust ${ENV_CACHE_BUST}"; \
+    if [ -f /src/server/.env ] && [ -s /src/server/.env ]; then \
+        echo "info: vytvarim /app/publish/.env z lokalniho server/.env"; \
+        cp /src/server/.env /app/publish/.env; \
+    elif [ -f /run/secrets/BACKEND_ENV_B64 ] && [ -s /run/secrets/BACKEND_ENV_B64 ]; then \
+        echo "info: vytvarim /app/publish/.env z BACKEND_ENV_B64 secretu"; \
+        base64 -d /run/secrets/BACKEND_ENV_B64 > /app/publish/.env; \
+    else \
+        echo "warn: BACKEND_ENV_B64 secret nebyl predan nebo je prazdny, vytvarim prazdny /app/publish/.env"; \
+        : > /app/publish/.env; \
+    fi; \
+    chmod 600 /app/publish/.env
+
+# final image
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+ARG APP_UID
+
 WORKDIR /app
-COPY --from=publish /app/publish .
 
-# Switch to root to install packages
 USER root
-RUN apt-get update && apt-get install -y curl nginx
-RUN curl -sL https://deb.nodesource.com/setup_24.x | bash && apt-get install -y nodejs
 
-# Copy frontend files and fix permissions
-COPY ["client/", "/app/client/"]
-RUN chown -R $APP_UID:$APP_UID /app/client
-WORKDIR /app/client
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates nginx \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set npm cache and install dependencies
-RUN npm config set cache /app/.npm
-RUN npm install --unsafe-perm
+COPY --from=client-build /usr/local/bin/node /usr/local/bin/node
+COPY --from=publish /app/publish ./
+COPY --from=client-build /src/client/.next/standalone /app/client
+COPY --from=client-build /src/client/.next/static /app/client/.next/static
+COPY --from=client-build /src/client/public /app/client/public
 
-# Build the frontend
-RUN npm run build
-
-# Copy Nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY --chmod=0755 start.sh ./start.sh
 
-# Switch back to non-privileged user
-#USER $APP_UID
+RUN chown -R "$APP_UID:$APP_UID" /app \
+    && chmod 600 /app/.env
 
-# Prepare the start script
+ENV ASPNETCORE_URLS=http://0.0.0.0:8080 \
+    DOTNET_ENVIRONMENT=Production \
+    ASPNETCORE_ENVIRONMENT=Production \
+    NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
+
 EXPOSE 80
-WORKDIR /app
-COPY --chmod=0755 start.sh .
 CMD ["./start.sh"]

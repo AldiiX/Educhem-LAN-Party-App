@@ -1,7 +1,8 @@
 import {Dispatch, FormEvent, SetStateAction} from "react";
+import {useRouter} from "next/navigation";
 import {toast} from "react-hot-toast";
 import {Account, AccountSchema} from "@/schemas/AccountSchema";
-import {canManageAccountRole} from "@/lib/roles";
+import {canManageAccountRole, hasRoleAtLeast} from "@/lib/roles";
 import {splitDisplayName} from "./accountForm";
 import {AccountForm, ModalMode} from "./types";
 
@@ -34,6 +35,8 @@ export function useAccountMutations({
     setSaving,
     setSelectedAccount,
 }: UseAccountMutationsOptions) {
+    const router = useRouter();
+
     const submitAccount = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if(saving) return;
@@ -146,8 +149,29 @@ export function useAccountMutations({
         }
     };
 
+    const impersonateAccount = async () => {
+        if(!selectedAccount || saving || !canManageSelectedAccount || !hasRoleAtLeast(loggedAccount, "Admin")) return;
+
+        setSaving(true);
+        try {
+            const response = await fetch(`/api/v1/account/${selectedAccount.id}/impersonate`, {method: "POST"});
+            if(!response.ok) throw new Error("Impersonation failed");
+
+            const signedInAccount = AccountSchema.parse(await response.json());
+            setLoggedAccount(signedInAccount);
+            toast.success(`Přihlášeno za ${signedInAccount.fullName}.`);
+            router.push("/app");
+            router.refresh();
+        } catch {
+            toast.error("Přihlášení za uživatele se nepodařilo.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return {
         deleteAccount,
+        impersonateAccount,
         resetPassword,
         submitAccount,
     };

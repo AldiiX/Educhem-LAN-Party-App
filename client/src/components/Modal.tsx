@@ -1,6 +1,6 @@
 "use client";
 
-import React, {ReactNode, useEffect, useState} from "react";
+import React, {ReactNode, useEffect, useRef, useState} from "react";
 import {createPortal} from "react-dom";
 import style from "./Modal.module.scss";
 
@@ -19,6 +19,11 @@ export function Modal({open, onClose, children, className, closeOnBackdrop = tru
     const [closing, setClosing] = useState(false);
     const [body, setBody] = useState<HTMLElement | null>(null);
     const [renderedChildren, setRenderedChildren] = useState(children);
+    const latestChildren = useRef(children);
+
+    if(open) {
+        latestChildren.current = children;
+    }
 
     useEffect(() => {
         setBody(document.body);
@@ -26,7 +31,6 @@ export function Modal({open, onClose, children, className, closeOnBackdrop = tru
 
     useEffect(() => {
         if(open) {
-            setRenderedChildren(children);
             setMounted(true);
             requestAnimationFrame(() => setClosing(false));
             return;
@@ -34,6 +38,7 @@ export function Modal({open, onClose, children, className, closeOnBackdrop = tru
 
         if(!mounted) return;
 
+        setRenderedChildren(latestChildren.current);
         setClosing(true);
         const timeout = window.setTimeout(() => {
             setMounted(false);
@@ -41,7 +46,7 @@ export function Modal({open, onClose, children, className, closeOnBackdrop = tru
         }, ANIMATION_MS);
 
         return () => window.clearTimeout(timeout);
-    }, [children, mounted, open]);
+    }, [mounted, open]);
 
     useEffect(() => {
         if(!mounted) return;
@@ -62,7 +67,7 @@ export function Modal({open, onClose, children, className, closeOnBackdrop = tru
         }}>
             <div className={`${style.content} ${className ?? ""}`} role="dialog" aria-modal="true">
                 <button type="button" className={style.closeButton} onClick={onClose} aria-label="Zavřít"></button>
-                {renderedChildren}
+                {open ? children : renderedChildren}
             </div>
         </div>,
         body

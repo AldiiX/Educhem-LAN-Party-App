@@ -34,12 +34,11 @@
                 padding: 18px;
                 border: 1px solid var(--border-color);
                 border-radius: 8px;
-                background: rgba(21, 21, 21, .86);
+                background: var(--element-bg);
                 color: var(--text-color-secondary);
                 transition: transform .2s ease, border-color .2s ease, color .2s ease, background .2s ease;
 
                 &:hover {
-                    transform: translateY(-3px);
                     border-color: var(--accent-line);
                     background: var(--accent-soft);
                     color: var(--accent-color);
@@ -83,10 +82,10 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             background:
-                radial-gradient(circle at 85% 20%, rgba(255, 179, 3, .13), transparent 32%),
-                linear-gradient(135deg, rgba(255, 179, 3, .08), rgba(21, 21, 21, .92) 52%),
+                radial-gradient(circle at 85% 20%, var(--accent-soft), transparent 32%),
+                linear-gradient(135deg, var(--accent-soft), var(--element-bg) 52%),
                 var(--element-bg);
-            box-shadow: 0 18px 38px rgba(0, 0, 0, .18);
+            box-shadow: 0 18px 38px var(--shadow-color);
 
             >span {
                 width: 70px;
@@ -138,8 +137,8 @@
             padding: 26px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            background: rgba(21, 21, 21, .88);
-            box-shadow: 0 18px 38px rgba(0, 0, 0, .16);
+            background: var(--element-bg);
+            box-shadow: 0 18px 38px var(--shadow-color);
 
             .panelHeader {
                 display: flex;
@@ -182,7 +181,7 @@
                     place-items: center;
                     border-radius: 100%;
                     background:
-                        radial-gradient(circle at center, rgba(21, 21, 21, .98) 0 57%, transparent 58%),
+                        radial-gradient(circle at center, var(--element-bg) 0 57%, transparent 58%),
                         conic-gradient(var(--accent-color) var(--progress), var(--background-bg-2) 0);
 
                     >div {
@@ -203,6 +202,58 @@
                             color: var(--text-color-darker);
                             font-size: 14px;
                             font-weight: 800;
+                        }
+                    }
+                }
+
+                .activitySummary {
+                    min-height: 100%;
+                    display: grid;
+                    gap: 12px;
+                    align-content: center;
+                    padding: 16px;
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    background:
+                        linear-gradient(180deg, var(--accent-soft), transparent 58%),
+                        var(--background-bg);
+
+                    .infoItem {
+                        display: grid;
+                        grid-template-columns: 46px 1fr;
+                        gap: 14px;
+                        align-items: center;
+                        min-height: 62px;
+                        padding: 12px;
+                        border: 1px solid var(--border-color);
+                        border-radius: 8px;
+                        background: var(--element-bg);
+
+                        >span {
+                            width: 46px;
+                            height: 46px;
+                            background: var(--accent-color);
+                            mask-position: center;
+                            mask-repeat: no-repeat;
+                            mask-size: contain;
+                        }
+
+                        >div {
+                            min-width: 0;
+
+                            >strong {
+                                display: block;
+                                color: var(--text-color);
+                                font-size: 30px;
+                                line-height: .9;
+                            }
+
+                            >p {
+                                color: var(--text-color-darker);
+                                font-size: 14px;
+                                font-weight: 800;
+                                line-height: 1.1;
+                            }
                         }
                     }
                 }
@@ -252,7 +303,7 @@
 
                 >div {
                     display: grid;
-                    grid-template-columns: 46px 1fr;
+                    grid-template-columns: 32px 1fr;
                     gap: 14px;
                     align-items: center;
 
@@ -267,7 +318,7 @@
                         font-weight: 900;
                     }
 
-                    >div {
+                    >div:not(.avatar) {
                         min-width: 0;
 
                         >strong {
@@ -278,6 +329,7 @@
                             line-height: 1.1;
                             text-overflow: ellipsis;
                             white-space: nowrap;
+                            font-weight: 500;
                         }
 
                         >p {

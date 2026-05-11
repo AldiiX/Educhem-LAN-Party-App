@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using server.Data;
 using server.Data.Entities;
 using server.Dto;
@@ -24,11 +25,14 @@ public class AccountControllerV1(
 	IAuthService auth,
 	AppDbContext db,
 	IServiceProvider serviceProvider,
-	IDataProtectionProvider dataProtectionProvider
+	IDataProtectionProvider dataProtectionProvider,
+	IDistributedCache distributedCache
 ) : Controller {
 
 	private readonly IDataProtector passwordResetProtector = dataProtectionProvider.CreateProtector("account-password-reset");
-	private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromMinutes(30);
+	private readonly IDataProtector loginLinkProtector = dataProtectionProvider.CreateProtector("account-login-link");
+	private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromMinutes(15);
+	private static readonly TimeSpan LoginLinkTokenLifetime = TimeSpan.FromMinutes(30);
 
 
 
@@ -46,16 +50,6 @@ public class AccountControllerV1(
 		var nowUtc = DateTime.UtcNow;
 		var accounts = await db.AccountsEf()
 			.AsNoTracking()
-			.Select(a => new {
-				a.Id,
-				a.FirstName,
-				a.LastName,
-				a.Class,
-				a.AccountType,
-				a.EnableReservations,
-				a.CreatedAtUtc,
-				a.LastActiveUtc,
-			})
 			.ToListAsync(ct);
 
 		var activeNow = accounts.Count(a => a.LastActiveUtc >= nowUtc.AddMinutes(-15));
@@ -65,11 +59,7 @@ public class AccountControllerV1(
 		var latestAccounts = acc == null ? [] : accounts
 			.OrderByDescending(a => a.CreatedAtUtc)
 			.Take(4)
-			.Select(a => new DashboardRecentAccount(
-				$"{a.FirstName} {a.LastName}",
-				a.Class,
-				a.CreatedAtUtc
-			))
+			.Select(a => a.ToProfileDto())
 			.ToList();
 		var classBreakdown = accounts
 			.Where(a => a.EnableReservations && !string.IsNullOrWhiteSpace(a.Class))
@@ -151,10 +141,14 @@ public class AccountControllerV1(
 		var emailSent = false;
 		if(request.SendLoginCredentialsEmail == true) {
 			emailSent = await SendCredentialsEmailAsync(
+				created,
 				created.Email,
 				"EDUCHEM LAN Party - přihlašovací údaje",
 				"/Views/Emails/UserRegistered.cshtml",
-				password
+				password,
+				created.FirstName,
+				created.LastName,
+				created.Gender
 			);
 		}
 
@@ -211,10 +205,14 @@ public class AccountControllerV1(
 		var emailSent = false;
 		if(request.SendLoginCredentialsEmail == true && passwordForEmail != null) {
 			emailSent = await SendCredentialsEmailAsync(
+				updated,
 				updated.Email,
 				"EDUCHEM LAN Party - nové přihlašovací údaje",
 				"/Views/Emails/UserResetPassword.cshtml",
-				passwordForEmail
+				passwordForEmail,
+				updated.FirstName,
+				updated.LastName,
+				updated.Gender
 			);
 		}
 
@@ -255,13 +253,35 @@ public class AccountControllerV1(
 		await db.SaveChangesAsync(ct);
 
 		var emailSent = await SendCredentialsEmailAsync(
+			account,
 			account.Email,
 			"EDUCHEM LAN Party - nové heslo",
 			"/Views/Emails/UserResetPassword.cshtml",
-			password
+			password,
+			account.FirstName,
+			account.LastName,
+			account.Gender
 		);
 
 		return Ok(new PasswordResetResponse(emailSent));
+	}
+
+	[HttpPost("{id:guid}/impersonate")]
+	public async Task<IActionResult> Impersonate(Guid id, CancellationToken ct = default) {
+		var acc = await auth.ReAuthAsync(ct);
+		if(acc == null) return new UnauthorizedResult();
+		if(!HasRoleAtLeast(acc, AccountType.Admin))
+			return Forbid();
+
+		var account = await db.Accounts.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id, ct);
+		if(account == null) return NotFound();
+		if(!CanManageAccount(acc, account))
+			return Forbid();
+
+		var signedInAccount = await auth.SignInAsAsync(account.Id, ct);
+		if(signedInAccount == null) return NotFound();
+
+		return Ok(signedInAccount.ToDto());
 	}
 
 	[HttpPost("login")]
@@ -326,7 +346,10 @@ public class AccountControllerV1(
 			account.Email,
 			"EDUCHEM LAN Party - reset hesla",
 			"/Views/Emails/UserForgotPassword.cshtml",
-			resetLink
+			resetLink,
+			account.FirstName,
+			account.LastName,
+			account.Gender
 		);
 
 		return Ok(new PasswordResetResponse(emailSent));
@@ -354,9 +377,26 @@ public class AccountControllerV1(
 	}
 
 	[HttpGet("login-link")]
-	public async Task<IActionResult> LoginLink([FromQuery] string email, [FromQuery] string password, CancellationToken ct = default) {
-		var acc = await auth.LoginAsync(email, password, ct);
+	public async Task<IActionResult> LoginLink([FromQuery] string token, CancellationToken ct = default) {
+		var loginToken = ReadLoginLinkToken(token);
+		if(loginToken == null) return Redirect("/app/login");
+		if(DateTime.UtcNow - loginToken.CreatedAtUtc > LoginLinkTokenLifetime) return Redirect("/app/login");
+		if(await distributedCache.GetStringAsync(GetUsedLoginLinkCacheKey(loginToken.TokenId), ct) != null) return Redirect("/app/login");
+
+		var account = await db.Accounts
+			.AsNoTracking()
+			.FirstOrDefaultAsync(a => a.Id == loginToken.AccountId, ct);
+		if(account == null || account.PasswordHash != loginToken.PasswordHash) return Redirect("/app/login");
+
+		var acc = await auth.SignInAsAsync(account.Id, ct);
 		if(acc == null) return Redirect("/app/login");
+
+		await distributedCache.SetStringAsync(
+			GetUsedLoginLinkCacheKey(loginToken.TokenId),
+			"1",
+			new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = LoginLinkTokenLifetime },
+			ct
+		);
 
 		return Redirect("/app");
 	}
@@ -408,31 +448,30 @@ public class AccountControllerV1(
 		return passwordBuilder.ToString();
 	}
 
-	private async Task<bool> SendCredentialsEmailAsync(string email, string subject, string viewPath, string password) {
-		var webLink = GetWebLink(email, password);
-		var model = new EmailUserRegisterModel(password, webLink, email);
+	private async Task<bool> SendCredentialsEmailAsync(Account account, string email, string subject, string viewPath, string password, string? firstName = null, string? lastName = null, Gender? gender = null) {
+		var webLink = GetWebLink(account);
+		var model = new EmailUserRegisterModel(password, webLink, email, firstName, lastName, gender);
 		var fallbackBody = $"Email: {email}\nHeslo: {password}\n{webLink}";
 
 		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
 	}
 
-	private async Task<bool> SendPasswordResetLinkEmailAsync(string email, string subject, string viewPath, string resetLink) {
-		var model = new EmailPasswordResetLinkModel(resetLink, email);
+	private async Task<bool> SendPasswordResetLinkEmailAsync(string email, string subject, string viewPath, string resetLink, string? firstName = null, string? lastName = null, Gender? gender = null) {
+		var model = new EmailPasswordResetLinkModel(resetLink, email, firstName, lastName, gender);
 		var fallbackBody = $"Email: {email}\nReset hesla: {resetLink}";
 
 		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
 	}
 
-	private string GetWebLink(string email, string password) {
-		var encodedEmail = Uri.EscapeDataString(email);
-		var encodedPassword = Uri.EscapeDataString(password);
+	private string GetWebLink(Account account) {
+		var encodedToken = Uri.EscapeDataString(CreateLoginLinkToken(account));
 
 		if(Program.ENV.TryGetValue("WEB_URL", out var webUrl) && !string.IsNullOrWhiteSpace(webUrl)) {
-			return $"{webUrl.TrimEnd('/')}/api/v1/account/login-link?email={encodedEmail}&password={encodedPassword}";
+			return $"{webUrl.TrimEnd('/')}/api/v1/account/login-link?token={encodedToken}";
 		}
 
 		var request = HttpContext.Request;
-		return $"{request.Scheme}://{request.Host}/api/v1/account/login-link?email={encodedEmail}&password={encodedPassword}";
+		return $"{request.Scheme}://{request.Host}/api/v1/account/login-link?token={encodedToken}";
 	}
 
 	private string GetPasswordResetLink(string token) {
@@ -451,10 +490,28 @@ public class AccountControllerV1(
 		return passwordResetProtector.Protect(JsonSerializer.Serialize(payload));
 	}
 
+	private string CreateLoginLinkToken(Account account) {
+		var payload = new LoginLinkToken(account.Id, account.PasswordHash, DateTime.UtcNow, Guid.NewGuid().ToString("N"));
+		return loginLinkProtector.Protect(JsonSerializer.Serialize(payload));
+	}
+
+	private static string GetUsedLoginLinkCacheKey(string tokenId) {
+		return $"account-login-link-used:{tokenId}";
+	}
+
 	private PasswordResetToken? ReadPasswordResetToken(string token) {
 		try {
 			var json = passwordResetProtector.Unprotect(token);
 			return JsonSerializer.Deserialize<PasswordResetToken>(json);
+		} catch {
+			return null;
+		}
+	}
+
+	private LoginLinkToken? ReadLoginLinkToken(string token) {
+		try {
+			var json = loginLinkProtector.Unprotect(token);
+			return JsonSerializer.Deserialize<LoginLinkToken>(json);
 		} catch {
 			return null;
 		}
@@ -483,14 +540,14 @@ public class AccountControllerV1(
 		int ActiveToday,
 		int ReservationsEnabled,
 		int StaffCount,
-		IReadOnlyList<DashboardRecentAccount> LatestAccounts,
+		IReadOnlyList<ProfileDto> LatestAccounts,
 		IReadOnlyList<DashboardClassStat> ClassBreakdown
 	);
-	public sealed record DashboardRecentAccount(string FullName, string? Class, DateTime CreatedAtUtc);
 	public sealed record DashboardClassStat(string Class, int Count);
 	public sealed record MyAccountMutationRequest(Gender? Gender, string? AvatarUrl, string? BannerUrl);
 	public sealed record ChangeMyPasswordRequest(string OldPassword, string NewPassword);
 	public sealed record ForgotPasswordRequest(string Email);
 	public sealed record ConfirmPasswordResetRequest(string Token, string NewPassword);
 	private sealed record PasswordResetToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc);
+	private sealed record LoginLinkToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc, string TokenId);
 }

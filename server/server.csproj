@@ -27,6 +27,10 @@
         </ProjectReference>
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Update="Services\VocativeData\*.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
     <!-- definice DEBUG a RELEASE promennych -->
     <PropertyGroup Condition="'$(Configuration)'=='Debug'">
         <DefineConstants>DEBUG;TRACE;DEVELOPMENT</DefineConstants>

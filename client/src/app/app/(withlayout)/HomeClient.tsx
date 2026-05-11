@@ -4,9 +4,10 @@ import Link from "next/link";
 import type {CSSProperties} from "react";
 import {Account} from "@/schemas/AccountSchema";
 import {hasRoleAtLeast} from "@/lib/roles";
-import type {HomeDashboard} from "../page";
-import {useHomeGreeting} from "../_hooks/useHomeGreeting";
+import type {HomeDashboard} from "./page";
+import {useHomeGreeting} from "./_hooks/useHomeGreeting";
 import styles from "./HomeClient.module.scss";
+import {Avatar} from "@/components/Avatar";
 
 type HomeClientProps = {
     account: Account | null;
@@ -61,11 +62,10 @@ export default function HomeClient({account, dashboard}: HomeClientProps) {
                         <h2>Stav LAN Party</h2>
                         <p>Rychlý přehled aktivity a rezervací</p>
                     </div>
-                    <span>{activeRatio}%</span>
+                    {/*<span>{activeRatio}%</span>*/}
                 </div>
                 <div className={styles.rings}>
                     <ProgressRing label="Rezervace" value={reservationRatio} />
-                    <ProgressRing label="Aktivita" value={activeRatio} />
                 </div>
             </div>
 
@@ -100,7 +100,8 @@ export default function HomeClient({account, dashboard}: HomeClientProps) {
                     <div className={styles.recent}>
                         {(dashboard?.latestAccounts.length ? dashboard.latestAccounts : []).map(item => (
                             <div key={`${item.fullName}-${item.createdAtUtc.toISOString()}`}>
-                                <span>{item.fullName.slice(0, 1).toUpperCase()}</span>
+                                <Avatar name={item.fullName} size="32px" src={item.avatarUrl} className={styles.avatar} />
+                                
                                 <div>
                                     <strong>{item.fullName}</strong>
                                     <p>{item.class ?? "Bez třídy"} · {item.createdAtUtc.toLocaleDateString("cs-CZ")}</p>
@@ -138,6 +139,24 @@ function ProgressRing({label, value}: {label: string; value: number}) {
         <div>
             <strong>{value}%</strong>
             <span>{label}</span>
+        </div>
+    </div>;
+}
+
+function ActivitySummary({activeNow, activeToday, staffCount}: {activeNow: number; activeToday: number; staffCount: number}) {
+    return <div className={styles.activitySummary}>
+        <InfoItem icon="/icons/successmark.svg" label="Online teď" value={activeNow} />
+        <InfoItem icon="/icons/statistics.svg" label="Aktivní dnes" value={activeToday} />
+        <InfoItem icon="/icons/user_with_shield.svg" label="Organizační tým" value={staffCount} />
+    </div>;
+}
+
+function InfoItem({icon, label, value}: {icon: string; label: string; value: number}) {
+    return <div className={styles.infoItem}>
+        <span style={{maskImage: `url(${icon})`}}></span>
+        <div>
+            <strong>{value}</strong>
+            <p>{label}</p>
         </div>
     </div>;
 }

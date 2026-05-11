@@ -1,7 +1,8 @@
 import {z} from "zod";
 import {fetchBackendJson} from "@/lib/backendClient";
 import {getCurrentLoggedAccount} from "@/lib/auth";
-import HomeClient from "./_components/HomeClient";
+import HomeClient from "./HomeClient";
+import {AccountSchema} from "@/schemas/AccountSchema";
 
 const DashboardSchema = z.object({
     totalAccounts: z.number(),
@@ -9,11 +10,7 @@ const DashboardSchema = z.object({
     activeToday: z.number(),
     reservationsEnabled: z.number(),
     staffCount: z.number(),
-    latestAccounts: z.array(z.object({
-        fullName: z.string(),
-        class: z.string().nullish(),
-        createdAtUtc: z.coerce.date(),
-    })),
+    latestAccounts: z.array(AccountSchema),
     classBreakdown: z.array(z.object({
         class: z.string(),
         count: z.number(),

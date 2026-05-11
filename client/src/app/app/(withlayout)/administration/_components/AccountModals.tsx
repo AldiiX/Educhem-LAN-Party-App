@@ -1,4 +1,4 @@
-import {FormEvent, ReactNode} from "react";
+import {Dispatch, FormEvent, ReactNode, SetStateAction} from "react";
 import Link from "next/link";
 import {Account, AccountGender, AccountType} from "@/schemas/AccountSchema";
 import {Avatar} from "@/components/Avatar";
@@ -12,10 +12,11 @@ type AccountModalsProps = {
     modalMode: ModalMode | null;
     selectedAccount: Account | null;
     form: AccountForm;
-    setForm: (form: AccountForm) => void;
+    setForm: Dispatch<SetStateAction<AccountForm>>;
     schoolOptions: SchoolOption[];
     manageableAccountTypes: AccountType[];
     canManageSelectedAccount: boolean;
+    canImpersonateSelectedAccount: boolean;
     selectedAccountRoleBlocked: boolean;
     selectedAccountWarningMessage: string;
     saving: boolean;
@@ -26,6 +27,7 @@ type AccountModalsProps = {
     onOpenDelete: (account: Account) => void;
     onOpenResetPassword: (account: Account) => void;
     onDelete: () => void;
+    onImpersonate: () => void;
     onResetPassword: () => void;
 };
 
@@ -38,6 +40,7 @@ export function AccountModals(props: AccountModalsProps) {
         schoolOptions,
         manageableAccountTypes,
         canManageSelectedAccount,
+        canImpersonateSelectedAccount,
         selectedAccountRoleBlocked,
         selectedAccountWarningMessage,
         saving,
@@ -48,6 +51,7 @@ export function AccountModals(props: AccountModalsProps) {
         onOpenDelete,
         onOpenResetPassword,
         onDelete,
+        onImpersonate,
         onResetPassword,
     } = props;
 
@@ -69,10 +73,12 @@ export function AccountModals(props: AccountModalsProps) {
                 <AccountDetailModal
                     account={selectedAccount}
                     canManage={canManageSelectedAccount}
+                    canImpersonate={canImpersonateSelectedAccount}
                     showRoleWarning={selectedAccountRoleBlocked}
                     warningMessage={selectedAccountWarningMessage}
                     onEdit={() => onOpenEdit(selectedAccount)}
                     onDelete={() => onOpenDelete(selectedAccount)}
+                    onImpersonate={onImpersonate}
                     onResetPassword={() => onOpenResetPassword(selectedAccount)}
                 />
             ) : null}
@@ -100,13 +106,15 @@ export function AccountModals(props: AccountModalsProps) {
     </>
 }
 
-function AccountDetailModal({account, canManage, showRoleWarning, warningMessage, onEdit, onDelete, onResetPassword}: {
+function AccountDetailModal({account, canManage, canImpersonate, showRoleWarning, warningMessage, onEdit, onDelete, onImpersonate, onResetPassword}: {
     account: Account,
     canManage: boolean,
+    canImpersonate: boolean,
     showRoleWarning: boolean,
     warningMessage: string,
     onEdit: () => void,
     onDelete: () => void,
+    onImpersonate: () => void,
     onResetPassword: () => void,
 }) {
     return <>
@@ -149,6 +157,10 @@ function AccountDetailModal({account, canManage, showRoleWarning, warningMessage
                     <span style={{maskImage: "url(/icons/reset_password.svg)"}}></span>
                     Resetovat heslo
                 </button>
+                {canImpersonate && <button type="button" className={style.impersonateButton} onClick={onImpersonate}>
+                    <span style={{maskImage: "url(/icons/login.svg)"}}></span>
+                    Přihlásit se za
+                </button>}
                 <button type="button" className={style.dangerButton} onClick={onDelete}>Smazat</button>
             </div>}
         </div>
@@ -158,7 +170,7 @@ function AccountDetailModal({account, canManage, showRoleWarning, warningMessage
 function AccountFormModal({mode, form, setForm, schoolOptions, manageableAccountTypes, saving, onSubmit, onCancel, previewAccount}: {
     mode: "edit" | "create",
     form: AccountForm,
-    setForm: (form: AccountForm) => void,
+    setForm: Dispatch<SetStateAction<AccountForm>>,
     schoolOptions: SchoolOption[],
     manageableAccountTypes: AccountType[],
     saving: boolean,
@@ -166,7 +178,7 @@ function AccountFormModal({mode, form, setForm, schoolOptions, manageableAccount
     onCancel: () => void,
     previewAccount: Account | null,
 }) {
-    const update = <K extends keyof AccountForm>(key: K, value: AccountForm[K]) => setForm({...form, [key]: value});
+    const update = <K extends keyof AccountForm>(key: K, value: AccountForm[K]) => setForm(current => ({...current, [key]: value}));
     const previewName = form.displayName.trim() || "?";
 
     return <form onSubmit={onSubmit}>
