@@ -11,4 +11,12 @@ public static class EntityFrameworkIncludes {
 			.Include(a => a.School)
 			.AsSplitQuery();
 	}
+
+	public static IQueryable<Reservation> ReservationsEf(this AppDbContext db) {
+		return db.Reservations
+			.Include(r => r.Account)
+			.Include(r => ((ComputerReservation)r).Computer)
+			.Include(r => ((RoomReservation)r).Room)
+			.AsSplitQuery();
+	}
 }

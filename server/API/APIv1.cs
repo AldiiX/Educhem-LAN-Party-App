@@ -4,7 +4,7 @@ namespace server.API;
 
 [ApiController]
 [Route("api/v1")]
-public class APIv1 : Controller {
+public sealed class APIv1 : Controller {
 
     [HttpGet, HttpGet("hello")]
     public IActionResult Index() {
