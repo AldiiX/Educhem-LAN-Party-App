@@ -37,7 +37,7 @@ export default function({ account }: { account: Account }) {
                     </If>
 
                     <If condition={account.createdAtUtc != null} as="div" className={style.item} title={`Datum registrace: ${account.createdAtUtc.toLocaleDateString()}`}>
-                        <div className={style.icon} style={{ maskImage: `url(/icons/plus.svg)` }}></div>
+                        <div className={style.icon} style={{ maskImage: `url(/icons/login.svg)` }}></div>
                         <p>{ account.createdAtUtc.toLocaleDateString() }</p>
                     </If>
                 </div>

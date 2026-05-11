@@ -128,6 +128,18 @@
                 }
             }
 
+            .forgotPassword {
+                justify-self: center;
+                width: fit-content;
+                color: var(--text-color-secondary);
+                font-size: 15px;
+                transition: color .2s ease;
+
+                &:hover {
+                    color: var(--accent-color);
+                }
+            }
+
             .error-message {
                 position: absolute;
                 top: 100%;
@@ -145,6 +157,168 @@
     >.right-side {
         >.PC-count{
 
+        }
+    }
+}
+
+.resetModal {
+    width: min(440px, calc(100vw - 32px));
+    padding: 0;
+    border-radius: 18px;
+    border-color: var(--accent-line);
+    background:
+            linear-gradient(180deg, rgba(255, 179, 3, .08), transparent 34%),
+            var(--element-bg);
+    box-shadow: 0 28px 70px rgba(0, 0, 0, .5);
+
+    form {
+        display: grid;
+        gap: 22px;
+        padding: 30px;
+
+        .modalHeader {
+            display: grid;
+            grid-template-columns: 54px 1fr;
+            gap: 16px;
+            align-items: start;
+
+            .modalIcon {
+                width: 54px;
+                aspect-ratio: 1/1;
+                border-radius: 14px;
+                background: linear-gradient(135deg, var(--accent-color), var(--accent-color-darker));
+                position: relative;
+
+                &::before {
+                    content: "";
+                    position: absolute;
+                    inset: 15px;
+                    background: var(--accent-color-text);
+                    mask-image: url("../../../../public/icons/reset_password.svg");
+                    mask-position: center;
+                    mask-size: contain;
+                    mask-repeat: no-repeat;
+                }
+            }
+
+            >div {
+                min-width: 0;
+
+                >h2 {
+                    padding-right: 28px;
+                    color: var(--text-color);
+                    font-size: 28px;
+                    line-height: 1.05;
+                    margin-bottom: 8px;
+                }
+
+                >p {
+                    color: var(--text-color-secondary);
+                    line-height: 1.35;
+                    font-size: 16px;
+                }
+            }
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+
+            >span {
+                color: var(--text-color);
+                font-weight: 700;
+                line-height: 1.1;
+            }
+        }
+
+        .inputWrap {
+            display: grid;
+            grid-template-columns: 20px 1fr;
+            align-items: center;
+            gap: 10px;
+            min-height: 50px;
+            padding: 0 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--background-bg);
+            transition: border-color .2s ease, box-shadow .2s ease;
+
+            &:focus-within {
+                border-color: var(--accent-color);
+                box-shadow: 0 0 0 3px var(--accent-soft);
+            }
+
+            >span {
+                width: 20px;
+                height: 20px;
+                background: var(--text-color-darker);
+                mask-image: url("../../../../public/icons/email.svg");
+                mask-position: center;
+                mask-repeat: no-repeat;
+                mask-size: contain;
+            }
+
+            input {
+                width: 100%;
+                height: 48px;
+                padding: 0;
+                border: 0;
+                border-radius: 0;
+                background: transparent;
+                color: var(--text-color);
+
+                &::placeholder {
+                    color: var(--text-color-darker);
+                }
+
+                &:focus {
+                    outline: none;
+                    border-color: transparent;
+                }
+            }
+        }
+
+        .resetSubmit {
+            width: 100%;
+            min-height: 46px;
+            border-radius: 8px;
+            font-weight: 800;
+            margin-top: 2px;
+        }
+    }
+
+    :global(html[data-theme='light']) & {
+        background:
+                linear-gradient(180deg, rgba(255, 131, 0, .12), transparent 34%),
+                var(--element-bg);
+    }
+}
+
+@media (max-width: 520px) {
+    .resetModal {
+        width: min(100%, calc(100vw - 28px));
+
+        form {
+            padding: 24px;
+
+            .modalHeader {
+                grid-template-columns: 1fr;
+                gap: 14px;
+
+                .modalIcon {
+                    width: 48px;
+                }
+
+                >div {
+                    >h2 {
+                        font-size: 26px;
+                    }
+
+                    >p {
+                        font-size: 15px;
+                    }
+                }
+            }
         }
     }
 }

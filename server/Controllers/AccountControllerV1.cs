@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using server.Data;
@@ -18,7 +20,17 @@ namespace server.Controllers;
 
 [ApiController]
 [Route("api/v1/account")]
-public class AccountControllerV1(IAuthService auth, AppDbContext db, IServiceProvider serviceProvider) : Controller {
+public class AccountControllerV1(
+	IAuthService auth,
+	AppDbContext db,
+	IServiceProvider serviceProvider,
+	IDataProtectionProvider dataProtectionProvider
+) : Controller {
+
+	private readonly IDataProtector passwordResetProtector = dataProtectionProvider.CreateProtector("account-password-reset");
+	private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromMinutes(30);
+
+
 
 	[HttpGet]
 	public async Task<IActionResult> GetMyAccount(CancellationToken ct = default) {
@@ -26,6 +38,57 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 		if(acc == null) return new UnauthorizedResult();
 
 		return Ok(acc.ToDto());
+	}
+
+	[HttpGet("dashboard")]
+	public async Task<IActionResult> GetDashboard(CancellationToken ct = default) {
+		var acc = await auth.ReAuthAsync(ct);
+		var nowUtc = DateTime.UtcNow;
+		var accounts = await db.AccountsEf()
+			.AsNoTracking()
+			.Select(a => new {
+				a.Id,
+				a.FirstName,
+				a.LastName,
+				a.Class,
+				a.AccountType,
+				a.EnableReservations,
+				a.CreatedAtUtc,
+				a.LastActiveUtc,
+			})
+			.ToListAsync(ct);
+
+		var activeNow = accounts.Count(a => a.LastActiveUtc >= nowUtc.AddMinutes(-15));
+		var activeToday = accounts.Count(a => a.LastActiveUtc >= nowUtc.Date);
+		var reservationsEnabled = accounts.Count(a => a.EnableReservations);
+		var staffCount = accounts.Count(a => a.AccountType >= AccountType.Teacher);
+		var latestAccounts = acc == null ? [] : accounts
+			.OrderByDescending(a => a.CreatedAtUtc)
+			.Take(4)
+			.Select(a => new DashboardRecentAccount(
+				$"{a.FirstName} {a.LastName}",
+				a.Class,
+				a.CreatedAtUtc
+			))
+			.ToList();
+		var classBreakdown = accounts
+			.Where(a => a.EnableReservations && !string.IsNullOrWhiteSpace(a.Class))
+			.GroupBy(a => a.Class!)
+			.OrderByDescending(group => group.Count())
+			.ThenBy(group => group.Key)
+			.Take(6)
+			.Select(group => new DashboardClassStat(group.Key, group.Count()))
+			.ToList();
+
+		return Ok(new DashboardResponse(
+			accounts.Count,
+			activeNow,
+			activeToday,
+			reservationsEnabled,
+			staffCount,
+			latestAccounts,
+			classBreakdown
+		));
 	}
 
 	[HttpGet("all")]
@@ -209,6 +272,87 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 		return new OkObjectResult(acc.ToDto());
 	}
 
+	[HttpPut("me")]
+	public async Task<IActionResult> UpdateMyAccount([FromBody] MyAccountMutationRequest request, CancellationToken ct = default) {
+		var acc = await auth.ReAuthAsync(ct);
+		if(acc == null) return new UnauthorizedResult();
+
+		var account = await db.AccountsEf().FirstOrDefaultAsync(a => a.Id == acc.Id, ct);
+		if(account == null) return NotFound();
+
+		account.Gender = request.Gender;
+		account.AvatarUrl = NormalizeOptional(request.AvatarUrl);
+		account.BannerUrl = NormalizeOptional(request.BannerUrl);
+
+		await db.SaveChangesAsync(ct);
+
+		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == account.Id, ct);
+		return Ok(updated.ToDto());
+	}
+
+	[HttpPost("me/password")]
+	public async Task<IActionResult> ChangeMyPassword([FromBody] ChangeMyPasswordRequest request, CancellationToken ct = default) {
+		var acc = await auth.ReAuthAsync(ct);
+		if(acc == null) return new UnauthorizedResult();
+
+		if(string.IsNullOrWhiteSpace(request.OldPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
+			return BadRequest("Missing password.");
+
+		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == acc.Id, ct);
+		if(account == null) return NotFound();
+		if(!AuthService.VerifyPassword(request.OldPassword, account.PasswordHash))
+			return BadRequest("Invalid old password.");
+
+		account.PasswordHash = AuthService.HashPassword(request.NewPassword);
+		await db.SaveChangesAsync(ct);
+		await auth.LogoutAsync(ct);
+
+		return NoContent();
+	}
+
+	[HttpPost("forgot-password")]
+	public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct = default) {
+		if(string.IsNullOrWhiteSpace(request.Email))
+			return BadRequest("Missing email.");
+
+		var email = request.Email.Trim();
+		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Email.ToLower() == email.ToLower(), ct);
+		if(account == null) return Ok(new PasswordResetResponse(false));
+
+		var token = CreatePasswordResetToken(account);
+		var resetLink = GetPasswordResetLink(token);
+
+		var emailSent = await SendPasswordResetLinkEmailAsync(
+			account.Email,
+			"EDUCHEM LAN Party - reset hesla",
+			"/Views/Emails/UserForgotPassword.cshtml",
+			resetLink
+		);
+
+		return Ok(new PasswordResetResponse(emailSent));
+	}
+
+	[HttpPost("reset-password")]
+	public async Task<IActionResult> ConfirmPasswordReset([FromBody] ConfirmPasswordResetRequest request, CancellationToken ct = default) {
+		if(string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword))
+			return BadRequest("Missing reset data.");
+
+		var resetToken = ReadPasswordResetToken(request.Token);
+		if(resetToken == null) return BadRequest("Invalid reset token.");
+		if(DateTime.UtcNow - resetToken.CreatedAtUtc > PasswordResetTokenLifetime)
+			return BadRequest("Reset token expired.");
+
+		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == resetToken.AccountId, ct);
+		if(account == null) return BadRequest("Invalid reset token.");
+		if(account.PasswordHash != resetToken.PasswordHash)
+			return BadRequest("Reset token expired.");
+
+		account.PasswordHash = AuthService.HashPassword(request.NewPassword);
+		await db.SaveChangesAsync(ct);
+
+		return NoContent();
+	}
+
 	[HttpGet("login-link")]
 	public async Task<IActionResult> LoginLink([FromQuery] string email, [FromQuery] string password, CancellationToken ct = default) {
 		var acc = await auth.LoginAsync(email, password, ct);
@@ -234,6 +378,7 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 
 
 
+	// util metodky
 	private static string? NormalizeOptional(string? value) {
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 	}
@@ -271,6 +416,13 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
 	}
 
+	private async Task<bool> SendPasswordResetLinkEmailAsync(string email, string subject, string viewPath, string resetLink) {
+		var model = new EmailPasswordResetLinkModel(resetLink, email);
+		var fallbackBody = $"Email: {email}\nReset hesla: {resetLink}";
+
+		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
+	}
+
 	private string GetWebLink(string email, string password) {
 		var encodedEmail = Uri.EscapeDataString(email);
 		var encodedPassword = Uri.EscapeDataString(password);
@@ -281,6 +433,31 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 
 		var request = HttpContext.Request;
 		return $"{request.Scheme}://{request.Host}/api/v1/account/login-link?email={encodedEmail}&password={encodedPassword}";
+	}
+
+	private string GetPasswordResetLink(string token) {
+		var encodedToken = Uri.EscapeDataString(token);
+
+		if(Program.ENV.TryGetValue("WEB_URL", out var webUrl) && !string.IsNullOrWhiteSpace(webUrl)) {
+			return $"{webUrl.TrimEnd('/')}/app/reset-password?token={encodedToken}";
+		}
+
+		var request = HttpContext.Request;
+		return $"{request.Scheme}://{request.Host}/app/reset-password?token={encodedToken}";
+	}
+
+	private string CreatePasswordResetToken(Account account) {
+		var payload = new PasswordResetToken(account.Id, account.PasswordHash, DateTime.UtcNow);
+		return passwordResetProtector.Protect(JsonSerializer.Serialize(payload));
+	}
+
+	private PasswordResetToken? ReadPasswordResetToken(string token) {
+		try {
+			var json = passwordResetProtector.Unprotect(token);
+			return JsonSerializer.Deserialize<PasswordResetToken>(json);
+		} catch {
+			return null;
+		}
 	}
 
 	public sealed record AccountMutationRequest(
@@ -300,4 +477,20 @@ public class AccountControllerV1(IAuthService auth, AppDbContext db, IServicePro
 
 	public sealed record AccountMutationResponse(AccountDto Account, bool LoginCredentialsEmailSent = false);
 	public sealed record PasswordResetResponse(bool LoginCredentialsEmailSent);
+	public sealed record DashboardResponse(
+		int TotalAccounts,
+		int ActiveNow,
+		int ActiveToday,
+		int ReservationsEnabled,
+		int StaffCount,
+		IReadOnlyList<DashboardRecentAccount> LatestAccounts,
+		IReadOnlyList<DashboardClassStat> ClassBreakdown
+	);
+	public sealed record DashboardRecentAccount(string FullName, string? Class, DateTime CreatedAtUtc);
+	public sealed record DashboardClassStat(string Class, int Count);
+	public sealed record MyAccountMutationRequest(Gender? Gender, string? AvatarUrl, string? BannerUrl);
+	public sealed record ChangeMyPasswordRequest(string OldPassword, string NewPassword);
+	public sealed record ForgotPasswordRequest(string Email);
+	public sealed record ConfirmPasswordResetRequest(string Token, string NewPassword);
+	private sealed record PasswordResetToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc);
 }
