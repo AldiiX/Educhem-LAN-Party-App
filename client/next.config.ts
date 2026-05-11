@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
             }
         ]
     },
+
+    //reactStrictMode: false, // pouze pro dev test
 };
 
 export default nextConfig;
