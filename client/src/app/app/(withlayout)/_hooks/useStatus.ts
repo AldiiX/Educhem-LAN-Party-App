@@ -1,21 +1,35 @@
 ﻿import useSWR from "swr";
-import {fetcher} from "@/lib/swr";
+import { fetcher } from "@/lib/swr";
 
 export type StatusData = {
-    maxCapacity: number,
-    currentReservations: number,
-    capacityUsedPercentage: number,
+    maxCapacity: number;
+    capacityUsed: number;
+    capacityUsedPercentage: number;
+    accountsWithEnabledReservations: number;
+    accountsWithEnabledReservationsPercentage: number;
 }
 
-export function useStatus() {
-    const {data, error, isLoading, mutate} = useSWR<StatusData>("/api/v1/reservations/status", fetcher);
+export function useStatus(initialValue?: StatusData | null) {
+    const hasInitialValue = initialValue != null;
+
+    const { data, error, isLoading, isValidating, mutate } = useSWR<StatusData>(
+        "/api/v1/reservations/status",
+        fetcher,
+        {
+            fallbackData: initialValue ?? undefined,
+            revalidateOnMount: !hasInitialValue,
+            revalidateIfStale: !hasInitialValue
+        }
+    );
 
     const refresh = async () => await mutate();
 
     return {
-        ...data,
+        data: data ?? null,
         error,
-        isLoading,
+        isLoading: !hasInitialValue && isLoading,
+        isValidating,
         refresh,
+        mutate
     };
 }

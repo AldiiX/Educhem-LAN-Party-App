@@ -41,10 +41,13 @@ public sealed class ReservationsControllerV1(AppDbContext db) : Controller {
 		var computers = db.ComputersEf().AsNoTracking().ToList();
 		var rooms = db.RoomsEf().AsNoTracking().ToList();
 		var maxCapacity = computers.Count + rooms.Sum(r => r.Capacity);
+		var accounts = db.Accounts.AsNoTracking().ToList();
 
 		return new JsonResult(new {
 			maxCapacity,
-			currentReservations = reservations.Count,
+			accountsWithEnabledReservations = accounts.Count(a => a.EnableReservations),
+			accountsWithEnabledReservationsPercentage = accounts.Count == 0 ? 0 : Math.Min(Math.Round((double)accounts.Count(a => a.EnableReservations) / accounts.Count * 100), 100),
+			capacityUsed = reservations.Count,
 			capacityUsedPercentage = maxCapacity == 0 ? 0 : Math.Min(Math.Round((double)reservations.Count / maxCapacity * 100), 100),
 		});
 	}

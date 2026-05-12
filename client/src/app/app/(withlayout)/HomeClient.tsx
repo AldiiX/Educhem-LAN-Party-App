@@ -8,11 +8,12 @@ import type {HomeDashboard} from "./page";
 import {useHomeGreeting} from "./_hooks/useHomeGreeting";
 import styles from "./HomeClient.module.scss";
 import {Avatar} from "@/components/Avatar";
-import {useStatus} from "@/app/app/(withlayout)/_hooks/useStatus";
+import {StatusData, useStatus} from "@/app/app/(withlayout)/_hooks/useStatus";
 
 type HomeClientProps = {
     account: Account | null;
     dashboard: HomeDashboard | null;
+    status: StatusData | null;
 };
 
 const quickLinks = [
@@ -24,14 +25,15 @@ const quickLinks = [
     {href: "/app/administration", label: "Administrace", icon: "/icons/user_with_shield.svg", staffOnly: true},
 ];
 
-export default function HomeClient({account, dashboard}: HomeClientProps) {
+export default function HomeClient({account, dashboard, status}: HomeClientProps) {
     const greeting = useHomeGreeting(account?.firstName ?? null);
     const links = quickLinks.filter(link => {
         if(link.authOnly && !account) return false;
         if(link.staffOnly) return hasRoleAtLeast(account, "TeacherOrg");
         return true;
     });
-    const { maxCapacity, capacityUsedPercentage: filledCapacityPercentage } = useStatus();
+
+    const { } = useStatus(status);
     const totalAccounts = dashboard?.totalAccounts ?? 0;
     const reservationsEnabled = dashboard?.reservationsEnabled ?? 0;
     const maxClassCount = Math.max(...(dashboard?.classBreakdown.map(item => item.count) ?? [1]), 1);
@@ -51,7 +53,7 @@ export default function HomeClient({account, dashboard}: HomeClientProps) {
 
         <section className={styles.statsGrid}>
             <StatCard icon="/icons/account.svg" label="Účastníků v systému" value={totalAccounts} detail={`${dashboard?.staffCount ?? 0} organizátorů a učitelů`} />
-            <StatCard icon="/icons/calc.svg" label="Rezervací povoleno" value={reservationsEnabled} detail={`${filledCapacityPercentage}% účtů má povolené rezervace`} />
+            <StatCard icon="/icons/calc.svg" label="Rezervací povoleno" value={status?.accountsWithEnabledReservations ?? 0} detail={`${status?.accountsWithEnabledReservationsPercentage ?? 0}% účtů má povolené rezervace`} />
             <StatCard icon="/icons/successmark.svg" label="Aktivní dnes" value={dashboard?.activeToday ?? 0} detail={`${dashboard?.activeNow ?? 0} aktivních za posledních 15 minut`} />
         </section>
 
@@ -65,7 +67,7 @@ export default function HomeClient({account, dashboard}: HomeClientProps) {
                     {/*<span>{activeRatio}%</span>*/}
                 </div>
                 <div className={styles.rings}>
-                    <ProgressRing label="Rezervace" value={filledCapacityPercentage ?? 0} />
+                    <ProgressRing label="Rezervace" value={status?.capacityUsedPercentage ?? 0} />
                 </div>
             </div>
 

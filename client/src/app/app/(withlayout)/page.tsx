@@ -3,6 +3,7 @@ import {fetchBackendJson} from "@/lib/backendClient";
 import {getCurrentLoggedAccount} from "@/lib/auth";
 import HomeClient from "./HomeClient";
 import {AccountSchema} from "@/schemas/AccountSchema";
+import {StatusData} from "@/app/app/(withlayout)/_hooks/useStatus";
 
 const DashboardSchema = z.object({
     totalAccounts: z.number(),
@@ -21,15 +22,21 @@ export type HomeDashboard = z.infer<typeof DashboardSchema>;
 
 export default async function HomePage() {
     const account = await getCurrentLoggedAccount();
-    let dashboard: HomeDashboard | null = null;
 
-    try {
-        const response = await fetchBackendJson<unknown>("/api/v1/account/dashboard", {method: "GET"});
-        const parsed = DashboardSchema.safeParse(response);
-        if(parsed.success) dashboard = parsed.data;
-    } catch {
-        dashboard = null;
-    }
+    const dashboardPromise = fetchBackendJson<unknown>("/api/v1/account/dashboard", { method: "GET" })
+        .then(response => {
+            const parsed = DashboardSchema.safeParse(response);
+            return parsed.success ? parsed.data : null;
+        })
+        .catch(() => null);
 
-    return <HomeClient account={account} dashboard={dashboard} />;
+    const statusPromise = fetchBackendJson<StatusData>("/api/v1/reservations/status", { method: "GET" })
+        .catch(() => null);
+
+    const [dashboard, status] = await Promise.all([
+        dashboardPromise,
+        statusPromise
+    ]);
+
+    return <HomeClient account={account} dashboard={dashboard} status={status} />;
 }
