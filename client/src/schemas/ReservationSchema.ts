@@ -9,22 +9,25 @@ export const RoomSchema = z.object({
     id: z.string(),
 });
 
+export const ComputerSchema = z.object({
+    imageUrl: z.string().nullable(),
+    room: RoomSchema.nullable(),
+    available: z.boolean(),
+    isTeachersComputer: z.boolean(),
+    label: z.string(),
+    id: z.string(),
+})
+
 export const ReservationSchema = z.object({
     profile: z.union([AccountSchema, z.literal("Anonymous")]),
     note: z.string().nullable(),
     updatedAtUtc: z.coerce.date(),
     createdAtUtc: z.coerce.date(),
     room: RoomSchema.nullable(),
-    computer: z.object({
-        imageUrl: z.string().nullable(),
-        room: RoomSchema.nullable(),
-        available: z.boolean(),
-        isTeachersComputer: z.boolean(),
-        label: z.string(),
-        id: z.string(),
-    }).nullable(),
+    computer: ComputerSchema.nullable(),
 })
 
 
 export type Reservation = z.infer<typeof ReservationSchema>
 export type Room = z.infer<typeof RoomSchema>
+export type Computer = z.infer<typeof ComputerSchema>

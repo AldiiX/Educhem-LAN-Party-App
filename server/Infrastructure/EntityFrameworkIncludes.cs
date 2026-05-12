@@ -20,4 +20,17 @@ public static class EntityFrameworkIncludes {
 			.OrderByDescending(r => r.CreatedAtUtc)
 			.AsSplitQuery();
 	}
+
+	public static IQueryable<Room> RoomsEf(this AppDbContext db) {
+		return db.Rooms
+			.Where(r => r.Available)
+			.AsSplitQuery();
+	}
+
+	public static IQueryable<Computer> ComputersEf(this AppDbContext db) {
+		return db.Computers
+			.Where(c => c.Available)
+			.Include(c => c.Room)
+			.AsSplitQuery();
+	}
 }

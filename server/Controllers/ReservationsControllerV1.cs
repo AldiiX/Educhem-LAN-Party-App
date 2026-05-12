@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using server.Data;
 using server.Dto.Mappers;
 using server.Infrastructure;
@@ -22,4 +23,29 @@ public sealed class ReservationsControllerV1(AppDbContext db) : Controller {
 		return new JsonResult(reservations);
 	}
 	#endif
+
+	[HttpGet("computers-and-rooms"), HttpGet("rooms-and-computers")]
+	public async Task<IActionResult> GetComputersAndRooms() {
+		var computers = db.ComputersEf().AsNoTracking().ToList().Select(c => c.ToDto());
+		var rooms = db.RoomsEf().AsNoTracking().ToList().Select(r => r.ToDto());
+		var result = new {
+			Computers = computers,
+			Rooms = rooms
+		};
+		return new JsonResult(result);
+	}
+
+	[HttpGet("status")]
+	public async Task<IActionResult> Status() {
+		var reservations = db.ReservationsEf().AsNoTracking().ToList();
+		var computers = db.ComputersEf().AsNoTracking().ToList();
+		var rooms = db.RoomsEf().AsNoTracking().ToList();
+		var maxCapacity = computers.Count + rooms.Sum(r => r.Capacity);
+
+		return new JsonResult(new {
+			maxCapacity,
+			currentReservations = reservations.Count,
+			capacityUsedPercentage = maxCapacity == 0 ? 0 : Math.Min(Math.Round((double)reservations.Count / maxCapacity * 100), 100),
+		});
+	}
 }

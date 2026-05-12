@@ -12,6 +12,7 @@ import {ITHub} from "@/components/reservation_areas/ITHub";
 import {SpiralUpper} from "@/components/reservation_areas/SpiralUpper";
 import CapacityChart from "@/components/CapacityChart";
 import {useRememberState} from "@/hooks/useRememberState";
+import {useRoomsAndComputers} from "@/app/app/(withlayout)/reservations/_hooks/useRoomsAndComputers";
 
 const maps = [
     { id: "ithub", name: "IT Hub (Spodní patro)"},
@@ -47,9 +48,10 @@ export default function Client({
         "reservationsLegendCollapsed",
     );
     const { reservations, connectedIds } = useReservationsHub();
+    const { roomsCapacity, maxCapacity, computersCapacity } = useRoomsAndComputers();
     const {account} = useAuth();
     const reservedCount = reservations?.filter(reservation => reservation.computer !== null || reservation.room !== null).length ?? 0;
-    const filledCapacityPercentage = Math.min(100, Math.round((reservedCount / 1) * 100));
+    const filledCapacityPercentage = Math.min(100, Math.round((reservedCount / Math.max(maxCapacity, 1)) * 100));
 
     return <>
         <h1 className={style.title}>Rezervace</h1>
@@ -126,15 +128,15 @@ export default function Client({
                         <h2>Statistiky</h2>
                         <p>
                             Počet rezervovaných PC:
-                            <span>{reservations?.filter(r => r.computer !== null).length }/00</span>
+                            <span>{reservations?.filter(r => r.computer !== null).length }/{computersCapacity}</span>
                         </p>
                         <p>
                             Počet rezervovaných míst:
-                            <span>{reservations?.filter(r => r.room !== null).length }/00</span>
+                            <span>{reservations?.filter(r => r.room !== null).length }/{roomsCapacity}</span>
                         </p>
                         <p>
                             Celkem rezervací:
-                            <span>{(reservations?.filter(r => r.computer !== null).length ?? 0) + (reservations?.filter(r => r.room !== null).length ?? 0) }/00</span>
+                            <span>{(reservations?.filter(r => r.computer !== null).length ?? 0) + (reservations?.filter(r => r.room !== null).length ?? 0) }/{maxCapacity}</span>
                         </p>
                     </div>
 

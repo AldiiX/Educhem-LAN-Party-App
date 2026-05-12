@@ -8,6 +8,7 @@ import type {HomeDashboard} from "./page";
 import {useHomeGreeting} from "./_hooks/useHomeGreeting";
 import styles from "./HomeClient.module.scss";
 import {Avatar} from "@/components/Avatar";
+import {useStatus} from "@/app/app/(withlayout)/_hooks/useStatus";
 
 type HomeClientProps = {
     account: Account | null;
@@ -30,10 +31,9 @@ export default function HomeClient({account, dashboard}: HomeClientProps) {
         if(link.staffOnly) return hasRoleAtLeast(account, "TeacherOrg");
         return true;
     });
+    const { maxCapacity, capacityUsedPercentage: filledCapacityPercentage } = useStatus();
     const totalAccounts = dashboard?.totalAccounts ?? 0;
     const reservationsEnabled = dashboard?.reservationsEnabled ?? 0;
-    const reservationRatio = totalAccounts > 0 ? Math.round((reservationsEnabled / totalAccounts) * 100) : 0;
-    const activeRatio = totalAccounts > 0 ? Math.round(((dashboard?.activeToday ?? 0) / totalAccounts) * 100) : 0;
     const maxClassCount = Math.max(...(dashboard?.classBreakdown.map(item => item.count) ?? [1]), 1);
 
     return <main className={styles.home}>
@@ -51,7 +51,7 @@ export default function HomeClient({account, dashboard}: HomeClientProps) {
 
         <section className={styles.statsGrid}>
             <StatCard icon="/icons/account.svg" label="Účastníků v systému" value={totalAccounts} detail={`${dashboard?.staffCount ?? 0} organizátorů a učitelů`} />
-            <StatCard icon="/icons/calc.svg" label="Rezervací povoleno" value={reservationsEnabled} detail={`${reservationRatio}% účtů má povolené rezervace`} />
+            <StatCard icon="/icons/calc.svg" label="Rezervací povoleno" value={reservationsEnabled} detail={`${filledCapacityPercentage}% účtů má povolené rezervace`} />
             <StatCard icon="/icons/successmark.svg" label="Aktivní dnes" value={dashboard?.activeToday ?? 0} detail={`${dashboard?.activeNow ?? 0} aktivních za posledních 15 minut`} />
         </section>
 
@@ -65,7 +65,7 @@ export default function HomeClient({account, dashboard}: HomeClientProps) {
                     {/*<span>{activeRatio}%</span>*/}
                 </div>
                 <div className={styles.rings}>
-                    <ProgressRing label="Rezervace" value={reservationRatio} />
+                    <ProgressRing label="Rezervace" value={filledCapacityPercentage ?? 0} />
                 </div>
             </div>
 
