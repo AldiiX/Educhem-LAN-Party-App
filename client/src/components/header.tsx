@@ -33,7 +33,7 @@ export function Header() {
                 </nav>
 
                 <div className={styles.actions}>
-                    <a href="/app/reservations" className={styles.systemLink}>
+                    <a href="/app/" className={styles.systemLink}>
                         Vstup do systému
                     </a>
                     <button
@@ -56,7 +56,7 @@ export function Header() {
             </header>
 
             <div className={`${styles.mobileMenu}${open ? ` ${styles.mobileMenuOpen}` : ''}`}>
-                <a href="/app/reservations" className={styles.mobileSystemLink}>
+                <a href="/app/" className={styles.mobileSystemLink}>
                     Vstup do systému
                 </a>
                 {siteConfig.navLinks.map((link) => (

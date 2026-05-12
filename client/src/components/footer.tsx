@@ -23,7 +23,7 @@ export function Footer() {
                     </nav>
 
                     <div className={styles.actions}>
-                        <a href="/app/reservations" className={styles.systemLink}>
+                        <a href="/app/" className={styles.systemLink}>
                             Vstup do systému
                         </a>
                         <a href="/info.pdf" target="_blank" className={styles.download}>
