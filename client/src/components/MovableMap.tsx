@@ -25,6 +25,8 @@ type MovableMapProps = {
 
 const DEFAULT_WIDTH = 1600;
 const DEFAULT_HEIGHT = 900;
+const BUTTON_ZOOM_STEP = 0.075;
+const WHEEL_ZOOM_STEP = 0.06;
 
 export default function MovableMap({
     width = DEFAULT_WIDTH,
@@ -130,7 +132,7 @@ export default function MovableMap({
             };
             const direction = event.deltaY < 0 ? 1 : -1;
 
-            zoomTo(scale + direction * 0.12, anchor);
+            zoomTo(scale + direction * WHEEL_ZOOM_STEP, anchor);
         };
 
         svg.addEventListener("wheel", handleWheel, { passive: false });
@@ -180,10 +182,10 @@ export default function MovableMap({
 
             {showControls && (
                 <div className={styles.controls} aria-label="Map controls">
-                    <button type="button" onClick={() => zoomTo(scale + 0.15)} aria-label="Zoom in">
+                    <button type="button" onClick={() => zoomTo(scale + BUTTON_ZOOM_STEP)} aria-label="Zoom in">
                         +
                     </button>
-                    <button type="button" onClick={() => zoomTo(scale - 0.15)} aria-label="Zoom out">
+                    <button type="button" onClick={() => zoomTo(scale - BUTTON_ZOOM_STEP)} aria-label="Zoom out">
                         -
                     </button>
                 </div>

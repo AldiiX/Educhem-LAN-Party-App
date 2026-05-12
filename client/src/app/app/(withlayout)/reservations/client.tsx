@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import style from "@/app/app/(withlayout)/reservations/client.module.scss";
-import {useState} from "react";
+import {useCallback, useState} from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import If from "@/components/util/If";
 import Link from "next/link";
@@ -11,16 +11,41 @@ import MovableMap from "@/components/MovableMap";
 import {ITHub} from "@/components/reservation_areas/ITHub";
 import {SpiralUpper} from "@/components/reservation_areas/SpiralUpper";
 import CapacityChart from "@/components/CapacityChart";
+import {useRememberState} from "@/hooks/useRememberState";
 
 const maps = [
     { id: "ithub", name: "IT Hub (Spodní patro)"},
     { id: "spirala", name: "Spirála (Horní patro)"}
 ]
 
-export default function() {
-    const [totalReservationCapacity, setTotalReservationCapacity] = useState<number | null>(null);
+type ClientProps = {
+    initialRightPanelCollapsed?: boolean;
+    initialLegendCollapsed?: boolean;
+};
+
+function useRememberedCollapseState(initialValue: boolean, key: string) {
+    const [isCollapsed, setIsCollapsed] = useRememberState(key, initialValue);
+
+    const toggle = useCallback(() => {
+        setIsCollapsed(currentValue => !currentValue);
+    }, [setIsCollapsed]);
+
+    return [isCollapsed, toggle] as const;
+}
+
+export default function Client({
+    initialRightPanelCollapsed = false,
+    initialLegendCollapsed = false,
+}: ClientProps) {
     const [selectedTab, setSelectedTab] = useState<string>("ithub");
-    const [isLegendCollapsed, setIsLegendCollapsed] = useState(false);
+    const [isRightPanelCollapsed, toggleRightPanelCollapsed] = useRememberedCollapseState(
+        initialRightPanelCollapsed,
+        "reservationsRightPanelCollapsed",
+    );
+    const [isLegendCollapsed, toggleLegendCollapsed] = useRememberedCollapseState(
+        initialLegendCollapsed,
+        "reservationsLegendCollapsed",
+    );
     const { reservations, connectedIds } = useReservationsHub();
     const {account} = useAuth();
     const reservedCount = reservations?.filter(reservation => reservation.computer !== null || reservation.room !== null).length ?? 0;
@@ -54,8 +79,9 @@ export default function() {
                             <button
                                 type="button"
                                 className={style.legendToggle}
-                                onClick={() => setIsLegendCollapsed(value => !value)}
+                                onClick={toggleLegendCollapsed}
                                 aria-expanded={!isLegendCollapsed}
+                                aria-label={isLegendCollapsed ? "Zobrazit legendu mapy" : "Skrýt legendu mapy"}
                             >
                                 <span>Legenda mapy:</span>
                                 <span aria-hidden="true">{isLegendCollapsed ? "+" : "-"}</span>
@@ -79,55 +105,68 @@ export default function() {
                 </MovableMap>
             </div>
 
-            <div className={style.right}>
-                <If as="div" condition={account?.enableReservations === false} className={`${style.block} ${style.block0}`}>
-                    <h2>Tvůj účet nemá povolené rezervace!</h2>
-                    <p>Důvodem může být to, že nemáš zaplacený vstup. Pokud si myslíš, že se jedná o chybu, kontaktuj administrátora.</p>
-                </If>
+            <aside className={`${style.right} ${isRightPanelCollapsed ? style.collapsed : ""}`}>
+                <button
+                    type="button"
+                    className={style.rightToggle}
+                    onClick={toggleRightPanelCollapsed}
+                    aria-expanded={!isRightPanelCollapsed}
+                    aria-label={isRightPanelCollapsed ? "Zobrazit pravý panel" : "Skrýt pravý panel"}
+                >
+                    <span aria-hidden="true">{isRightPanelCollapsed ? "«" : "»"}</span>
+                </button>
 
-                <div className={`${style.block} ${style.block1}`}>
-                    <h2>Statistiky</h2>
-                    <p>
-                        Počet rezervovaných PC:
-                        <span>{reservations?.filter(r => r.computer !== null).length }/00</span>
-                    </p>
-                    <p>
-                        Počet rezervovaných míst:
-                        <span>{reservations?.filter(r => r.room !== null).length }/00</span>
-                    </p>
-                    <p>
-                        Celkem rezervací:
-                        <span>{(reservations?.filter(r => r.computer !== null).length ?? 0) + (reservations?.filter(r => r.room !== null).length ?? 0) }/00</span>
-                    </p>
-                </div>
+                <div className={style.rightContent} aria-hidden={isRightPanelCollapsed}>
+                    <If as="div" condition={account?.enableReservations === false} className={`${style.block} ${style.block0}`}>
+                        <h2>Tvůj účet nemá povolené rezervace!</h2>
+                        <p>Důvodem může být to, že nemáš zaplacený vstup. Pokud si myslíš, že se jedná o chybu, kontaktuj administrátora.</p>
+                    </If>
 
-                <div className={`${style.block} ${style.block2} ${account !== null ? style.loggedIn : ''}`}>
-                    <h2>Seznam rezervací</h2>
-
-                    <div className={style.content}>
-                        <If condition={account === null}>
-                            <p>Pro zobrazení seznamu <Link href="/app/login">se prosím přihlaš</Link>.</p>
-                        </If>
-
-                        <If condition={account !== null}>
-                            {
-                                reservations?.map(reservation => {
-                                    if(typeof(reservation.profile) === "string") return null;
-
-                                    return <Link href={"/app/profile/" + reservation.profile.id} className={style.child} key={reservation.profile.id}>
-                                        <Avatar name={reservation.profile.fullName} size="32px" src={reservation.profile.avatarUrl} />
-                                        <p>{ reservation.profile.fullName }</p>
-                                        <p>{ reservation.profile.class}</p>
-                                        <p>{ reservation.computer?.label ?? reservation.room?.label}</p>
-                                        <p>{ (reservation.createdAtUtc as Date).toLocaleString() }</p>
-                                    </Link>
-                                })
-                            }
-                        </If>
+                    <div className={`${style.block} ${style.block1}`}>
+                        <h2>Statistiky</h2>
+                        <p>
+                            Počet rezervovaných PC:
+                            <span>{reservations?.filter(r => r.computer !== null).length }/00</span>
+                        </p>
+                        <p>
+                            Počet rezervovaných míst:
+                            <span>{reservations?.filter(r => r.room !== null).length }/00</span>
+                        </p>
+                        <p>
+                            Celkem rezervací:
+                            <span>{(reservations?.filter(r => r.computer !== null).length ?? 0) + (reservations?.filter(r => r.room !== null).length ?? 0) }/00</span>
+                        </p>
                     </div>
 
+                    <div className={`${style.block} ${style.block2} ${account !== null ? style.loggedIn : ''}`}>
+                        <h2>Seznam rezervací</h2>
+
+                        <div className={style.content}>
+                            <If condition={account === null}>
+                                <p>Pro zobrazení seznamu <Link href="/app/login">se prosím přihlaš</Link>.</p>
+                            </If>
+
+                            <If condition={account !== null}>
+                                {
+                                    reservations?.map(reservation => {
+                                        if(typeof(reservation.profile) === "string") return null;
+
+                                        return <Link href={"/app/profile/" + reservation.profile.id} className={style.child} key={reservation.profile.id}>
+                                            <Avatar name={reservation.profile.fullName} size="40px" src={reservation.profile.avatarUrl} />
+                                            <span>
+                                                <strong>{ reservation.profile.fullName }<If as="small" condition={reservation.profile.class !== null}>{ reservation.profile.class}</If></strong>
+                                                <span>{ reservation.computer?.label ?? reservation.room?.label}</span>
+                                                <time>{ (reservation.createdAtUtc as Date).toLocaleString() }</time>
+                                            </span>
+                                        </Link>
+                                    })
+                                }
+                            </If>
+                        </div>
+
+                    </div>
                 </div>
-            </div>
+            </aside>
         </div>
     </>
 }

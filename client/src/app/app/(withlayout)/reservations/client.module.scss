@@ -29,6 +29,7 @@
     height: 80vh;
     max-height: calc(100vh - 248px);
     gap: 24px;
+    overflow-x: clip;
 
     .left, .right .block {
         background-color: var(--element-bg);
@@ -76,6 +77,7 @@
         border-radius: 14px;
         background: color-mix(in srgb, var(--element-bg) 88%, transparent);
         backdrop-filter: blur(12px);
+        transition: min-width .24s ease, padding .24s ease, box-shadow .24s ease;
 
         .legendToggle {
             display: flex;
@@ -97,15 +99,22 @@
                 border-radius: 8px;
                 color: var(--text-color);
                 font-size: 18px;
+                transition: background .2s ease, color .2s ease, transform .24s ease;
+            }
+
+            &:hover >span:last-child {
+                background: var(--accent-soft);
+                color: var(--accent-color);
             }
         }
 
         .legendItems {
             display: grid;
             gap: 10px;
+            max-height: 130px;
             margin-top: 14px;
             overflow: hidden;
-            transition: opacity .2s ease, margin .2s ease;
+            transition: max-height .24s ease, opacity .2s ease, margin .24s ease, transform .24s ease;
 
             >p {
                 display: flex;
@@ -118,12 +127,18 @@
         }
 
         &:is(.collapsed) {
-            min-width: 180px;
+            min-width: 172px;
 
             .legendItems {
-                height: 0;
+                max-height: 0;
                 margin-top: 0;
                 opacity: 0;
+                transform: translateY(-6px);
+                pointer-events: none;
+            }
+
+            .legendToggle >span:last-child {
+                transform: rotate(180deg);
             }
         }
     }
@@ -168,15 +183,63 @@
             width: 18px;
             height: 18px;
             background: currentColor;
-            mask: url("/icons/eye.svg") center / contain no-repeat;
+            mask: url("../../../../../public/icons/eye.svg") center / contain no-repeat;
         }
     }
 
     .right {
+        position: relative;
         width: 320px;
         display: flex;
         flex-direction: column;
-        gap: 24px;
+        flex: 0 0 320px;
+        min-width: 0;
+        overflow: visible;
+        transition: flex-basis .28s ease, width .28s ease;
+
+        .rightToggle {
+            position: absolute;
+            top: 8px;
+            left: -14px;
+            z-index: 3;
+            display: flex;
+            width: 30px;
+            height: 30px;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: 10px;
+            background: var(--element-bg);
+            box-shadow: 0 10px 24px #00000010;
+            color: color-mix(in srgb, var(--text-color-secondary) 68%, transparent);
+            font-weight: 700;
+            transition: background .2s ease, color .2s ease, box-shadow .2s ease, left .28s ease;
+
+            >span {
+                display: block;
+                font-size: 28px;
+                line-height: 1;
+            }
+
+            &:hover {
+                background: var(--accent-soft);
+                color: var(--accent-color);
+                box-shadow: 0 14px 28px #00000014;
+            }
+        }
+
+        .rightContent {
+            display: flex;
+            width: 100%;
+            min-height: 0;
+            flex: 1;
+            flex-direction: column;
+            gap: 24px;
+            opacity: 1;
+            transform: translateX(0);
+            visibility: visible;
+            transition: opacity .2s ease, transform .28s ease, visibility 0s linear;
+        }
 
         .block0 {
             background-color: var(--accent-color);
@@ -250,6 +313,78 @@
                 a {
                     text-decoration: underline;
                 }
+
+                .child {
+                    display: flex;
+                    gap: 14px;
+                    align-items: center;
+                    padding: 14px 0;
+                    text-decoration: none;
+
+                    >span {
+                        display: grid;
+                        min-width: 0;
+                        flex-grow: 1;
+                    }
+
+                    strong {
+                        color: var(--text-color);
+                        font-size: 16px;
+                        font-weight: 500;
+                        line-height: 1.05;
+                        display: flex;
+
+                        small {
+                            margin-left: auto;
+                            opacity: 0.7;
+                            font-size: 12px;
+                        }
+                    }
+
+                    span span {
+                        color: var(--text-color-darker);
+                        font-size: 16px;
+                        line-height: 1.2;
+                    }
+
+                    time {
+                        color: var(--text-color-3);
+                        font-size: 16px;
+                        line-height: 1.12;
+                    }
+
+                    small {
+                        align-self: start;
+                        color: var(--text-color-secondary);
+                        font-size: 14px;
+                        line-height: 1.2;
+                    }
+                }
+            }
+        }
+
+        &:is(.collapsed) {
+            width: 48px;
+            flex-basis: 48px;
+
+            .rightToggle {
+                left: 0;
+                width: 48px;
+                height: 56px;
+                border-radius: 12px;
+                top: 0;
+                border: 1px solid var(--border-color);
+            }
+
+            .rightContent {
+                width: 0;
+                max-width: 0;
+                overflow: hidden;
+                opacity: 0;
+                transform: translateX(0);
+                visibility: hidden;
+                pointer-events: none;
+                transition: opacity .2s ease, transform .28s ease, visibility 0s linear .28s;
             }
         }
     }
@@ -281,6 +416,29 @@
 
         .right {
             width: 100%;
+            flex-basis: auto;
+
+            .rightToggle {
+                top: -12px;
+                left: 12px;
+            }
+
+            &:is(.collapsed) {
+                width: 100%;
+                flex-basis: auto;
+
+                .rightToggle {
+                    left: 12px;
+                    width: 48px;
+                    height: 42px;
+                    border-radius: 12px;
+                }
+
+                .rightContent {
+                    max-height: 0;
+                    overflow: hidden;
+                }
+            }
         }
     }
 }
