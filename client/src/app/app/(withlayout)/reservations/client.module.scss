@@ -315,13 +315,49 @@
                 }
 
                 .child {
+                    position: relative;
                     display: flex;
                     gap: 14px;
                     align-items: center;
-                    padding: 14px 0;
+                    min-height: 72px;
+                    margin: 2px 0;
+                    padding: 14px 10px 14px 0;
+                    overflow: hidden;
+                    border-radius: 8px;
                     text-decoration: none;
+                    isolation: isolate;
+                    transition: background .2s ease, transform .2s ease;
 
-                    >span {
+                    .bannerBackdrop {
+                        position: absolute;
+                        inset: 6px 0 6px 64px;
+                        z-index: -1;
+                        border-radius: inherit;
+                        background-size: cover;
+                        background-position: center;
+                        opacity: .58;
+
+                        &::after {
+                            content: "";
+                            position: absolute;
+                            inset: 0;
+                            border-radius: inherit;
+                            background:
+                                linear-gradient(90deg, var(--element-bg) 0%, var(--element-bg) 18%, color-mix(in srgb, var(--element-bg) 78%, transparent) 48%, color-mix(in srgb, var(--element-bg) 68%, transparent) 100%),
+                                linear-gradient(0deg, color-mix(in srgb, var(--element-bg) 48%, transparent), color-mix(in srgb, var(--element-bg) 48%, transparent));
+                            backdrop-filter: blur(1px);
+                        }
+                    }
+
+                    &:hover {
+                        background: color-mix(in srgb, var(--accent-soft) 38%, transparent);
+
+                        .bannerBackdrop {
+                            opacity: .72;
+                        }
+                    }
+
+                    >span:not(.bannerBackdrop) {
                         display: grid;
                         min-width: 0;
                         flex-grow: 1;
@@ -348,9 +384,10 @@
                     }
 
                     time {
-                        color: var(--text-color-3);
+                        color: color-mix(in srgb, var(--text-color-secondary) 70%, var(--element-bg));
                         font-size: 16px;
                         line-height: 1.12;
+                        opacity: 0.3;
                     }
 
                     small {

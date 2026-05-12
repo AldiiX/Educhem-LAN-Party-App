@@ -100,6 +100,7 @@ export default function HomeClient({account, dashboard}: HomeClientProps) {
                     <div className={styles.recent}>
                         {(dashboard?.latestAccounts.length ? dashboard.latestAccounts : []).map(item => (
                             <Link href={"/app/profile/" + item.id} key={`${item.fullName}-${item.createdAtUtc.toISOString()}`}>
+                                {item.bannerUrl && <span className={styles.bannerBackdrop} style={{backgroundImage: `url(${item.bannerUrl})`}}></span>}
                                 <Avatar name={item.fullName} size="32px" src={item.avatarUrl} className={styles.avatar} />
                                 
                                 <div>

@@ -152,6 +152,7 @@ export default function Client({
                                         if(typeof(reservation.profile) === "string") return null;
 
                                         return <Link href={"/app/profile/" + reservation.profile.id} className={style.child} key={reservation.profile.id}>
+                                            <If condition={Boolean(reservation.profile.bannerUrl)} as="span" className={style.bannerBackdrop} style={{backgroundImage: `url(${reservation.profile.bannerUrl})`}} />
                                             <Avatar name={reservation.profile.fullName} size="40px" src={reservation.profile.avatarUrl} />
                                             <span>
                                                 <strong>{ reservation.profile.fullName }<If as="small" condition={reservation.profile.class !== null}>{ reservation.profile.class}</If></strong>

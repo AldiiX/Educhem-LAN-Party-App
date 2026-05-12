@@ -15,8 +15,8 @@ export default function({ account }: { account: Account }) {
     ].filter(Boolean) as string[];*/
 
     return <>
-        <div className={style.banner} style={{ backgroundImage: `url(${account.bannerUrl})` }}>
-            <Avatar name={account.fullName} src={account.avatarUrl} size="248px" className={style.avatar}/>
+        <div className={style.banner} style={{ '--banner': `url(${account.bannerUrl})` } as React.CSSProperties}>
+            <Avatar name={account.fullName} src={account.avatarUrl} size="248px" className={style.avatar} />
         </div>
 
         <div className={style.flex}>

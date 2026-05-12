@@ -302,12 +302,48 @@
                 gap: 16px;
 
                 >a {
+                    position: relative;
                     display: grid;
                     grid-template-columns: 32px 1fr;
                     gap: 14px;
                     align-items: center;
+                    min-height: 58px;
+                    margin: -4px -8px;
+                    padding: 8px;
+                    overflow: hidden;
+                    border-radius: 8px;
+                    isolation: isolate;
+                    transition: background .2s ease;
 
-                    >span {
+                    .bannerBackdrop {
+                        position: absolute;
+                        inset: 4px 0 4px 42px;
+                        z-index: -1;
+                        border-radius: inherit;
+                        background-size: cover;
+                        background-position: center;
+                        opacity: .68;
+
+                        &::after {
+                            content: "";
+                            position: absolute;
+                            inset: 0;
+                            border-radius: inherit;
+                            background:
+                                linear-gradient(90deg, var(--element-bg) 0%, color-mix(in srgb, var(--element-bg) 54%, transparent) 34%, color-mix(in srgb, var(--element-bg) 86%, transparent) 100%),
+                                linear-gradient(0deg, color-mix(in srgb, var(--element-bg) 20%, transparent), color-mix(in srgb, var(--element-bg) 20%, transparent));
+                        }
+                    }
+
+                    &:hover {
+                        background: color-mix(in srgb, var(--accent-soft) 38%, transparent);
+
+                        .bannerBackdrop {
+                            opacity: .9;
+                        }
+                    }
+
+                    >span:not(.bannerBackdrop) {
                         width: 46px;
                         height: 46px;
                         display: grid;
