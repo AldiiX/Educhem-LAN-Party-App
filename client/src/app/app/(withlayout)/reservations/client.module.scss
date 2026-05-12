@@ -41,6 +41,135 @@
     .left {
         flex: 1;
         align-self: stretch;
+        padding: 0;
+        overflow: hidden;
+
+        .map {
+            min-height: 100%;
+
+            :global(html[data-theme="dark"]) & {
+                --pc-available: var(--accent-color);
+                --room-available: #ff4d00;
+                --pc-unavailable: #595959;
+                --pc-taken-by-you: #f7ff00;
+                --shapes-color: #1c1c1c;
+                --table-color: #212121;
+                --line-color: #464646;
+            }
+
+            :global(html[data-theme="light"]) & {
+                --pc-available: var(--accent-color);
+                --room-available: #ff4d00;
+                --pc-unavailable: #96826b;
+                --pc-taken-by-you: #ffd500;
+                --shapes-color: #f4f4f4;
+                --table-color: #d9d9d9;
+                --line-color: #585858;
+            }
+        }
+    }
+
+    .legend {
+        min-width: 260px;
+        padding: 14px 16px;
+        border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--element-bg) 88%, transparent);
+        backdrop-filter: blur(12px);
+
+        .legendToggle {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            color: var(--accent-color);
+            font-size: 16px;
+            line-height: 1;
+            font-weight: 600;
+
+            >span:last-child {
+                display: grid;
+                width: 24px;
+                height: 24px;
+                place-items: center;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                color: var(--text-color);
+                font-size: 18px;
+            }
+        }
+
+        .legendItems {
+            display: grid;
+            gap: 10px;
+            margin-top: 14px;
+            overflow: hidden;
+            transition: opacity .2s ease, margin .2s ease;
+
+            >p {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                color: var(--text-color-secondary);
+                font-size: 16px;
+                line-height: 1.1;
+            }
+        }
+
+        &:is(.collapsed) {
+            min-width: 180px;
+
+            .legendItems {
+                height: 0;
+                margin-top: 0;
+                opacity: 0;
+            }
+        }
+    }
+
+    .legendDot {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 18px;
+        border-radius: 50%;
+
+        &.setup {
+            background: var(--room-available);
+        }
+
+        &.pc {
+            background: var(--pc-available);
+        }
+
+        &.unavailable {
+            background: var(--pc-unavailable);
+        }
+
+        &.mine {
+            background: var(--pc-taken-by-you);
+        }
+    }
+
+    .connectedBadge {
+        display: flex;
+        min-width: 56px;
+        height: 42px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 12px;
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--accent-color) 18%, var(--element-bg));
+        color: var(--accent-color);
+        font-size: 16px;
+
+        .eyeIcon {
+            width: 18px;
+            height: 18px;
+            background: currentColor;
+            mask: url("/icons/eye.svg") center / contain no-repeat;
+        }
     }
 
     .right {
@@ -130,5 +259,28 @@
 @media (max-width: 720px) {
     .tabs {
         margin-bottom: 30px;
+    }
+
+    .flex {
+        height: auto;
+        max-height: none;
+        flex-direction: column;
+
+        .left {
+            min-height: 420px;
+
+            .legend {
+                min-width: 226px;
+                padding: 12px;
+
+                .legendItems >p {
+                    font-size: 14px;
+                }
+            }
+        }
+
+        .right {
+            width: 100%;
+        }
     }
 }

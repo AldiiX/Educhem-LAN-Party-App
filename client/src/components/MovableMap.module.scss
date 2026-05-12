@@ -1,0 +1,112 @@
+.map {
+    --map-overlay-bg: color-mix(in srgb, var(--element-bg) 88%, transparent);
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 360px;
+    overflow: hidden;
+    border-radius: 8px;
+    background-size: 32px 32px;
+    user-select: none;
+
+    .svg {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        touch-action: none;
+    }
+
+    .controls {
+        position: absolute;
+        top: 28px;
+        right: 28px;
+        z-index: 3;
+        display: grid;
+        grid-template-columns: repeat(2, 48px);
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        background: var(--map-overlay-bg);
+        backdrop-filter: blur(12px);
+
+        >button {
+            display: grid;
+            width: 48px;
+            height: 48px;
+            place-items: center;
+            background: transparent;
+            color: var(--text-color-secondary);
+            font-size: 24px;
+            line-height: 1;
+            transition: background .2s ease, color .2s ease;
+
+            & + button {
+                border-left: 1px solid var(--border-color);
+            }
+
+            &:hover {
+                background: var(--accent-soft);
+                color: var(--accent-color);
+            }
+        }
+    }
+
+    .overlay {
+        position: absolute;
+        z-index: 2;
+        pointer-events: none;
+
+        >* {
+            pointer-events: auto;
+        }
+    }
+
+    .topLeft {
+        top: 28px;
+        left: 28px;
+    }
+
+    .bottomLeft {
+        bottom: 28px;
+        left: 28px;
+    }
+
+    .bottomRight {
+        right: 28px;
+        bottom: 28px;
+    }
+}
+
+@media (max-width: 720px) {
+    .map {
+        min-height: 420px;
+
+        .controls {
+            top: 12px;
+            right: 12px;
+            grid-template-columns: repeat(2, 42px);
+            border-radius: 12px;
+
+            >button {
+                width: 42px;
+                height: 42px;
+                font-size: 22px;
+            }
+        }
+
+        .topLeft {
+            top: 12px;
+            left: 12px;
+        }
+
+        .bottomLeft {
+            bottom: 12px;
+            left: 12px;
+        }
+
+        .bottomRight {
+            right: 12px;
+            bottom: 12px;
+        }
+    }
+}

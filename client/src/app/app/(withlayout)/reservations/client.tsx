@@ -1,12 +1,16 @@
 ﻿"use client"
 
 import style from "@/app/app/(withlayout)/reservations/client.module.scss";
-import { useState } from "react";
+import {useState} from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import If from "@/components/util/If";
 import Link from "next/link";
 import {useReservationsHub} from "@/app/app/(withlayout)/reservations/_hooks/useReservationsHub";
 import {Avatar} from "@/components/Avatar";
+import MovableMap from "@/components/MovableMap";
+import {ITHub} from "@/components/reservation_areas/ITHub";
+import {SpiralUpper} from "@/components/reservation_areas/SpiralUpper";
+import CapacityChart from "@/components/CapacityChart";
 
 const maps = [
     { id: "ithub", name: "IT Hub (Spodní patro)"},
@@ -14,9 +18,13 @@ const maps = [
 ]
 
 export default function() {
+    const [totalReservationCapacity, setTotalReservationCapacity] = useState<number | null>(null);
     const [selectedTab, setSelectedTab] = useState<string>("ithub");
-    const { reservations, sendMessage, isConnected, connectedIds } = useReservationsHub();
+    const [isLegendCollapsed, setIsLegendCollapsed] = useState(false);
+    const { reservations, connectedIds } = useReservationsHub();
     const {account} = useAuth();
+    const reservedCount = reservations?.filter(reservation => reservation.computer !== null || reservation.room !== null).length ?? 0;
+    const filledCapacityPercentage = Math.min(100, Math.round((reservedCount / 1) * 100));
 
     return <>
         <h1 className={style.title}>Rezervace</h1>
@@ -30,15 +38,45 @@ export default function() {
 
         <div className={style.flex}>
             <div className={style.left}>
-                {/*{ JSON.stringify(reservations) }*/}
-
-                <If condition={isConnected}>
-                    <p>connected</p>
-                </If>
-
-                <If condition={!isConnected}>
-                    <p>disconnected</p>
-                </If>
+                <MovableMap
+                    className={style.map}
+                    width={2560}
+                    height={1440}
+                    initialScale={0.35}
+                    minScale={0.2}
+                    maxScale={1.35}
+                    resetKey={selectedTab}
+                    topLeft={
+                        <CapacityChart percentage={filledCapacityPercentage} />
+                    }
+                    bottomLeft={
+                        <div className={`${style.legend} ${isLegendCollapsed ? style.collapsed : ""}`}>
+                            <button
+                                type="button"
+                                className={style.legendToggle}
+                                onClick={() => setIsLegendCollapsed(value => !value)}
+                                aria-expanded={!isLegendCollapsed}
+                            >
+                                <span>Legenda mapy:</span>
+                                <span aria-hidden="true">{isLegendCollapsed ? "+" : "-"}</span>
+                            </button>
+                            <div className={style.legendItems}>
+                                <p><span className={`${style.legendDot} ${style.setup}`} />Volná místnost pro vlastní setup</p>
+                                <p><span className={`${style.legendDot} ${style.pc}`} />Volný počítač</p>
+                                <p><span className={`${style.legendDot} ${style.unavailable}`} />Obsazeno / Nedostupné</p>
+                                <p><span className={`${style.legendDot} ${style.mine}`} />Tvá rezervace</p>
+                            </div>
+                        </div>
+                    }
+                    bottomRight={
+                        <div className={style.connectedBadge} title="Aktuálně připojeno">
+                            <span>{connectedIds ?? "?"}</span>
+                            <span className={style.eyeIcon} aria-hidden="true" />
+                        </div>
+                    }
+                >
+                    {selectedTab === "ithub" ? <ITHub /> : <SpiralUpper />}
+                </MovableMap>
             </div>
 
             <div className={style.right}>

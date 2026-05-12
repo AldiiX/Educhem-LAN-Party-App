@@ -196,7 +196,12 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
 
                     await newConnection.start();
 
-                    if(disposed) return;
+                    if(disposed) {
+                        await newConnection.stop().catch(error => {
+                            console.error("signalr stop failed", error);
+                        });
+                        return;
+                    }
 
                     setConnection(newConnection);
                     setStatus("connected");
@@ -223,7 +228,10 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
                 newConnection.off(registeredHandler.eventName, registeredHandler.handler);
             }
 
-            if(newConnection.state !== HubConnectionState.Disconnected) {
+            if(
+                newConnection.state !== HubConnectionState.Disconnected &&
+                newConnection.state !== HubConnectionState.Connecting
+            ) {
                 newConnection.stop().catch(error => {
                     console.error("signalr stop failed", error);
                 });

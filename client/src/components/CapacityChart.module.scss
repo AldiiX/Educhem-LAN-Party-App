@@ -1,0 +1,63 @@
+@property --filled-capacity {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 0%;
+}
+
+.capacityChart {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 20px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--element-bg) 86%, transparent);
+    backdrop-filter: blur(12px);
+
+    .ring {
+        width: 74px;
+        height: 74px;
+        flex: 0 0 74px;
+        border-radius: 50%;
+        background:
+            radial-gradient(circle at center, var(--element-bg) 56%, transparent 58%),
+            conic-gradient(var(--accent-color) var(--filled-capacity), var(--text-color-3) 0);
+        transition: --filled-capacity 1.2s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    strong {
+        display: block;
+        color: var(--accent-color);
+        font-size: 34px;
+        line-height: 1;
+    }
+
+    span {
+        display: block;
+        margin-top: 4px;
+        color: var(--text-color-secondary);
+        font-size: 17px;
+        line-height: 1.15;
+    }
+}
+
+@media (max-width: 720px) {
+    .capacityChart {
+        gap: 12px;
+        padding: 12px 14px;
+
+        .ring {
+            width: 54px;
+            height: 54px;
+            flex-basis: 54px;
+        }
+
+        strong {
+            font-size: 26px;
+        }
+
+        span {
+            max-width: 112px;
+            font-size: 14px;
+        }
+    }
+}

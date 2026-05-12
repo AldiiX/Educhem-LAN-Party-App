@@ -1,0 +1,92 @@
+:global(.map-reservation-area-main) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    height: 100%;
+    touch-action: none;
+    transition-duration: 0.3s;
+
+    >g {
+        touch-action: none;
+
+        >g {
+            touch-action: none;
+        }
+    }
+
+    :global(.pc) {
+        z-index: 3;
+        fill: transparent;
+        pointer-events: none;
+
+        &:is(:global(.unavailable)) {
+            fill: var(--pc-unavailable, #c84343);
+            pointer-events: all;
+        }
+
+        &:is(:global(.taken-by-you)) {
+            fill: var(--pc-taken-by-you, var(--accent-color));
+            pointer-events: all;
+        }
+
+        &:is(:global(.available)) {
+            fill: var(--pc-available, #4caf6b);
+            pointer-events: all;
+        }
+    }
+
+    :global(.room) {
+        fill: transparent;
+        pointer-events: none;
+
+        &:is(:global(.unavailable)) {
+            fill: var(--pc-unavailable, #c84343);
+            pointer-events: all;
+        }
+
+        &:is(:global(.taken-by-you)) {
+            fill: var(--pc-taken-by-you, var(--accent-color));
+            pointer-events: all;
+        }
+
+        &:is(:global(.available)) {
+            fill: var(--room-available, #4aa3ff);
+            pointer-events: all;
+        }
+    }
+
+    line {
+        stroke: var(--line-color, var(--border-color));
+    }
+
+    rect,
+    polygon,
+    polyline {
+        z-index: 0;
+        fill: var(--shapes-color, #333);
+        stroke: none;
+    }
+
+    :global(.table) {
+        fill: var(--table-color, #252525);
+    }
+
+    :global(.text) {
+        fill: var(--text-color);
+    }
+
+    :global(.lighttext) {
+        fill: var(--shapes-color, #333);
+    }
+
+    circle {
+        cursor: pointer;
+        transition-duration: 0.3s;
+
+        &:hover {
+            filter: brightness(0.7);
+            transition-duration: 0.3s;
+        }
+    }
+}

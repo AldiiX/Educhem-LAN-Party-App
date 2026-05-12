@@ -78,27 +78,27 @@
             }
         }
     }
-}
 
-.informativeDialog {
-    .content {
-        .icon {
-            mask-image: url("../../public/icons/info.svg");
+    &:is(.informativeDialog) {
+        .content {
+            .icon {
+                mask-image: url("../../public/icons/info.svg");
+            }
         }
     }
-}
 
-.destructiveDialog {
-    .content {
-        .icon {
-            width: 80px;
-            height: 70px;
-            mask-image: url("../../public/icons/warn.svg");
-        }
+    &:is(.destructiveDialog) {
+        .content {
+            .icon {
+                width: 80px;
+                height: 70px;
+                mask-image: url("../../public/icons/warn.svg");
+            }
 
-        .actions {
-            grid-template-columns: 1fr 1fr;
-            margin-top: 18px;
+            .actions {
+                grid-template-columns: 1fr 1fr;
+                margin-top: 18px;
+            }
         }
     }
 }
@@ -132,12 +132,12 @@
                 }
             }
         }
-    }
 
-    .destructiveDialog {
-        .content {
-            .actions {
-                grid-template-columns: 1fr;
+        &:is(.destructiveDialog) {
+            .content {
+                .actions {
+                    grid-template-columns: 1fr;
+                }
             }
         }
     }
