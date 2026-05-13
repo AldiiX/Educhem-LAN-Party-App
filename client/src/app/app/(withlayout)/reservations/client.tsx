@@ -13,6 +13,7 @@ import {SpiralUpper} from "@/components/reservation_areas/SpiralUpper";
 import CapacityChart from "@/components/CapacityChart";
 import {useRememberState} from "@/hooks/useRememberState";
 import {useRoomsAndComputers} from "@/app/app/(withlayout)/reservations/_hooks/useRoomsAndComputers";
+import {useReservationsDisplay} from "@/app/app/(withlayout)/reservations/_hooks/useReservationsDisplay";
 
 const maps = [
     { id: "ithub", name: "IT Hub (Spodní patro)"},
@@ -48,7 +49,8 @@ export default function Client({
         "reservationsLegendCollapsed",
     );
     const { reservations, connectedIds } = useReservationsHub();
-    const { roomsCapacity, maxCapacity, computersCapacity } = useRoomsAndComputers();
+    const { roomsCapacity, maxCapacity, computersCapacity, rooms, computers } = useRoomsAndComputers();
+    const { mapRef } = useReservationsDisplay(rooms, computers, reservations, selectedTab);
     const {account} = useAuth();
     const reservedCount = reservations?.filter(reservation => reservation.computer !== null || reservation.room !== null).length ?? 0;
     const filledCapacityPercentage = Math.min(100, Math.round((reservedCount / Math.max(maxCapacity, 1)) * 100));
@@ -103,7 +105,7 @@ export default function Client({
                         </div>
                     }
                 >
-                    {selectedTab === "ithub" ? <ITHub /> : <SpiralUpper />}
+                    {selectedTab === "ithub" ? <ITHub mapRef={mapRef} /> : <SpiralUpper mapRef={mapRef} />}
                 </MovableMap>
             </div>
 

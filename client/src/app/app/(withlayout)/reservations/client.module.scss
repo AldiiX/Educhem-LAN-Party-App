@@ -198,6 +198,7 @@
         transition: flex-basis .28s ease, width .28s ease;
 
         .rightToggle {
+            user-select:none;
             position: absolute;
             top: 8px;
             left: -14px;

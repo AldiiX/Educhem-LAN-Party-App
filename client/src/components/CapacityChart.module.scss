@@ -12,6 +12,7 @@
     border-radius: 14px;
     background: color-mix(in srgb, var(--element-bg) 86%, transparent);
     backdrop-filter: blur(12px);
+    pointer-events: none !important;
 
     .ring {
         width: 74px;
