@@ -11,13 +11,13 @@ export function useReservationsHub() {
 
     const handlers = useMemo(() => {
         return {
-            ReceiveReservations: (json: string) => {
-                const data = ReservationSchema.array().parse(JSON.parse(json).reservations);
+            ReceiveReservations: (payload: any) => {
+                const data = ReservationSchema.array().parse(payload.reservations);
                 setReservations(data);
             },
 
-            ReceiveStatus: (statusJson: string) => {
-                setConnectedIds(JSON.parse(statusJson).connectedIds);
+            ReceiveStatus: (payload: any) => {
+                setConnectedIds(payload.connectedIds);
             }
         };
     }, []);

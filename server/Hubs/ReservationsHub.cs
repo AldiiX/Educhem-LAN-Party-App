@@ -18,14 +18,14 @@ public sealed class ReservationsHub(
 
 	public override async Task OnConnectedAsync() {
 		ConnectedIds.Add(Context.ConnectionId);
-		await Clients.Caller.SendAsync("ReceiveReservations", JsonSerializer.Serialize(new { Reservations = await FetchReservations() }, JsonSerializerOptions.Web));
-		await Clients.All.SendAsync("ReceiveStatus", JsonSerializer.Serialize(new { connectedIds =  ConnectedIds.Count }, JsonSerializerOptions.Web));
+		await Clients.Caller.SendAsync("ReceiveReservations", new { reservations = await FetchReservations() });
+		await Clients.All.SendAsync("ReceiveStatus",new { connectedIds =  ConnectedIds.Count });
 		await base.OnConnectedAsync();
 	}
 
 	public override async Task OnDisconnectedAsync(Exception? exception) {
 		ConnectedIds.Remove(Context.ConnectionId);
-		await Clients.All.SendAsync("ReceiveStatus", JsonSerializer.Serialize(new { connectedIds =  ConnectedIds.Count }, JsonSerializerOptions.Web));
+		await Clients.All.SendAsync("ReceiveStatus", new { connectedIds =  ConnectedIds.Count });
 		await base.OnDisconnectedAsync(exception);
 	}
 
