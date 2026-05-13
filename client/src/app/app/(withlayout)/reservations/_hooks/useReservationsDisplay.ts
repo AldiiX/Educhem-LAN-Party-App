@@ -1,66 +1,49 @@
-﻿import {Computer, Reservation, Room} from "@/schemas/ReservationSchema";
-import {useEffect, useRef} from "react";
+import {Computer, Reservation, Room} from "@/schemas/ReservationSchema";
+import {useMemo} from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 
+type ReservationDisplayClass = "available" | "unavailable" | "taken-by-you";
 
-export function useReservationsDisplay(rooms: Room[], computers: Computer[], reservations: Reservation[] | null, tab: string) {
+export function useReservationsDisplay(rooms: Room[], computers: Computer[], reservations: Reservation[] | null) {
     const { account } = useAuth();
 
-    function clearReservationsDisplay() {
-        const mapElement = document.querySelector(".map-reservation-area-main");
-        if(!mapElement) return;
+    const computerClassById = useMemo(() => {
+        const result = new Map<string, ReservationDisplayClass>();
+        if(reservations == null) return result;
 
         computers.forEach(computer => {
-            mapElement.querySelectorAll(".pc").forEach(pcElement => {
-                pcElement.classList.remove("unavailable", "available", "taken-by-you");
-            })
-        })
-    }
-
-    useEffect(() => {
-        if(rooms.length === 0 || computers.length === 0 || reservations == null) return;
-        const mapElement = document.querySelector(".map-reservation-area-main");
-        if(!mapElement) return;
-
-        // pocitace
-        computers.forEach(computer => {
-            const pcElement = document.querySelector(`.pc#${computer.id}`);
-            if(!pcElement) return;
-
-            pcElement.classList.remove("unavailable", "available", "taken-by-you");
             const reservation = reservations.find(reservation => reservation.computer?.id === computer.id);
 
-            // nastaveni barvicek
-            if(!reservation) pcElement.classList.add("available")
-            else if(typeof(reservation.profile) === "string") pcElement.classList.add("unavailable");
-            else if(reservation.profile.id === account?.id) pcElement.classList.add("taken-by-you");
-            else pcElement.classList.add("unavailable");
-        })
+            // nasteveni class (=barvicek)
+            if(!reservation) result.set(computer.id, "available");
+            else if(typeof(reservation.profile) !== "string" && reservation.profile.id === account?.id) result.set(computer.id, "taken-by-you");
+            else result.set(computer.id, "unavailable");
+        });
 
-        // mistnosti
+        return result;
+    }, [computers, reservations, account?.id]);
+
+    const roomClassById = useMemo(() => {
+        const result = new Map<string, ReservationDisplayClass>();
+        if(reservations == null) return result;
+
         rooms.forEach(room => {
-            const roomElement = mapElement.querySelector(`#ROOM_${room.id}`);
-            if(!roomElement || !reservations) return;
-            // console.log(roomElement);
+            const roomReservations = reservations.filter(reservation => reservation.room?.id === room.id);
+            const isTakenByYou = roomReservations.some(reservation => (
+                typeof(reservation.profile) !== "string" && reservation.profile.id === account?.id
+            ));
 
-            roomElement.classList.remove("available", "available", "taken-by-you");
+            // nastaveni class (=barvicek)
+            if(isTakenByYou) result.set(room.id, "taken-by-you");
+            else if(roomReservations.length < room.capacity) result.set(room.id, "available");
+            else result.set(room.id, "unavailable");
+        });
 
-            // promenny
-            const hasAtLeastOneSpace = reservations.filter(r=>r.room?.id === room.id).length < room.capacity;
-            const isTakenByYou = reservations.find(reservation => reservation.room?.id === room.id && typeof(reservation.profile) !== "string" && reservation.profile.id === account?.id);
-
-            // nasteveni barvicek
-            if(!reservations.find(reservation => reservation.room?.id === room.id))
-                roomElement.classList.add("available");
-            else if(isTakenByYou) roomElement.classList.add("taken-by-you");
-            else if(hasAtLeastOneSpace) roomElement.classList.add("available");
-            else roomElement.classList.add("unavailable");
-        })
-
-        //console.log(mapElement);
-    }, [rooms,computers, tab, reservations, account]);
+        return result;
+    }, [rooms, reservations, account?.id]);
 
     return {
-        clearReservationsDisplay,
+        getComputerClass: (id: string) => computerClassById.get(id) ?? "",
+        getRoomClass: (id: string) => roomClassById.get(id) ?? "",
     }
 }

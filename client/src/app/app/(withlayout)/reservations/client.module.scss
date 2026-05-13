@@ -166,26 +166,107 @@
         }
     }
 
-    .connectedBadge {
+    .statusBadges {
         display: flex;
-        min-width: 56px;
-        height: 42px;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 0 12px;
-        border-radius: 10px;
-        background: color-mix(in srgb, var(--accent-color) 18%, var(--element-bg));
-        color: var(--accent-color);
-        font-size: 16px;
+        gap: 12px;
+        pointer-events: none !important;
 
-        .eyeIcon {
-            width: 18px;
-            height: 18px;
-            background: currentColor;
-            mask: url("../../../../../public/icons/eye.svg") center / contain no-repeat;
+        .badge {
+            display: flex;
+            min-width: 56px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-color-secondary);
+            border: 1px solid var(--border-color);
+            font-size: 16px;
+
+            &:is(.connected) {
+                opacity: 0;
+                animation: oidjfsdiofodjgfdojg 2s ease forwards;
+
+                @keyframes oidjfsdiofodjgfdojg {
+                    from {
+                        opacity: 1;
+                    }
+
+                    80% {
+                        opacity: 1;
+                    }
+
+                    to {
+                        opacity: 0;
+                    }
+                }
+            }
+
+            &:is(.disconnected) {
+                border-color: var(--error-color);
+                background: var(--error-background);
+                color: var(--error-color);
+                animation: osdifjdjofidjgdiofeizzz 1s ease forwards;
+                animation-iteration-count: infinite;
+
+                .icon {
+                    background: var(--error-color);
+                }
+
+                @keyframes osdifjdjofidjgdiofeizzz {
+                    0% {
+                        opacity: 1;
+                    }
+
+                    30% {
+                        opacity: 1;
+                    }
+
+                    70% {
+                        opacity: 0;
+                    }
+
+                    100% {
+                        opacity: 1;
+                    }
+                }
+            }
+
+            .icon {
+                mask: var(--icon);
+                mask-position: center;
+                mask-repeat: no-repeat;
+                mask-size: contain;
+                width: 18px;
+                height: 18px;
+                background: var(--text-color-secondary);
+            }
+
+            p {}
+        }
+
+        .connectedBadge {
+            display: flex;
+            min-width: 56px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            background: color-mix(in srgb, var(--accent-color) 18%, var(--element-bg));
+            color: var(--accent-color);
+            font-size: 16px;
+
+            .eyeIcon {
+                width: 18px;
+                height: 18px;
+                background: currentColor;
+                mask: url("../../../../../public/icons/eye.svg") center / contain no-repeat;
+            }
         }
     }
+
 
     .right {
         position: relative;

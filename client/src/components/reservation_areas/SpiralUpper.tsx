@@ -3,9 +3,15 @@ import "./Area.module.scss";
 
 type ReservationAreaProps = {
     onHoverReservation?: (target: EventTarget | null) => void;
+    getComputerClass?: (id: string) => string;
+    getRoomClass?: (id: string) => string;
 };
 
-export const SpiralUpper = ({ onHoverReservation = () => {} }: ReservationAreaProps) => {
+export const SpiralUpper = ({
+    onHoverReservation = () => {},
+    getComputerClass = () => "",
+    getRoomClass = () => "",
+}: ReservationAreaProps) => {
     function e(event: MouseEvent<SVGCircleElement>) {
         return onHoverReservation(event.target);
     } 
@@ -53,17 +59,17 @@ export const SpiralUpper = ({ onHoverReservation = () => {} }: ReservationAreaPr
                 <rect className="cls-5" x="141.49" y="450.12" width="65.46" height="212.99" transform="translate(-382.39 730.84) rotate(-90)"/>
             </g>
             <g id="VRR_PCS">
-                <circle id="VRR_PC04" onMouseOver={e} className="pc" cx="671" cy="362.04" r="26"/>
-                <circle id="VRR_PC03" onMouseOver={e} className="pc" cx="671" cy="279.38" r="26"/>
-                <circle id="VRR_PC02" onMouseOver={e} className="pc" cx="671" cy="196.71" r="26"/>
-                <circle id="VRR_PC01" onMouseOver={e} className="pc" cx="671" cy="114.04" r="26"/>
-                <circle id="VRR_PC05" onMouseOver={e} className="pc" cx="539" cy="362.04" r="26"/>
-                <circle id="VRR_PC06" onMouseOver={e} className="pc" cx="539" cy="279.38" r="26"/>
-                <circle id="VRR_PC07" onMouseOver={e} className="pc" cx="539" cy="196.71" r="26"/>
-                <circle id="VRR_PC08" onMouseOver={e} className="pc" cx="539" cy="114.04" r="26"/>
-                <circle id="VRR_PC09" onMouseOver={e} className="pc" cx="854" cy="250.04" r="26"/>
+                <circle id="VRR_PC04" onMouseOver={e} className={`pc ${getComputerClass("VRR_PC04")}`} cx="671" cy="362.04" r="26"/>
+                <circle id="VRR_PC03" onMouseOver={e} className={`pc ${getComputerClass("VRR_PC03")}`} cx="671" cy="279.38" r="26"/>
+                <circle id="VRR_PC02" onMouseOver={e} className={`pc ${getComputerClass("VRR_PC02")}`} cx="671" cy="196.71" r="26"/>
+                <circle id="VRR_PC01" onMouseOver={e} className={`pc ${getComputerClass("VRR_PC01")}`} cx="671" cy="114.04" r="26"/>
+                <circle id="VRR_PC05" onMouseOver={e} className={`pc ${getComputerClass("VRR_PC05")}`} cx="539" cy="362.04" r="26"/>
+                <circle id="VRR_PC06" onMouseOver={e} className={`pc ${getComputerClass("VRR_PC06")}`} cx="539" cy="279.38" r="26"/>
+                <circle id="VRR_PC07" onMouseOver={e} className={`pc ${getComputerClass("VRR_PC07")}`} cx="539" cy="196.71" r="26"/>
+                <circle id="VRR_PC08" onMouseOver={e} className={`pc ${getComputerClass("VRR_PC08")}`} cx="539" cy="114.04" r="26"/>
+                <circle id="VRR_PC09" onMouseOver={e} className={`pc ${getComputerClass("VRR_PC09")}`} cx="854" cy="250.04" r="26"/>
             </g>
-            <circle id="ROOM_VRR" className="room" onMouseOver={e} cx="322.27" cy="400.7" r="26"/>
+            <circle id="ROOM_VRR" className={`room ${getRoomClass("VRR")}`} onMouseOver={e} cx="322.27" cy="400.7" r="26"/>
             <g id="text" className="text">
                 <path d="M227.98,361.85c-1.77-3.73-3.51-7.59-5.22-11.6-1.72-4.01-3.35-7.97-4.89-11.89-1.55-3.92-2.97-7.67-4.26-11.26s-2.42-6.79-3.36-9.6h11.01c.83,2.57,1.75,5.33,2.77,8.29,1.02,2.96,2.05,5.91,3.11,8.85,1.05,2.94,2.06,5.76,3.03,8.45.97,2.69,1.89,5.02,2.77,6.98.83-1.95,1.74-4.27,2.73-6.96.99-2.69,2.01-5.51,3.06-8.45,1.05-2.94,2.09-5.89,3.1-8.85,1.02-2.96,1.94-5.73,2.77-8.31h10.63c-.99,2.83-2.14,6.03-3.43,9.61-1.29,3.58-2.71,7.33-4.24,11.26-1.54,3.93-3.16,7.89-4.86,11.9-1.71,4.01-3.44,7.87-5.2,11.58h-9.52Z"/>
                 <path d="M273.92,316.98c6.66,0,11.75,1.18,15.3,3.55,3.54,2.37,5.31,6.05,5.31,11.04,0,3.11-.72,5.64-2.14,7.58-1.43,1.94-3.49,3.47-6.18,4.58.9,1.11,1.83,2.38,2.82,3.81.98,1.43,1.95,2.92,2.91,4.48.96,1.56,1.89,3.18,2.78,4.86.9,1.69,1.73,3.34,2.5,4.96h-11.16c-.81-1.45-1.64-2.92-2.47-4.42-.83-1.49-1.69-2.94-2.57-4.35-.88-1.41-1.75-2.74-2.6-4-.86-1.26-1.71-2.4-2.57-3.42h-4.93v16.19h-9.98v-43.71c2.18-.43,4.43-.73,6.75-.9,2.32-.17,4.4-.26,6.24-.26ZM274.5,325.49c-.73,0-1.38.02-1.95.06-.58.04-1.12.09-1.63.13v12.03h2.82c3.75,0,6.44-.47,8.06-1.41,1.62-.94,2.43-2.54,2.43-4.8s-.82-3.72-2.46-4.64c-1.64-.92-4.06-1.38-7.26-1.38Z"/>
@@ -91,35 +97,35 @@ export const SpiralUpper = ({ onHoverReservation = () => {} }: ReservationAreaPr
                 <rect className="cls-6 table" x="1369.54" y="1175.87" width="68.42" height="175.56"/>
             </g>
             <g id="VT2_PCS">
-                <circle id="VT2_PC01" onMouseOver={e} className="pc" cx="620" cy="954.04" r="26"/>
-                <circle id="VT2_PC02" onMouseOver={e} className="pc" cx="620" cy="1030.04" r="26"/>
-                <circle id="VT2_PC05" onMouseOver={e} className="pc" cx="756" cy="954.04" r="26"/>
-                <circle id="VT2_PC06" onMouseOver={e} className="pc" cx="756" cy="1030.04" r="26"/>
-                <circle id="VT2_PC09" onMouseOver={e} className="pc" cx="888" cy="951.04" r="26"/>
-                <circle id="VT2_PC10" onMouseOver={e} className="pc" cx="888" cy="1027.04" r="26"/>
-                <circle id="VT2_PC13" onMouseOver={e} className="pc" cx="1024" cy="955.04" r="26"/>
-                <circle id="VT2_PC14" onMouseOver={e} className="pc" cx="1024" cy="1031.04" r="26"/>
-                <circle id="VT2_PC17" onMouseOver={e} className="pc" cx="1163" cy="956.04" r="26"/>
-                <circle id="VT2_PC18" onMouseOver={e} className="pc" cx="1163" cy="1032.04" r="26"/>
-                <circle id="VT2_PC21" onMouseOver={e} className="pc" cx="1305" cy="955.04" r="26"/>
-                <circle id="VT2_PC22" onMouseOver={e} className="pc" cx="1305" cy="1031.04" r="26"/>
-                <circle id="VT2_PC03" onMouseOver={e} className="pc" cx="620" cy="1227.04" r="26"/>
-                <circle id="VT2_PC04" onMouseOver={e} className="pc" cx="620" cy="1303.04" r="26"/>
-                <circle id="VT2_PC29" onMouseOver={e} className="pc" cx="482" cy="1267.04" r="26"/>
-                <circle id="VT2_PC07" onMouseOver={e} className="pc" cx="756" cy="1227.04" r="26"/>
-                <circle id="VT2_PC08" onMouseOver={e} className="pc" cx="756" cy="1303.04" r="26"/>
-                <circle id="VT2_PC11" onMouseOver={e} className="pc" cx="893" cy="1224.04" r="26"/>
-                <circle id="VT2_PC12" onMouseOver={e} className="pc" cx="893" cy="1300.04" r="26"/>
-                <circle id="VT2_PC15" onMouseOver={e} className="pc" cx="1030" cy="1228.04" r="26"/>
-                <circle id="VT2_PC16" onMouseOver={e} className="pc" cx="1030" cy="1304.04" r="26"/>
-                <circle id="VT2_PC19" onMouseOver={e} className="pc" cx="1170" cy="1229.04" r="26"/>
-                <circle id="VT2_PC20" onMouseOver={e} className="pc" cx="1170" cy="1305.04" r="26"/>
-                <circle id="VT2_PC23" onMouseOver={e} className="pc" cx="1308" cy="1228.04" r="26"/>
-                <circle id="VT2_PC24" onMouseOver={e} className="pc" cx="1308" cy="1304.04" r="26"/>
-                <circle id="VT2_PC25" onMouseOver={e} className="pc" cx="1440.26" cy="954.61" r="26"/>
-                <circle id="VT2_PC26" onMouseOver={e} className="pc" cx="1440.26" cy="1030.61" r="26"/>
-                <circle id="VT2_PC27" onMouseOver={e} className="pc" cx="1440.26" cy="1227.61" r="26"/>
-                <circle id="VT2_PC28" onMouseOver={e} className="pc" cx="1440.26" cy="1303.61" r="26"/>
+                <circle id="VT2_PC01" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC01")}`} cx="620" cy="954.04" r="26"/>
+                <circle id="VT2_PC02" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC02")}`} cx="620" cy="1030.04" r="26"/>
+                <circle id="VT2_PC05" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC05")}`} cx="756" cy="954.04" r="26"/>
+                <circle id="VT2_PC06" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC06")}`} cx="756" cy="1030.04" r="26"/>
+                <circle id="VT2_PC09" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC09")}`} cx="888" cy="951.04" r="26"/>
+                <circle id="VT2_PC10" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC10")}`} cx="888" cy="1027.04" r="26"/>
+                <circle id="VT2_PC13" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC13")}`} cx="1024" cy="955.04" r="26"/>
+                <circle id="VT2_PC14" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC14")}`} cx="1024" cy="1031.04" r="26"/>
+                <circle id="VT2_PC17" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC17")}`} cx="1163" cy="956.04" r="26"/>
+                <circle id="VT2_PC18" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC18")}`} cx="1163" cy="1032.04" r="26"/>
+                <circle id="VT2_PC21" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC21")}`} cx="1305" cy="955.04" r="26"/>
+                <circle id="VT2_PC22" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC22")}`} cx="1305" cy="1031.04" r="26"/>
+                <circle id="VT2_PC03" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC03")}`} cx="620" cy="1227.04" r="26"/>
+                <circle id="VT2_PC04" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC04")}`} cx="620" cy="1303.04" r="26"/>
+                <circle id="VT2_PC29" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC29")}`} cx="482" cy="1267.04" r="26"/>
+                <circle id="VT2_PC07" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC07")}`} cx="756" cy="1227.04" r="26"/>
+                <circle id="VT2_PC08" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC08")}`} cx="756" cy="1303.04" r="26"/>
+                <circle id="VT2_PC11" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC11")}`} cx="893" cy="1224.04" r="26"/>
+                <circle id="VT2_PC12" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC12")}`} cx="893" cy="1300.04" r="26"/>
+                <circle id="VT2_PC15" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC15")}`} cx="1030" cy="1228.04" r="26"/>
+                <circle id="VT2_PC16" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC16")}`} cx="1030" cy="1304.04" r="26"/>
+                <circle id="VT2_PC19" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC19")}`} cx="1170" cy="1229.04" r="26"/>
+                <circle id="VT2_PC20" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC20")}`} cx="1170" cy="1305.04" r="26"/>
+                <circle id="VT2_PC23" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC23")}`} cx="1308" cy="1228.04" r="26"/>
+                <circle id="VT2_PC24" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC24")}`} cx="1308" cy="1304.04" r="26"/>
+                <circle id="VT2_PC25" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC25")}`} cx="1440.26" cy="954.61" r="26"/>
+                <circle id="VT2_PC26" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC26")}`} cx="1440.26" cy="1030.61" r="26"/>
+                <circle id="VT2_PC27" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC27")}`} cx="1440.26" cy="1227.61" r="26"/>
+                <circle id="VT2_PC28" onMouseOver={e} className={`pc ${getComputerClass("VT2_PC28")}`} cx="1440.26" cy="1303.61" r="26"/>
             </g>
             <g id="text-2" data-name="text" className="text">
                 <path d="M412.39,978.18c-1.77-3.73-3.51-7.59-5.22-11.6-1.72-4.01-3.35-7.97-4.89-11.89-1.55-3.92-2.97-7.67-4.26-11.26s-2.42-6.79-3.36-9.6h11.01c.83,2.57,1.75,5.33,2.77,8.29,1.02,2.96,2.05,5.91,3.11,8.85,1.05,2.94,2.06,5.76,3.03,8.45.97,2.69,1.89,5.02,2.78,6.98.83-1.95,1.74-4.27,2.73-6.96.99-2.69,2.01-5.51,3.06-8.45,1.05-2.94,2.09-5.89,3.1-8.85,1.02-2.96,1.94-5.73,2.78-8.31h10.63c-.99,2.83-2.14,6.03-3.43,9.61-1.29,3.58-2.71,7.33-4.24,11.26-1.54,3.93-3.16,7.89-4.86,11.91s-3.44,7.87-5.2,11.58h-9.52Z"/>
@@ -147,7 +153,7 @@ export const SpiralUpper = ({ onHoverReservation = () => {} }: ReservationAreaPr
                 <path d="M2205.25,1275.52c0,7.47-1.42,13.2-4.26,17.18-2.84,3.99-6.75,5.98-11.74,5.98s-8.91-1.99-11.74-5.98c-2.84-3.99-4.26-9.72-4.26-17.18,0-3.71.37-7,1.12-9.86.75-2.86,1.82-5.27,3.23-7.23,1.41-1.96,3.09-3.46,5.06-4.48,1.96-1.02,4.16-1.54,6.59-1.54,4.99,0,8.91,2,11.74,5.98,2.84,3.99,4.26,9.7,4.26,17.12ZM2195.52,1275.52c0-2.22-.11-4.23-.32-6.05-.21-1.81-.55-3.38-1.02-4.7-.47-1.32-1.11-2.35-1.92-3.07-.81-.72-1.81-1.09-3.01-1.09s-2.19.36-2.98,1.09c-.79.73-1.43,1.75-1.92,3.07-.49,1.32-.84,2.89-1.06,4.7-.21,1.81-.32,3.83-.32,6.05s.11,4.25.32,6.08c.21,1.83.57,3.41,1.06,4.74.49,1.32,1.13,2.35,1.92,3.07.79.73,1.78,1.09,2.98,1.09s2.2-.36,3.01-1.09,1.45-1.75,1.92-3.07c.47-1.32.81-2.9,1.02-4.74.21-1.83.32-3.86.32-6.08Z"/>
                 <path d="M2241.34,1285.42c0,1.92-.33,3.68-.99,5.29-.66,1.6-1.65,3-2.98,4.2-1.32,1.2-2.98,2.13-4.96,2.79-1.98.66-4.28.99-6.88.99-2.99,0-5.47-.42-7.46-1.25-1.98-.83-3.58-1.87-4.8-3.11s-2.08-2.6-2.59-4.07-.77-2.83-.77-4.07.17-2.46.51-3.52c.34-1.07.81-2.04,1.41-2.92.6-.88,1.27-1.68,2.02-2.4.75-.73,1.55-1.41,2.4-2.05-1.83-1.49-3.19-2.96-4.06-4.41-.88-1.45-1.31-3.3-1.31-5.56,0-1.7.35-3.34,1.06-4.92.7-1.58,1.7-2.95,2.98-4.12,1.28-1.17,2.83-2.11,4.64-2.81,1.81-.7,3.83-1.05,6.05-1.05,2.6,0,4.83.37,6.69,1.12,1.86.75,3.38,1.69,4.58,2.84,1.19,1.15,2.06,2.44,2.59,3.87.53,1.43.8,2.84.8,4.25,0,2.05-.54,3.95-1.63,5.72-1.09,1.77-2.44,3.16-4.06,4.19,2.43,1.58,4.17,3.24,5.22,4.97,1.04,1.73,1.57,3.75,1.57,6.06ZM2219.2,1285.81c0,.51.12,1.08.35,1.7.23.62.61,1.19,1.12,1.7.51.51,1.17.94,1.98,1.28.81.34,1.79.51,2.94.51,2.22,0,3.84-.53,4.86-1.6,1.02-1.07,1.54-2.27,1.54-3.59,0-.98-.22-1.86-.67-2.63-.45-.77-1.06-1.44-1.82-2.02-.77-.58-1.68-1.09-2.72-1.54-1.05-.45-2.17-.87-3.36-1.25-1.2.9-2.2,1.95-3.01,3.14-.81,1.2-1.22,2.63-1.22,4.3ZM2231.04,1264.75c0-.47-.1-.97-.29-1.5-.19-.53-.51-1.03-.96-1.5-.45-.47-1.01-.86-1.7-1.18-.68-.32-1.51-.48-2.5-.48s-1.75.15-2.43.45c-.68.3-1.25.69-1.7,1.18-.45.49-.78,1.01-.99,1.56-.21.55-.32,1.08-.32,1.59,0,1.36.5,2.64,1.5,3.83,1,1.19,2.72,2.21,5.15,3.06,1.37-.85,2.41-1.83,3.14-2.94.73-1.11,1.09-2.47,1.09-4.08Z"/>
             </g>
-            <circle id="ROOM_08" cx="2130.92" cy="1275.89" r="26" className="room" onMouseOver={e} />
+            <circle id="ROOM_08" cx="2130.92" cy="1275.89" r="26" className={`room ${getRoomClass("08")}`} onMouseOver={e} />
         </g>
         <g id="_07" data-name="07">
             <rect className="cls-5" x="2317.07" y="459.89" width="38.03" height="111.04" transform="translate(1820.66 2851.5) rotate(-90)"/>
@@ -167,7 +173,7 @@ export const SpiralUpper = ({ onHoverReservation = () => {} }: ReservationAreaPr
                 <path d="M2141.83,503.24c0,7.47-1.42,13.19-4.26,17.18-2.84,3.99-6.75,5.98-11.74,5.98s-8.91-1.99-11.74-5.98c-2.84-3.99-4.26-9.72-4.26-17.18,0-3.71.37-7,1.12-9.86.75-2.86,1.82-5.27,3.23-7.23,1.41-1.96,3.09-3.46,5.06-4.48,1.96-1.02,4.16-1.54,6.59-1.54,4.99,0,8.91,2,11.74,5.98,2.84,3.99,4.26,9.7,4.26,17.12ZM2132.1,503.24c0-2.22-.11-4.23-.32-6.05-.21-1.81-.55-3.38-1.02-4.7-.47-1.32-1.11-2.35-1.92-3.07-.81-.72-1.81-1.09-3.01-1.09s-2.19.36-2.98,1.09c-.79.73-1.43,1.75-1.92,3.07-.49,1.32-.84,2.89-1.06,4.7-.21,1.81-.32,3.83-.32,6.05s.11,4.25.32,6.08c.21,1.83.56,3.41,1.06,4.74.49,1.32,1.13,2.35,1.92,3.07.79.73,1.78,1.09,2.98,1.09s2.2-.36,3.01-1.09c.81-.73,1.45-1.75,1.92-3.07.47-1.32.81-2.9,1.02-4.74.21-1.83.32-3.86.32-6.08Z"/>
                 <path d="M2153.09,525.51c.26-3.11.79-6.36,1.6-9.73.81-3.37,1.8-6.68,2.98-9.92,1.17-3.24,2.49-6.3,3.94-9.18,1.45-2.88,2.92-5.36,4.42-7.46h-19.26v-8.13h31.04v6.91c-1.37,1.49-2.87,3.56-4.51,6.21-1.64,2.65-3.2,5.64-4.67,8.99-1.47,3.35-2.75,6.94-3.84,10.78s-1.76,7.68-2.02,11.52h-9.66Z"/>
             </g>
-            <circle id="ROOM_07" className="room" cx="2067.5" cy="503.69" r="26" onMouseOver={e}/>
+            <circle id="ROOM_07" className={`room ${getRoomClass("07")}`} cx="2067.5" cy="503.69" r="26" onMouseOver={e}/>
         </g>
         <g id="Dělička">
             <rect className="cls-5" x="1028.66" y="111.31" width="76.58" height="397.01"/>
@@ -183,7 +189,7 @@ export const SpiralUpper = ({ onHoverReservation = () => {} }: ReservationAreaPr
                 <path d="M1337.89,284.99c.94-1.02,1.91-2.08,2.91-3.18,1-1.1,1.97-2.2,2.91-3.28.94-1.08,1.82-2.11,2.65-3.09.83-.98,1.54-1.82,2.14-2.54h11.34c-2.26,2.6-4.47,5.08-6.62,7.44-2.16,2.36-4.51,4.8-7.07,7.31,1.28,1.15,2.6,2.53,3.97,4.14,1.37,1.6,2.69,3.26,3.97,4.97,1.28,1.71,2.45,3.42,3.52,5.13,1.07,1.71,1.96,3.27,2.69,4.68h-10.96c-.68-1.11-1.46-2.34-2.33-3.69-.87-1.35-1.8-2.69-2.78-4.04-.98-1.35-2.01-2.64-3.1-3.88-1.09-1.24-2.16-2.29-3.23-3.14v14.75h-9.54v-48.13l9.54-1.54v28.09Z"/>
                 <path d="M1376.87,272c2.82,0,5.16.32,7.04.96,1.88.64,3.38,1.56,4.51,2.75,1.13,1.2,1.93,2.65,2.4,4.35.47,1.71.7,3.61.7,5.7v19.84c-1.37.3-3.26.65-5.7,1.06-2.43.4-5.38.61-8.83.61-2.18,0-4.15-.19-5.92-.58-1.77-.38-3.3-1.01-4.58-1.89-1.28-.87-2.26-2.02-2.94-3.42-.68-1.41-1.02-3.14-1.02-5.18s.39-3.63,1.18-4.99c.79-1.37,1.84-2.45,3.17-3.26,1.32-.81,2.84-1.4,4.54-1.76,1.71-.36,3.48-.54,5.31-.54,1.24,0,2.34.05,3.3.16.96.11,1.74.25,2.34.42v-.9c0-1.62-.49-2.92-1.47-3.9-.98-.98-2.69-1.47-5.12-1.47-1.62,0-3.22.12-4.8.35-1.58.23-2.94.57-4.1.99l-1.22-7.68c.55-.17,1.25-.35,2.08-.54s1.74-.36,2.72-.51c.98-.15,2.02-.28,3.1-.38,1.09-.11,2.19-.16,3.3-.16ZM1377.64,299.91c.94,0,1.83-.02,2.69-.06.85-.04,1.54-.11,2.05-.19v-7.23c-.38-.08-.96-.17-1.73-.26-.77-.08-1.47-.13-2.11-.13-.9,0-1.74.05-2.53.16-.79.11-1.48.31-2.08.61s-1.07.7-1.41,1.22c-.34.51-.51,1.15-.51,1.92,0,1.49.5,2.53,1.5,3.1,1,.58,2.38.86,4.13.86Z"/>
             </g>
-            <circle id="ROOM_DELICKA" className="room" cx="1280.58" cy="350.03" r="26" onMouseOver={e}/>
+            <circle id="ROOM_DELICKA" className={`room ${getRoomClass("DELICKA")}`} cx="1280.58" cy="350.03" r="26" onMouseOver={e}/>
         </g>
         <g id="Struktura">
             <line className="cls-3" x1="4.5" y1="48.67" x2="4.5" y2="748.67"/>

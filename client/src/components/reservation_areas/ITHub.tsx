@@ -2,9 +2,15 @@ import "./Area.module.scss";
 
 type ReservationAreaProps = {
     onHoverReservation?: (target: EventTarget | null) => void;
+    getComputerClass?: (id: string) => string;
+    getRoomClass?: (id: string) => string;
 };
 
-export const ITHub = ({ onHoverReservation = () => {} }: ReservationAreaProps) => {
+export const ITHub = ({
+    onHoverReservation = () => {},
+    getComputerClass = () => "",
+    getRoomClass = () => "",
+}: ReservationAreaProps) => {
     return <g className="map-reservation-area-main">
         <defs>
             <style>{`
@@ -66,7 +72,7 @@ export const ITHub = ({ onHoverReservation = () => {} }: ReservationAreaProps) =
             <rect className="cls-3" x="1461.5" y="1283.54" width="205" height="60"/>
             <rect className="cls-3" x="1666.5" y="1283.04" width="205" height="60"/>
             <rect className="cls-3" x="1671.5" y="993.04" width="200" height="60"/>
-            <circle id="ROOM_ITH1" onMouseOver={(event) => onHoverReservation(event.target)} className="room" cx="1261.5" cy="966.54" r="26"/>
+            <circle id="ROOM_ITH1" onMouseOver={(event) => onHoverReservation(event.target)} className={`room ${getRoomClass("ITH1")}`} cx="1261.5" cy="966.54" r="26"/>
             <g className="text">
                 <path d="M1306.82,944.56h9.98v44.35h-9.98v-44.35Z"/>
                 <path d="M1359.93,944.56v8.51h-13.38v35.84h-9.98v-35.84h-13.38v-8.51h36.74Z"/>
@@ -111,33 +117,33 @@ export const ITHub = ({ onHoverReservation = () => {} }: ReservationAreaProps) =
                 <rect className="cls-3 table" x="2124.25" y="189.04" width="57.5" height="122"/>
             </g>
             <g id="ITH2_PC">
-                <circle id="ITH2_PC21" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1296" cy="132.04" r="26"/>
-                <circle id="ITH2_PC22" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1296" cy="253.04" r="26"/>
-                <circle id="ITH2_PC17" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1434" cy="132.04" r="26"/>
-                <circle id="ITH2_PC18" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1434" cy="253.04" r="26"/>
-                <circle id="ITH2_PC13" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1572" cy="132.04" r="26"/>
-                <circle id="ITH2_PC14" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1572" cy="253.04" r="26"/>
-                <circle id="ITH2_PC09" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1710" cy="132.04" r="26"/>
-                <circle id="ITH2_PC10" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1710" cy="253.04" r="26"/>
-                <circle id="ITH2_PC05" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1848" cy="132.04" r="26"/>
-                <circle id="ITH2_PC06" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1848" cy="253.04" r="26"/>
-                <circle id="ITH2_PC01" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1986" cy="132.04" r="26"/>
-                <circle id="ITH2_PC02" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1986" cy="253.04" r="26"/>
-                <circle id="ITH2_PC23" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1296" cy="425.04" r="26"/>
-                <circle id="ITH2_PC24" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1296" cy="546.04" r="26"/>
-                <circle id="ITH2_PC19" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1434" cy="425.04" r="26"/>
-                <circle id="ITH2_PC20" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1434" cy="546.04" r="26"/>
-                <circle id="ITH2_PC15" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1572" cy="425.04" r="26"/>
-                <circle id="ITH2_PC16" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1572" cy="546.04" r="26"/>
-                <circle id="ITH2_PC11" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1710" cy="425.04" r="26"/>
-                <circle id="ITH2_PC12" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1710" cy="546.04" r="26"/>
-                <circle id="ITH2_PC07" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1848" cy="425.04" r="26"/>
-                <circle id="ITH2_PC08" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1848" cy="546.04" r="26"/>
-                <circle id="ITH2_PC03" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1986" cy="425.04" r="26"/>
-                <circle id="ITH2_PC04" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="1986" cy="546.04" r="26"/>
-                <circle id="ITH2_PC25" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="2124" cy="132.04" r="26"/>
-                <circle id="ITH2_PC26" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="2124" cy="253.04" r="26"/>
-                <circle id="ITH2_PC27" onMouseOver={(event) => onHoverReservation(event.target)} className="pc" cx="2113" cy="548.04" r="26"/>
+                <circle id="ITH2_PC21" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC21")}`} cx="1296" cy="132.04" r="26"/>
+                <circle id="ITH2_PC22" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC22")}`} cx="1296" cy="253.04" r="26"/>
+                <circle id="ITH2_PC17" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC17")}`} cx="1434" cy="132.04" r="26"/>
+                <circle id="ITH2_PC18" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC18")}`} cx="1434" cy="253.04" r="26"/>
+                <circle id="ITH2_PC13" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC13")}`} cx="1572" cy="132.04" r="26"/>
+                <circle id="ITH2_PC14" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC14")}`} cx="1572" cy="253.04" r="26"/>
+                <circle id="ITH2_PC09" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC09")}`} cx="1710" cy="132.04" r="26"/>
+                <circle id="ITH2_PC10" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC10")}`} cx="1710" cy="253.04" r="26"/>
+                <circle id="ITH2_PC05" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC05")}`} cx="1848" cy="132.04" r="26"/>
+                <circle id="ITH2_PC06" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC06")}`} cx="1848" cy="253.04" r="26"/>
+                <circle id="ITH2_PC01" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC01")}`} cx="1986" cy="132.04" r="26"/>
+                <circle id="ITH2_PC02" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC02")}`} cx="1986" cy="253.04" r="26"/>
+                <circle id="ITH2_PC23" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC23")}`} cx="1296" cy="425.04" r="26"/>
+                <circle id="ITH2_PC24" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC24")}`} cx="1296" cy="546.04" r="26"/>
+                <circle id="ITH2_PC19" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC19")}`} cx="1434" cy="425.04" r="26"/>
+                <circle id="ITH2_PC20" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC20")}`} cx="1434" cy="546.04" r="26"/>
+                <circle id="ITH2_PC15" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC15")}`} cx="1572" cy="425.04" r="26"/>
+                <circle id="ITH2_PC16" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC16")}`} cx="1572" cy="546.04" r="26"/>
+                <circle id="ITH2_PC11" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC11")}`} cx="1710" cy="425.04" r="26"/>
+                <circle id="ITH2_PC12" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC12")}`} cx="1710" cy="546.04" r="26"/>
+                <circle id="ITH2_PC07" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC07")}`} cx="1848" cy="425.04" r="26"/>
+                <circle id="ITH2_PC08" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC08")}`} cx="1848" cy="546.04" r="26"/>
+                <circle id="ITH2_PC03" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC03")}`} cx="1986" cy="425.04" r="26"/>
+                <circle id="ITH2_PC04" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC04")}`} cx="1986" cy="546.04" r="26"/>
+                <circle id="ITH2_PC25" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC25")}`} cx="2124" cy="132.04" r="26"/>
+                <circle id="ITH2_PC26" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC26")}`} cx="2124" cy="253.04" r="26"/>
+                <circle id="ITH2_PC27" onMouseOver={(event) => onHoverReservation(event.target)} className={`pc ${getComputerClass("ITH2_PC27")}`} cx="2113" cy="548.04" r="26"/>
             </g>
         </g>
         <g id="ITH3">
@@ -146,7 +152,7 @@ export const ITHub = ({ onHoverReservation = () => {} }: ReservationAreaProps) =
             <polygon className="cls-2" points="2123.12 1073.11 2058.17 1110.61 2056.94 1183.49 2120.67 1218.86 2185.62 1181.36 2186.85 1108.49 2123.12 1073.11"/>
             <polygon className="cls-2" points="2188.41 1185.48 2123.45 1222.98 2122.23 1295.86 2185.95 1331.24 2250.91 1293.74 2252.13 1220.86 2188.41 1185.48"/>
             <polygon className="cls-2" points="2195.34 731.66 2130.39 769.16 2129.16 842.04 2192.89 877.41 2257.84 839.91 2259.07 767.04 2195.34 731.66"/>
-            <circle id="ROOM_ITH3" onMouseOver={(event) => onHoverReservation(event.target)} className="room" cx="2005" cy="710.04" r="26"/>
+            <circle id="ROOM_ITH3" onMouseOver={(event) => onHoverReservation(event.target)} className={`room ${getRoomClass("ITH3")}`} cx="2005" cy="710.04" r="26"/>
             <g className="text">
                 <path d="M2050.82,689.56h9.98v44.35h-9.98v-44.35Z"/>
                 <path d="M2103.93,689.56v8.51h-13.38v35.84h-9.98v-35.84h-13.38v-8.51h36.74Z"/>

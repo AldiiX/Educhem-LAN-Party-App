@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import style from "@/app/app/(withlayout)/reservations/client.module.scss";
-import {useCallback, useState} from "react";
+import {useCallback, useState, useEffect, useMemo} from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import If from "@/components/util/If";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import CapacityChart from "@/components/CapacityChart";
 import {useRememberState} from "@/hooks/useRememberState";
 import {useRoomsAndComputers} from "@/app/app/(withlayout)/reservations/_hooks/useRoomsAndComputers";
 import {useReservationsDisplay} from "@/app/app/(withlayout)/reservations/_hooks/useReservationsDisplay";
+import Switch, {Case} from "@/components/util/Switch";
 
 const maps = [
     { id: "ithub", name: "IT Hub (Spodní patro)"},
@@ -48,12 +49,18 @@ export default function Client({
         initialLegendCollapsed,
         "reservationsLegendCollapsed",
     );
-    const { reservations, connectedIds } = useReservationsHub();
+
+    const { reservations, connectedIds, isConnected, isDisconnected, isConnecting, isReconnecting } = useReservationsHub();
     const { roomsCapacity, maxCapacity, computersCapacity, rooms, computers } = useRoomsAndComputers();
-    const { mapRef } = useReservationsDisplay(rooms, computers, reservations, selectedTab);
+    const isConnectionLost = useMemo(() =>{
+        return isReconnecting || isDisconnected;
+    }, [isDisconnected, isReconnecting])
+    const reservationDisplay = useReservationsDisplay(rooms, computers, reservations);
     const {account} = useAuth();
     const reservedCount = reservations?.filter(reservation => reservation.computer !== null || reservation.room !== null).length ?? 0;
     const filledCapacityPercentage = Math.min(100, Math.round((reservedCount / Math.max(maxCapacity, 1)) * 100));
+
+
 
     return <>
         <h1 className={style.title}>Rezervace</h1>
@@ -76,7 +83,7 @@ export default function Client({
                     maxScale={1.35}
                     resetKey={selectedTab}
                     topLeft={
-                        <CapacityChart percentage={filledCapacityPercentage} />
+                        <CapacityChart percentage={!isConnectionLost ? filledCapacityPercentage : 0} />
                     }
                     bottomLeft={
                         <div className={`${style.legend} ${isLegendCollapsed ? style.collapsed : ""}`}>
@@ -99,13 +106,48 @@ export default function Client({
                         </div>
                     }
                     bottomRight={
-                        <div className={style.connectedBadge} title="Aktuálně připojeno">
-                            <span>{connectedIds ?? "?"}</span>
-                            <span className={style.eyeIcon} aria-hidden="true" />
+                        <div className={style.statusBadges}>
+                            <Switch>
+                                <Case when={isReconnecting} as="div" className={`${style.badge} ${style.disconnected}`}>
+                                    <div className={style.icon} style={{ '--icon': 'url(/icons/loading.svg)'} as React.CSSProperties}></div>
+                                    <p>Připojení bylo ztraceno! Připojování...</p>
+                                </Case>
+
+                                <Case when={isDisconnected} as="div" className={`${style.badge} ${style.disconnected}`}>
+                                    <div className={style.icon} style={{ '--icon': 'url(/icons/disconnected.svg)'} as React.CSSProperties}></div>
+                                    <p>Připojení bylo ztraceno! Obnovte stránku.</p>
+                                </Case>
+
+                                <Case when={isConnecting || reservations === null} as="div" className={`${style.badge} ${style.connecting}`}>
+                                    <div className={style.icon} style={{ '--icon': 'url(/icons/loading.svg)'} as React.CSSProperties}></div>
+                                    <p>Připojování na server...</p>
+                                </Case>
+
+
+                                <Case when={isConnected} as="div" className={`${style.badge} ${style.connected}`}>
+                                    <div className={style.icon} style={{ '--icon': 'url(/icons/successmark.svg)'} as React.CSSProperties}></div>
+                                    <p>Úspěšně připojeno k serveru</p>
+                                </Case>
+                            </Switch>
+
+                            <div className={style.connectedBadge} title="Aktuálně připojeno">
+                                <span>{!isConnectionLost ? connectedIds ?? "?" : "?"}</span>
+                                <span className={style.eyeIcon} aria-hidden="true" />
+                            </div>
                         </div>
                     }
                 >
-                    {selectedTab === "ithub" ? <ITHub mapRef={mapRef} /> : <SpiralUpper mapRef={mapRef} />}
+                    { selectedTab === "ithub" ?
+                        <ITHub
+                            getComputerClass={isConnectionLost ? () => "" : reservationDisplay.getComputerClass}
+                            getRoomClass={isConnectionLost ? () => "" : reservationDisplay.getRoomClass}
+                        />
+                        :
+                        <SpiralUpper
+                            getComputerClass={isConnectionLost ? () => "" : reservationDisplay.getComputerClass}
+                            getRoomClass={isConnectionLost ? () => "" : reservationDisplay.getRoomClass}
+                        />
+                    }
                 </MovableMap>
             </div>
 
