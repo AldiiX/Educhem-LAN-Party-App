@@ -37,10 +37,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 		return await base.SaveChangesAsync(cancellationToken);
 	}
 
-	protected override void OnModelCreating(ModelBuilder modelBuilder) {
+	protected override void OnModelCreating(ModelBuilder modelBuilder)
+	{
 		base.OnModelCreating(modelBuilder);
 
-		foreach (var entityType in modelBuilder.Model.GetEntityTypes()) {
+		foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+		{
 			var clrType = entityType.ClrType;
 			if (!typeof(IAuditable).IsAssignableFrom(clrType)) continue;
 
@@ -57,7 +59,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 				.HasDefaultValueSql("now()");
 		}
 
-		modelBuilder.Entity<Account>(e => {
+		modelBuilder.Entity<Account>(e =>
+		{
 			e.Property(a => a.Id)
 				.ValueGeneratedOnAdd()
 				.HasDefaultValueSql("uuidv7()");
@@ -76,29 +79,33 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 				.HasDefaultValue(AccountType.Student);
 		});
 
-		modelBuilder.Entity<Achievement>(e => {
+		modelBuilder.Entity<Achievement>(e =>
+		{
 			e.Property(a => a.Id)
 				.ValueGeneratedOnAdd()
 				.HasDefaultValueSql("uuidv7()");
-				e.Property(a => a.IsHidden)
-					.ValueGeneratedOnAdd()
-					.HasDefaultValue(false);
+			e.Property(a => a.IsHidden)
+				.ValueGeneratedOnAdd()
+				.HasDefaultValue(false);
 		});
 
-		modelBuilder.Entity<Badge>(e => {
+		modelBuilder.Entity<Badge>(e =>
+		{
 			e.Property(a => a.Id)
 				.ValueGeneratedOnAdd()
 				.HasDefaultValueSql("uuidv7()");
 		});
 
-		modelBuilder.Entity<BadgeAchievement>(e => {
+		modelBuilder.Entity<BadgeAchievement>(e =>
+		{
 			e.HasIndex("BadgeId", "AchievementId").IsUnique();
 			e.HasOne(b => b.Badge).WithMany(x => x.BadgeAchievements).OnDelete(DeleteBehavior.Cascade);
 			e.HasOne(b => b.Achievement).WithMany(x => x.BadgeRequirements).OnDelete(DeleteBehavior.Cascade);
 			e.Property(x => x.Id).ValueGeneratedOnAdd().HasDefaultValueSql("uuidv7()");
 		});
 
-		modelBuilder.Entity<AccountAchievement>(e => {
+		modelBuilder.Entity<AccountAchievement>(e =>
+		{
 			e.HasIndex("AccountId", "AchievementId").IsUnique();
 			e.HasOne(x => x.Account)
 				.WithMany(a => a.AccountAchievements)
@@ -114,7 +121,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 				.HasDefaultValue(false);
 		});
 
-		modelBuilder.Entity<AccountBadge>(e => {
+		modelBuilder.Entity<AccountBadge>(e =>
+		{
 			e.HasIndex("AccountId", "BadgeId").IsUnique();
 			e.HasOne(x => x.Account)
 				.WithMany(a => a.AccountBadges)
@@ -128,27 +136,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 			e.Property(x => x.IsTakenOut)
 				.ValueGeneratedOnAdd()
 				.HasDefaultValue(false);
-		modelBuilder.Entity<Room>(e => {
-			e.Property(r => r.Available)
-				.ValueGeneratedOnAdd()
-				.HasDefaultValue(true);
-
-			e.Property(r => r.Capacity)
-				.ValueGeneratedOnAdd()
-				.HasDefaultValue(1);
 		});
+		modelBuilder.Entity<Room>(e =>
+			{
+				e.Property(r => r.Available)
+					.ValueGeneratedOnAdd()
+					.HasDefaultValue(true);
 
-		modelBuilder.Entity<Computer>(e => {
-			e.Property(r => r.Available)
-				.ValueGeneratedOnAdd()
-				.HasDefaultValue(true);
+				e.Property(r => r.Capacity)
+					.ValueGeneratedOnAdd()
+					.HasDefaultValue(1);
+			});
 
-			e.Property(r => r.IsTeachersComputer)
-				.ValueGeneratedOnAdd()
-				.HasDefaultValue(true);
-		});
+			modelBuilder.Entity<Computer>(e =>
+			{
+				e.Property(r => r.Available)
+					.ValueGeneratedOnAdd()
+					.HasDefaultValue(true);
 
-		modelBuilder.Entity<Reservation>(e => {
-		});
-	}
+				e.Property(r => r.IsTeachersComputer)
+					.ValueGeneratedOnAdd()
+					.HasDefaultValue(true);
+			});
+
+			modelBuilder.Entity<Reservation>(e => { });
+		}
 }
