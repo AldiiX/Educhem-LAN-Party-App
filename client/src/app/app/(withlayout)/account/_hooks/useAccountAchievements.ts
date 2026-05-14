@@ -43,6 +43,14 @@ export function useAccountAchievements(account: Account, setAccount: (account: A
     }, [setAccount]);
 
     const toggleBadgeTakenOut = useCallback(async (entryId: string, nextTakenOut: boolean) => {
+        if(nextTakenOut) {
+            const currentTakenOut = account.badges?.filter((entry) => entry.isTakenOut).length ?? 0;
+            if(currentTakenOut >= 3) {
+                toast.error("Na profilu mohou být maximálně 3 badge.");
+                return;
+            }
+        }
+
         setUpdatingBadges(prev => new Set(prev).add(entryId));
         try {
             const response = await fetch(`/api/v1/account/me/badges/${entryId}`, {
@@ -71,7 +79,7 @@ export function useAccountAchievements(account: Account, setAccount: (account: A
                 return next;
             });
         }
-    }, [setAccount]);
+    }, [account.badges, setAccount]);
 
     return {
         achievementUpdatingIds,
@@ -80,4 +88,3 @@ export function useAccountAchievements(account: Account, setAccount: (account: A
         toggleBadgeTakenOut,
     };
 }
-

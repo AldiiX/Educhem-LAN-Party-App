@@ -23,27 +23,37 @@
     gap: 16px;
 }
 
-.achievementGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px;
-    max-height: 420px;
-    overflow-y: auto;
-    padding-right: 6px;
+.badgeItem {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.card {
+.badgeFull {
     display: flex;
     gap: 14px;
     padding: 14px;
     border-radius: 12px;
     background: var(--element-bg);
+    min-height: 96px;
+}
+
+.badgeCompact {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: var(--accent-soft);
+    color: var(--accent-color);
 }
 
 .icon,
 .iconPlaceholder {
     width: 44px;
     height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border-radius: 10px;
     display: grid;
     place-items: center;
@@ -75,94 +85,121 @@
     display: flex;
     gap: 8px;
     margin-top: 8px;
+}
 
-    .actionButton {
-        border-radius: 8px;
-        padding: 6px 10px;
-        background: var(--accent-soft);
-        color: var(--accent-color);
-        font-weight: 600;
-        font-size: 12px;
-        transition: background .2s ease, color .2s ease;
-
-        &:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        &:hover:not(:disabled) {
-            background: var(--accent-color);
-            color: var(--background-bg);
-        }
-    }
+.badgeActions {
+    display: flex;
+    justify-content: flex-end;
 }
 
 .achievementList {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
-.achievementCard {
+.achievementRow {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 14px;
+    gap: 10px;
+    padding: 12px 14px;
     border-radius: 12px;
     background: var(--element-bg);
 }
 
-.achievementBanner {
-    width: 100%;
-    height: 120px;
-    border-radius: 12px;
-    background: var(--accent-soft);
-    background-size: cover;
-    background-position: center;
-    display: grid;
-    place-items: center;
-    color: var(--accent-color);
-    font-weight: 700;
+.achievementMain {
+    display: flex;
+    align-items: center;
+    gap: 14px;
 }
 
-.achievementBody {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.achievementIcon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font-weight: 700;
+    flex-shrink: 0;
+    overflow: hidden;
 
-    > p {
-        color: var(--text-muted);
-        font-size: 14px;
+    > img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 }
 
-.achievementHeader {
+.achievementInfo {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
 
     > h3 {
         font-size: 16px;
     }
 
-    > span {
-        font-size: 12px;
+    > p {
         color: var(--text-muted);
+        font-size: 13px;
+    }
+}
+
+.achievementMeta {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-color);
+    white-space: nowrap;
+}
+
+.achievementActions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.actionButton {
+    border-radius: 8px;
+    padding: 6px 10px;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font-weight: 600;
+    font-size: 12px;
+    transition: background .2s ease, color .2s ease;
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    &:hover:not(:disabled) {
+        background: var(--accent-color);
+        color: var(--background-bg);
     }
 }
 
 @media (max-width: 720px) {
-    .achievementBanner {
-        height: 92px;
-    }
-
-    .achievementHeader {
+    .achievementMain {
         flex-direction: column;
         align-items: flex-start;
     }
 
+    .achievementMeta {
+        margin-left: 0;
+    }
+
+    .achievementActions {
+        justify-content: flex-start;
+    }
+
     .cardActions {
         flex-direction: column;
+    }
+
+    .badgeActions {
+        justify-content: flex-start;
     }
 }

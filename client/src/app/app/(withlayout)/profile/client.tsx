@@ -40,7 +40,7 @@ export default function({ account }: { account: Account }) {
     }, [account.id]);
 
     const achievements = (profile.achievements ?? []).filter((entry) => !entry.isHidden);
-    const badges = (profile.badges ?? []).filter((entry) => entry.isTakenOut);
+    const badges = (profile.badges ?? []).filter((entry) => entry.isTakenOut).slice(0, 3);
 
     return <>
         <div className={style.banner} style={{ '--banner': `url(${account.bannerUrl})` } as React.CSSProperties}>
@@ -72,10 +72,27 @@ export default function({ account }: { account: Account }) {
             </div>
 
             <div className={style.right}>
-                <If condition={profile.school != null} as="div" className={style.school}>
-                    <div className={style.img} style={{ backgroundImage: `url(${profile.school?.iconUrl})` }}></div>
-                    <p>{ profile.school?.displayName }</p>
-                </If>
+                <div className={style.rightHeader}>
+                    <div className={style.badgeBar}>
+                        {badges.length === 0 ? (
+                            <span className={style.badgeEmpty}>Zatím žádné badge.</span>
+                        ) : (
+                            badges.map((entry) => (
+                                <div key={entry.id} className={style.badgeItem} title={entry.badge.name}>
+                                    {entry.badge.iconUrl ? (
+                                        <img src={entry.badge.iconUrl} alt="" />
+                                    ) : (
+                                        <span>{entry.badge.name.charAt(0)}</span>
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                    <If condition={profile.school != null} as="div" className={style.school}>
+                        <div className={style.img} style={{ backgroundImage: `url(${profile.school?.iconUrl})` }}></div>
+                        <p>{ profile.school?.displayName }</p>
+                    </If>
+                </div>
 
                 <div className={style.achievementBar}>
                     <div className={style.barHeader}>
@@ -88,39 +105,22 @@ export default function({ account }: { account: Account }) {
                         <div className={style.achievementList}>
                             {achievements.map((entry) => (
                                 <div key={entry.id} className={style.achievementRow}>
-                                    <div
-                                        className={style.achievementCover}
-                                        style={entry.achievement.iconUrl ? { backgroundImage: `url(${entry.achievement.iconUrl})` } : undefined}
-                                    >
-                                        {!entry.achievement.iconUrl && <span>{entry.achievement.name.charAt(0)}</span>}
+                                    <div className={style.achievementMain}>
+                                        <div className={style.achievementIcon}>
+                                            {entry.achievement.iconUrl ? (
+                                                <img src={entry.achievement.iconUrl} alt="" />
+                                            ) : (
+                                                <span>{entry.achievement.name.charAt(0)}</span>
+                                            )}
+                                        </div>
+                                        <div className={style.achievementInfo}>
+                                            <p className={style.achievementTitle}>{entry.achievement.name}</p>
+                                            {entry.achievement.description && <p className={style.achievementDescription}>{entry.achievement.description}</p>}
+                                        </div>
+                                        <div className={style.achievementMeta}>
+                                            <span>Získáno {entry.createdAtUtc.toLocaleDateString("cs-CZ")}</span>
+                                        </div>
                                     </div>
-                                    <div className={style.achievementText}>
-                                        <p className={style.achievementTitle}>{entry.achievement.name}</p>
-                                        {entry.achievement.description && <p className={style.achievementDescription}>{entry.achievement.description}</p>}
-                                        <p className={style.achievementDate}>Získáno: {entry.createdAtUtc.toLocaleDateString("cs-CZ")}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                <div className={style.badgeBar}>
-                    <div className={style.barHeader}>
-                        <h3>Badge</h3>
-                        <span>{badges.length}</span>
-                    </div>
-                    {badges.length === 0 ? (
-                        <p className={style.barEmpty}>Zatím žádné badge.</p>
-                    ) : (
-                        <div className={style.barItems}>
-                            {badges.map((entry) => (
-                                <div key={entry.id} className={style.barItem} title={entry.badge.name}>
-                                    {entry.badge.iconUrl ? (
-                                        <img src={entry.badge.iconUrl} alt="" />
-                                    ) : (
-                                        <span>{entry.badge.name.charAt(0)}</span>
-                                    )}
                                 </div>
                             ))}
                         </div>

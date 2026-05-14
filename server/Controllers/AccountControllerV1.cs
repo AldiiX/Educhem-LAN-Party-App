@@ -435,6 +435,13 @@ public sealed class AccountControllerV1(
 			.FirstOrDefaultAsync(x => x.Id == id && x.AccountId == acc.Id, ct);
 		if(entry == null) return NotFound();
 
+		if(request.IsTakenOut && !entry.IsTakenOut) {
+			var takenOutCount = await db.AccountBadges
+				.AsNoTracking()
+				.CountAsync(x => x.AccountId == acc.Id && x.IsTakenOut, ct);
+			if(takenOutCount >= 3) return BadRequest("Na profilu mohou být maximálně 3 badge.");
+		}
+
 		entry.IsTakenOut = request.IsTakenOut;
 		await db.SaveChangesAsync(ct);
 
