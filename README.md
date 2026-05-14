@@ -6,16 +6,17 @@
 
 <p align="center">
   Moderní webová aplikace pro organizaci školních EDUCHEM LAN party akcí.
-  Informace pro účastníky, přihlašování, profily, administrace účtů a příprava rezervační části v jednom systému.
+  Řeší prezentační web, účty účastníků, administraci, profily, realtime rezervace míst a provozní statistiky.
 </p>
 
 <p align="center">
-  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=nextdotjs" />
-  <img alt="React" src="https://img.shields.io/badge/React-19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16.2.6-black?style=for-the-badge&logo=nextdotjs" />
+  <img alt="React" src="https://img.shields.io/badge/React-19.2.6-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
   <img alt=".NET" src="https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" />
+  <img alt="SignalR" src="https://img.shields.io/badge/SignalR-realtime-512BD4?style=for-the-badge" />
   <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-18-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
-  <img alt="Redis" src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
+  <img alt="Redis" src="https://img.shields.io/badge/Redis-cache%20%26%20sessions-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
 </p>
 
 ---
@@ -25,6 +26,8 @@
 - [Popis projektu](#popis-projektu)
 - [Aktuální vývojáři](#aktuální-vývojáři)
 - [Funkcionality](#funkcionality)
+- [Rezervace](#rezervace)
+- [Realtime a cache](#realtime-a-cache)
 - [Technologie](#technologie)
 - [Struktura projektu](#struktura-projektu)
 - [Instalace a spuštění dev verze](#instalace-a-spuštění-dev-verze)
@@ -32,13 +35,14 @@
 - [Databáze a migrace](#databáze-a-migrace)
 - [Produkce a Docker](#produkce-a-docker)
 - [Adresy aplikace](#adresy-aplikace)
+- [API a SignalR](#api-a-signalr)
 - [Pravidla commitování](#pravidla-commitování)
 
 ## Popis projektu
 
-**EDUCHEM LAN Party App** je full-stack aplikace pro přípravu a správu LAN party událostí na škole EDUCHEM. Projekt spojuje veřejnou prezentační část pro účastníky s přihlášenou aplikací pro uživatele a administrátory.
+**EDUCHEM LAN Party App** je full-stack aplikace pro přípravu a správu LAN party událostí na škole EDUCHEM. Projekt spojuje veřejnou prezentační část pro účastníky s přihlášenou aplikací pro studenty, organizátory a administrátory.
 
-Veřejná část slouží jako přehled aktuální akce, pravidel, harmonogramu, historie a často kladených otázek. Přihlášená část řeší uživatelské účty, profily, změnu hesla, správu oprávnění a administraci účastníků. Backend poskytuje REST API, session přihlašování, ukládání dat do PostgreSQL, Redis session storage a HTML emaily přes Razor šablony.
+Veřejný web ukazuje informace o aktuální akci, historii, pravidla, harmonogram, FAQ a vstup do rezervací. Přihlášená část řeší dashboard, správu účtu, profily, administraci účastníků a samotné rezervace počítačů nebo místností. Backend poskytuje REST API, SignalR hub pro realtime rezervace, session přihlašování, PostgreSQL databázi, Redis sessions a HTML emaily renderované přes Razor šablony.
 
 ## Aktuální vývojáři
 
@@ -75,34 +79,74 @@ Veřejná část slouží jako přehled aktuální akce, pravidel, harmonogramu,
 
 ## Funkcionality
 
-- **Prezentační web události**: homepage, informace, historie, pravidla, harmonogram, FAQ a veřejná rezervační stránka.
-- **Uživatelské přihlášení**: session autentizace, odhlášení, změna hesla a obnova hesla přes emailový odkaz.
+- **Prezentační web události**: hlavní stránka, informace, historie, pravidla, harmonogram, FAQ a veřejný vstup do rezervací.
+- **Uživatelské účty**: session přihlášení, odhlášení, změna hesla, reset hesla přes email a přihlašovací link.
 - **Profily účastníků**: vlastní profil, veřejné profily podle UUID, avatar, banner, třída, škola a role.
 - **Administrace účtů**: vytváření, úprava, mazání, reset hesla, odeslání přihlašovacích údajů a filtrování účtů.
 - **Role a oprávnění**: `Student`, `Teacher`, `TeacherOrg`, `Admin` a `SuperAdmin`.
-- **Dashboard data**: statistiky aktivních účtů, počtu účastníků, staffu a tříd.
-- **Emailové šablony**: registrační email, reset hesla a email s přihlašovacími údaji renderované přes Razor views.
-- **Příprava na rezervace**: příznaky pro povolení rezervací a samostatné routy pro rezervační část aplikace.
+- **Rezervace míst**: realtime mapa počítačů a místností s možností rezervovat, změnit nebo zrušit vlastní rezervaci.
+- **Dashboard a statistiky**: přehled účtů, aktivních uživatelů, povolených rezervací, staffu, tříd a kapacity.
+- **Emailové šablony**: registrace, reset hesla a nové přihlašovací údaje přes Razor views.
 - **Containerizace**: produkční Docker image s .NET backendem, Next.js standalone frontendem a Nginx reverse proxy.
+
+## Rezervace
+
+Rezervační část je nyní plnohodnotná součást aplikace a běží na adrese `/app/reservations`.
+
+- **Interaktivní mapa**: mapa je posuvná a zoomovatelná přes komponentu `MovableMap`.
+- **Více pater / zón**: aktuálně jsou připravené záložky `IT Hub (Spodní patro)` a `Spirála (Horní patro)`.
+- **Počítače i místnosti**: uživatel může rezervovat konkrétní počítač nebo místnost s kapacitou pro vlastní setup.
+- **Jedna rezervace na účet**: nová rezervace automaticky nahrazuje předchozí rezervaci stejného účtu.
+- **Zrušení rezervace**: uživatel může vlastní rezervaci zrušit přes SignalR metodu `Unbook`.
+- **Oprávnění přes účet**: rezervovat mohou jen účty s `EnableReservations = true`.
+- **Učitelská místa**: počítače označené jako `IsTeachersComputer` jsou dostupné pouze pro účty s rolí alespoň `Teacher`.
+- **Kapacity místností**: místnost lze obsadit jen do hodnoty `Room.Capacity`.
+- **Ochrana proti souběhu**: zápis rezervace běží v serializable transakci a řeší kolize při rychlém souběžném kliknutí.
+- **Stavy v UI**: mapa rozlišuje volné místo, obsazeno/nedostupné a vlastní rezervaci.
+- **Pravý panel**: ukazuje statistiky, seznam rezervací, profily přihlášených účastníků a upozornění, když účet nemá rezervace povolené.
+- **Stav připojení**: UI ukazuje připojeno, připojování, reconnect a ztrátu spojení.
+- **Počet online klientů**: SignalR posílá do mapy aktuální počet připojených klientů.
+
+Anonymní návštěvník vidí obsazenost bez detailních profilů. Přihlášený uživatel vidí u rezervací profily a může přejít na detail účastníka.
+
+## Realtime a cache
+
+Rezervace jsou postavené na kombinaci SignalR, PostgreSQL a aplikační cache:
+
+- **SignalR hub**: `/hubs/reservations` posílá počáteční snapshot rezervací a následně jen změny.
+- **Oddělená data podle přihlášení**: přihlášení klienti dostávají DTO s profily, anonymní klienti anonymizovaná DTO.
+- **Delta update**: po rezervaci nebo zrušení se neposílá celý seznam znovu, ale jen `previousReservation` a nová `reservation`.
+- **Client-side delta merge**: frontend změnu slepí do aktuálního seznamu lokálně přes `useReservationsHub`.
+- **Connection status throttling**: počet připojených klientů se broadcastuje maximálně jednou za sekundu.
+- **Memory cache pro rezervace**: `ReservationCacheService` drží zvlášť cache pro přihlášené a anonymní snapshoty.
+- **Cache pro mapová data**: místnosti a počítače se načítají přes cache klíč `reservations:rooms-and-computers`.
+- **Krátká status cache**: souhrnný status rezervací se cachuje na 30 sekund.
+- **Anti-stampede zámky**: cache používá `SemaphoreSlim`, aby se při prázdné cache nespustilo více stejných DB dotazů najednou.
+- **Redis**: používá se pro ASP.NET session cache a Data Protection keys, aby byly session a cookies stabilní i při restartu aplikace.
+- **Nginx cache headers**: statické Next.js assety z `/_next/static/` mají dlouhou immutable cache.
+- **Build cache**: Docker build používá cache mounty pro npm i NuGet balíčky.
 
 ## Technologie
 
 ### Frontend
 
-- [Next.js 16](https://nextjs.org/) s App Routerem a standalone buildem
-- [React 19](https://react.dev/)
+- [Next.js 16.2.6](https://nextjs.org/) s App Routerem a standalone buildem
+- [React 19.2.6](https://react.dev/)
 - [TypeScript 6](https://www.typescriptlang.org/)
-- [Sass](https://sass-lang.com/) pro globální i modulové styly
+- [@microsoft/signalr](https://www.npmjs.com/package/@microsoft/signalr) pro realtime rezervace
 - [SWR](https://swr.vercel.app/) pro klientský data fetching
-- Vlastní komponenty, ikonky a tematizace přes `WebThemeProvider`
+- [Zustand](https://zustand-demo.pmnd.rs/) pro lokální stav výběru rezervace
+- [Sass](https://sass-lang.com/) pro globální i modulové styly
+- `react-hot-toast` pro klientské hlášky
 
 ### Backend
 
 - [.NET 10](https://dotnet.microsoft.com/)
-- ASP.NET Core controllers
+- ASP.NET Core controllers a SignalR hub
 - Entity Framework Core 10
 - PostgreSQL 18, mimo jiné kvůli `uuidv7()`
 - Redis pro session cache a Data Protection keys
+- IMemoryCache pro rychlé rezervační snapshoty
 - MailKit pro SMTP emaily
 - BCrypt pro hashování hesel
 - Razor view rendering pro HTML emailové šablony
@@ -110,7 +154,7 @@ Veřejná část slouží jako přehled aktuální akce, pravidel, harmonogramu,
 ### Infrastruktura
 
 - Docker multi-stage build
-- Nginx reverse proxy
+- Nginx reverse proxy s podporou WebSocket upgrade
 - Node.js 24 build stage
 - PostgreSQL
 - Redis
@@ -119,23 +163,26 @@ Veřejná část slouží jako přehled aktuální akce, pravidel, harmonogramu,
 
 ```text
 .
-|-- client/                    # Next.js frontend
-|   |-- public/                # obrázky, ikony, fonty, PDF
-|   |-- src/app/               # App Router routy
-|   |-- src/components/        # sdílené UI komponenty
-|   |-- src/data/              # konfigurace webu a historické události
+|-- client/                                  # Next.js frontend
+|   |-- public/                              # obrázky, ikony, fonty, PDF
+|   |-- src/app/                             # App Router routy
+|   |-- src/app/app/(withlayout)/reservations # přihlášené rezervace
+|   |-- src/components/reservation_areas/    # mapové oblasti pro rezervace
+|   |-- src/hooks/useSignalRHub.ts           # obecný SignalR hook
+|   |-- src/schemas/                         # Zod schémata API odpovědí
 |   `-- package.json
-|-- server/                    # ASP.NET Core backend
-|   |-- Controllers/           # REST API v1
-|   |-- Data/                  # EF Core DbContext a entity
-|   |-- Dto/                   # datové modely API
-|   |-- Migrations/            # EF Core migrace
-|   |-- Services/              # auth, emaily, vokativ, Razor rendering
-|   |-- Views/Emails/          # HTML emailové šablony
+|-- server/                                  # ASP.NET Core backend
+|   |-- Controllers/                         # REST API v1
+|   |-- Data/Entities/                       # účty, školy, místnosti, počítače, rezervace
+|   |-- Dto/                                 # datové modely API
+|   |-- Hubs/ReservationsHub.cs              # realtime rezervace
+|   |-- Migrations/                          # EF Core migrace
+|   |-- Services/ReservationCacheService.cs  # cache rezervačních dat
+|   |-- Views/Emails/                        # HTML emailové šablony
 |   `-- server.csproj
-|-- Dockerfile                 # produkční build celé aplikace
-|-- nginx.conf                 # proxy pro /api a Next.js frontend
-|-- start.sh                   # start backendu, frontendu a nginxu
+|-- Dockerfile                               # produkční build celé aplikace
+|-- nginx.conf                               # proxy pro /api, /hubs a Next.js frontend
+|-- start.sh                                 # start backendu, frontendu a nginxu
 `-- Educhem LAN Party App.slnx
 ```
 
@@ -168,7 +215,7 @@ npm install
 
 ### 4. Spuštění databáze a Redis
 
-V projektu zatím není pevný `docker-compose.yml`, ale pro lokální vývoj stačí spustit PostgreSQL a Redis například takto:
+Projekt používá PostgreSQL 18 a Redis. Pro lokální vývoj stačí:
 
 ```bash
 docker run --name edulp-postgres -e POSTGRES_DB=edulp_dev -e POSTGRES_USER=edulp -e POSTGRES_PASSWORD=edulp -p 5432:5432 -d postgres:18
@@ -190,13 +237,15 @@ REDIS_IP=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=
 
+WEB_URL=http://localhost:3547
+
 SMTP_HOST=smtp.example.com
 SMTP_PORT=465
 SMTP_EMAIL_USERNAME=lanparty@example.com
 SMTP_EMAIL_PASSWORD=change-me
 ```
 
-> Pokud nechceš lokálně posílat emaily, SMTP hodnoty nech jako placeholdery. Funkce, které email odesílají, při špatné konfiguraci vrátí chybu do logu, ale aplikace zůstane běžet.
+Pokud nechceš lokálně posílat emaily, SMTP hodnoty nech jako placeholdery. Funkce, které email odesílají, při špatné konfiguraci vrátí chybu do logu, ale aplikace zůstane běžet.
 
 ### 6. Spuštění backendu
 
@@ -228,7 +277,7 @@ Frontend běží na:
 http://localhost:3547
 ```
 
-Next.js v dev režimu proxyuje API volání z `/api/*` na backend `http://localhost:8080/api/*`.
+Next.js v dev režimu proxyuje API volání z `/api/*` na backend `http://localhost:8080/api/*`. SignalR hub je dostupný na `/hubs/reservations`.
 
 ## Konfigurace prostředí
 
@@ -244,6 +293,7 @@ Backend načítá proměnné z `server/.env` přes `dotenv.net`.
 | `REDIS_IP` | Host Redis serveru |
 | `REDIS_PORT` | Port Redis serveru |
 | `REDIS_PASSWORD` | Redis heslo, může být prázdné |
+| `WEB_URL` | Veřejná URL aplikace pro emailové odkazy |
 | `SMTP_HOST` | SMTP server |
 | `SMTP_PORT` | SMTP port, typicky `465` |
 | `SMTP_EMAIL_USERNAME` | Odesílací email a SMTP login |
@@ -269,8 +319,12 @@ dotnet ef migrations add NazevMigrace
 
 Aktuální model obsahuje hlavně:
 
-- `Accounts` pro uživatelské účty, role, profily a rezervační oprávnění.
+- `Accounts` pro uživatelské účty, role, profily a povolení rezervací.
 - `Schools` pro školy zobrazované u profilu.
+- `Computers` v databázovém schématu `reservations`.
+- `Rooms` v databázovém schématu `reservations`.
+- `Reservations` jako společný základ pro `ComputerReservation` a `RoomReservation`.
+- Unikátní index na `Reservation.AccountId`, takže jeden účet může mít jen jednu aktivní rezervaci.
 - PostgreSQL enumy `AccountGender` a `AccountType`.
 
 ## Produkce a Docker
@@ -281,6 +335,7 @@ Produkce se balí do jednoho image:
 - backend se publikuje jako .NET aplikace,
 - Nginx slouží jako reverse proxy na portu `80`,
 - `/api/*` jde na ASP.NET Core backend,
+- `/hubs/*` a SignalR komunikace používají proxy s WebSocket upgrade hlavičkami,
 - ostatní routy jdou na Next.js frontend.
 
 Build image:
@@ -315,10 +370,13 @@ docker run --name educhem-lan-party-app -p 80:80 educhem-lan-party-app
 - `http://localhost:3547/app` - dashboard
 - `http://localhost:3547/app/account` - nastavení účtu
 - `http://localhost:3547/app/profile` - vlastní profil
+- `http://localhost:3547/app/reservations` - realtime rezervace míst
 - `http://localhost:3547/app/administration` - administrace účtů
 - `http://localhost:3547/app/reset-password` - reset hesla
 
-### API
+## API a SignalR
+
+### REST API
 
 - `GET /api/v1/account` - aktuálně přihlášený účet
 - `GET /api/v1/account/dashboard` - dashboard statistiky
@@ -329,6 +387,29 @@ docker run --name educhem-lan-party-app -p 80:80 educhem-lan-party-app
 - `POST /api/v1/account/reset-password` - potvrzení resetu hesla
 - `GET /api/v1/profile` - profil aktuálního uživatele
 - `GET /api/v1/profile/{uuid}` - veřejný profil podle UUID
+- `GET /api/v1/reservations/rooms-and-computers` - místnosti a počítače pro mapu
+- `GET /api/v1/reservations/status` - souhrnný stav kapacity a povolených rezervací
+- `GET /api/v1/reservations` - seznam rezervací pouze v debug buildu; v produkci rezervace probíhají přes socket
+
+### SignalR hub
+
+Hub běží na:
+
+```text
+/hubs/reservations
+```
+
+Serverové metody volané klientem:
+
+- `Reserve({ id, type })` - rezervuje počítač nebo místnost, kde `type` je `computer` nebo `room`.
+- `Unbook()` - zruší aktuální rezervaci přihlášeného účtu.
+
+Události posílané klientům:
+
+- `ReceiveReservations` - počáteční snapshot rezervací po připojení.
+- `ReservationsChanged` - delta změna po rezervaci nebo zrušení.
+- `ReceiveStatus` - počet aktuálně připojených klientů.
+- `ReceiveError` - chybová hláška pro volajícího klienta.
 
 ## Pravidla commitování
 
