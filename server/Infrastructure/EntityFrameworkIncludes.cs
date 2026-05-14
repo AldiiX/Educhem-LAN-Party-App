@@ -16,6 +16,7 @@ public static class EntityFrameworkIncludes {
 		return db.Reservations
 			.Include(r => r.Account)
 			.Include(r => ((ComputerReservation)r).Computer)
+				.ThenInclude(c => c.Room)
 			.Include(r => ((RoomReservation)r).Room)
 			.OrderByDescending(r => r.CreatedAtUtc)
 			.AsSplitQuery();

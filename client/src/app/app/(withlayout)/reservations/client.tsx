@@ -15,6 +15,7 @@ import {useRememberState} from "@/hooks/useRememberState";
 import {useRoomsAndComputers} from "@/app/app/(withlayout)/reservations/_hooks/useRoomsAndComputers";
 import {useReservationsDisplay} from "@/app/app/(withlayout)/reservations/_hooks/useReservationsDisplay";
 import Switch, {Case} from "@/components/util/Switch";
+import SelectedRoomOrComputer from "@/app/app/(withlayout)/reservations/_components/SelectedRoomOrComputer";
 
 const maps = [
     { id: "ithub", name: "IT Hub (Spodní patro)"},
@@ -59,8 +60,6 @@ export default function Client({
     const {account} = useAuth();
     const reservedCount = reservations?.filter(reservation => reservation.computer !== null || reservation.room !== null).length ?? 0;
     const filledCapacityPercentage = Math.min(100, Math.round((reservedCount / Math.max(maxCapacity, 1)) * 100));
-
-
 
     return <>
         <h1 className={style.title}>Rezervace</h1>
@@ -141,14 +140,18 @@ export default function Client({
                         <ITHub
                             getComputerClass={isConnectionLost ? () => "" : reservationDisplay.getComputerClass}
                             getRoomClass={isConnectionLost ? () => "" : reservationDisplay.getRoomClass}
+                            onHoverReservation={isConnectionLost ? () => {} : reservationDisplay.openReservationModal}
                         />
                         :
                         <SpiralUpper
                             getComputerClass={isConnectionLost ? () => "" : reservationDisplay.getComputerClass}
                             getRoomClass={isConnectionLost ? () => "" : reservationDisplay.getRoomClass}
+                            onHoverReservation={isConnectionLost ? () => {} : reservationDisplay.openReservationModal}
                         />
                     }
                 </MovableMap>
+
+                <SelectedRoomOrComputer reservations={reservations} />
             </div>
 
             <aside className={`${style.right} ${isRightPanelCollapsed ? style.collapsed : ""}`}>

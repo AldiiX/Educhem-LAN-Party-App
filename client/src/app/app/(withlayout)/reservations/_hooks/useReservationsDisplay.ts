@@ -1,11 +1,18 @@
 import {Computer, Reservation, Room} from "@/schemas/ReservationSchema";
 import {useMemo} from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {useSelectedRoomOrComputerStore} from "@/app/app/(withlayout)/reservations/_components/SelectedRoomOrComputer";
 
 type ReservationDisplayClass = "available" | "unavailable" | "taken-by-you";
 
 export function useReservationsDisplay(rooms: Room[], computers: Computer[], reservations: Reservation[] | null) {
     const { account } = useAuth();
+    const setSelectedRoomOrComputer = useSelectedRoomOrComputerStore(state => state.setSelectedRoomOrComputer);
+
+    function openReservationPopup(target: any | null) {
+        const id = target.id;
+        setSelectedRoomOrComputer(computers.find((computer) => computer.id === id) ?? rooms.find((room) => room.id === id) ?? null);
+    }
 
     const computerClassById = useMemo(() => {
         const result = new Map<string, ReservationDisplayClass>();
@@ -45,5 +52,6 @@ export function useReservationsDisplay(rooms: Room[], computers: Computer[], res
     return {
         getComputerClass: (id: string) => computerClassById.get(id) ?? "",
         getRoomClass: (id: string) => roomClassById.get(id) ?? "",
+        openReservationModal: openReservationPopup,
     }
 }
