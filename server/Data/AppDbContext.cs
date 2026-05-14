@@ -11,6 +11,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 			public DbSet<BadgeAchievement> BadgeAchievements { get; set; }
 			public DbSet<AccountAchievement> AccountAchievements { get; set; }
 			public DbSet<AccountBadge> AccountBadges { get; set; }
+	public DbSet<Computer> Computers { get; set; }
+	public DbSet<Room> Rooms { get; set; }
+
+	public DbSet<Reservation> Reservations { get; set; }
+	public DbSet<ComputerReservation> ComputerReservations { get; set; }
+	public DbSet<RoomReservation> RoomReservations { get; set; }
 
 
 
@@ -122,6 +128,27 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 			e.Property(x => x.IsTakenOut)
 				.ValueGeneratedOnAdd()
 				.HasDefaultValue(false);
+		modelBuilder.Entity<Room>(e => {
+			e.Property(r => r.Available)
+				.ValueGeneratedOnAdd()
+				.HasDefaultValue(true);
+
+			e.Property(r => r.Capacity)
+				.ValueGeneratedOnAdd()
+				.HasDefaultValue(1);
+		});
+
+		modelBuilder.Entity<Computer>(e => {
+			e.Property(r => r.Available)
+				.ValueGeneratedOnAdd()
+				.HasDefaultValue(true);
+
+			e.Property(r => r.IsTeachersComputer)
+				.ValueGeneratedOnAdd()
+				.HasDefaultValue(true);
+		});
+
+		modelBuilder.Entity<Reservation>(e => {
 		});
 	}
 }

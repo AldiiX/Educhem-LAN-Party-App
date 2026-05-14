@@ -22,7 +22,7 @@ namespace server.Controllers;
 
 [ApiController]
 [Route("api/v1/account")]
-public class AccountControllerV1(
+public sealed class AccountControllerV1(
 	IAuthService auth,
 	AppDbContext db,
 	IServiceProvider serviceProvider,

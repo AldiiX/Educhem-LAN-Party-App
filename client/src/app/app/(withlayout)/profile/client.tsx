@@ -43,8 +43,8 @@ export default function({ account }: { account: Account }) {
     const badges = (profile.badges ?? []).filter((entry) => entry.isTakenOut);
 
     return <>
-        <div className={style.banner} style={{ backgroundImage: `url(${profile.bannerUrl})` }}>
-            <Avatar name={profile.fullName} src={profile.avatarUrl} size="248px" className={style.avatar}/>
+        <div className={style.banner} style={{ '--banner': `url(${account.bannerUrl})` } as React.CSSProperties}>
+            <Avatar name={account.fullName} src={account.avatarUrl} size="248px" className={style.avatar} />
         </div>
 
         <div className={style.flex}>

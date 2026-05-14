@@ -8,10 +8,12 @@ import type {HomeDashboard} from "./page";
 import {useHomeGreeting} from "./_hooks/useHomeGreeting";
 import styles from "./HomeClient.module.scss";
 import {Avatar} from "@/components/Avatar";
+import {StatusData, useStatus} from "@/app/app/(withlayout)/_hooks/useStatus";
 
 type HomeClientProps = {
     account: Account | null;
     dashboard: HomeDashboard | null;
+    status: StatusData | null;
 };
 
 const quickLinks = [
@@ -23,17 +25,17 @@ const quickLinks = [
     {href: "/app/administration", label: "Administrace", icon: "/icons/user_with_shield.svg", staffOnly: true},
 ];
 
-export default function HomeClient({account, dashboard}: HomeClientProps) {
+export default function HomeClient({account, dashboard, status}: HomeClientProps) {
     const greeting = useHomeGreeting(account?.firstName ?? null);
     const links = quickLinks.filter(link => {
         if(link.authOnly && !account) return false;
         if(link.staffOnly) return hasRoleAtLeast(account, "TeacherOrg");
         return true;
     });
+
+    const { } = useStatus(status);
     const totalAccounts = dashboard?.totalAccounts ?? 0;
     const reservationsEnabled = dashboard?.reservationsEnabled ?? 0;
-    const reservationRatio = totalAccounts > 0 ? Math.round((reservationsEnabled / totalAccounts) * 100) : 0;
-    const activeRatio = totalAccounts > 0 ? Math.round(((dashboard?.activeToday ?? 0) / totalAccounts) * 100) : 0;
     const maxClassCount = Math.max(...(dashboard?.classBreakdown.map(item => item.count) ?? [1]), 1);
 
     return <main className={styles.home}>
@@ -51,7 +53,7 @@ export default function HomeClient({account, dashboard}: HomeClientProps) {
 
         <section className={styles.statsGrid}>
             <StatCard icon="/icons/account.svg" label="Účastníků v systému" value={totalAccounts} detail={`${dashboard?.staffCount ?? 0} organizátorů a učitelů`} />
-            <StatCard icon="/icons/calc.svg" label="Rezervací povoleno" value={reservationsEnabled} detail={`${reservationRatio}% účtů má povolené rezervace`} />
+            <StatCard icon="/icons/calc.svg" label="Rezervací povoleno" value={status?.accountsWithEnabledReservations ?? 0} detail={`${status?.accountsWithEnabledReservationsPercentage ?? 0}% účtů má povolené rezervace`} />
             <StatCard icon="/icons/successmark.svg" label="Aktivní dnes" value={dashboard?.activeToday ?? 0} detail={`${dashboard?.activeNow ?? 0} aktivních za posledních 15 minut`} />
         </section>
 
@@ -65,7 +67,7 @@ export default function HomeClient({account, dashboard}: HomeClientProps) {
                     {/*<span>{activeRatio}%</span>*/}
                 </div>
                 <div className={styles.rings}>
-                    <ProgressRing label="Rezervace" value={reservationRatio} />
+                    <ProgressRing label="Rezervace" value={status?.capacityUsedPercentage ?? 0} />
                 </div>
             </div>
 
@@ -99,14 +101,15 @@ export default function HomeClient({account, dashboard}: HomeClientProps) {
                 {account ? (
                     <div className={styles.recent}>
                         {(dashboard?.latestAccounts.length ? dashboard.latestAccounts : []).map(item => (
-                            <div key={`${item.fullName}-${item.createdAtUtc.toISOString()}`}>
+                            <Link href={"/app/profile/" + item.id} key={`${item.fullName}-${item.createdAtUtc.toISOString()}`}>
+                                {item.bannerUrl && <span className={styles.bannerBackdrop} style={{backgroundImage: `url(${item.bannerUrl})`}}></span>}
                                 <Avatar name={item.fullName} size="32px" src={item.avatarUrl} className={styles.avatar} />
                                 
                                 <div>
                                     <strong>{item.fullName}</strong>
                                     <p>{item.class ?? "Bez třídy"} · {item.createdAtUtc.toLocaleDateString("cs-CZ")}</p>
                                 </div>
-                            </div>
+                            </Link>
                         ))}
                         {!dashboard?.latestAccounts.length && <p className={styles.empty}>Zatím nejsou k dispozici žádné účty.</p>}
                     </div>

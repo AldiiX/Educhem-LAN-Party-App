@@ -1,0 +1,73 @@
+﻿.component {
+    position: absolute;
+    width: 274px;
+    background-color: var(--element-bg);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 16px 38px #00000014;
+    border-radius: 12px;
+    right: 28px;
+    top: 50%;
+    transform: translateY(-50%);
+    overflow: hidden;
+
+    .close {
+        position: absolute;
+        width:  28px;
+        height: 28px;
+        background-color: var(--element-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 50%;
+        top: 6px;
+        right: 6px;
+        cursor: pointer;
+
+        &::after {
+            width: 40%;
+            aspect-ratio: 1/1;
+            background-color: var(--text-color);
+            content: "";
+            position: absolute;
+            mask: url("../../../../../../public/icons/close.svg") center center no-repeat;
+            mask-size: contain;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        &:hover {
+            background-color: var(--background-bg);
+        }
+    }
+
+    >.image {
+        width: 100%;
+        aspect-ratio: 16/9;
+        background-color: var(--accent-soft);
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+        background-image: var(--image);
+    }
+
+    >.content {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+
+        >.profile {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            >p {
+            }
+
+            >small {
+                margin-left: auto;
+                font-size: 12px;
+                color: var(--text-color-darker);
+            }
+        }
+    }
+}

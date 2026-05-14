@@ -12,6 +12,7 @@
         <PackageReference Include="dotenv.net" Version="4.0.2" />
         <PackageReference Include="MailKit" Version="4.16.0" />
         <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.0.7" />
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Common" Version="10.0.7" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
           <PrivateAssets>all</PrivateAssets>
@@ -29,6 +30,15 @@
 
     <ItemGroup>
         <Content Update="Services\VocativeData\*.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="Data\Entities\ComputerReservation.cs">
+        <DependentUpon>Reservation.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Data\Entities\RoomReservation.cs">
+        <DependentUpon>Reservation.cs</DependentUpon>
+      </Compile>
     </ItemGroup>
 
     <!-- definice DEBUG a RELEASE promennych -->

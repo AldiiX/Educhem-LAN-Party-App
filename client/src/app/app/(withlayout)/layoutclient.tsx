@@ -100,7 +100,14 @@ export default function({ children }: { children: ReactNode }) {
             </footer>
         </div>
 
+
         <div className={style.content}>
+            <If
+                condition={Boolean(loggedAccount?.bannerUrl)}
+                as="div"
+                className={style.bannerWallpaper}
+                style={loggedAccount?.bannerUrl ? {backgroundImage: `url(${loggedAccount.bannerUrl})`} : undefined}
+            />
             <div className={style.loginShell}>
                 <div className={style.login}>
                     <If condition={loggedAccount !== null} fallback={

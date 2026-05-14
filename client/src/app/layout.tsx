@@ -122,6 +122,7 @@ export default async function RootLayout({
         >
             <Toaster position="bottom-right" toastOptions={{ style: { background: 'var(--element-bg)', color: 'var(--text-color)', boxShadow: "0 16px 38px var(--shadow-color)", border: "1px solid var(--border-color)" } }} />
             {children}
+            <div id="teleports" />
         </WebThemeProvider>
         </body>
         </html>

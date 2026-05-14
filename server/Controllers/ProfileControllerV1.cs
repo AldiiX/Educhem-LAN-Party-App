@@ -8,7 +8,7 @@ namespace server.Controllers;
 
 [ApiController]
 [Route("api/v1/profile")]
-public class ProfileControllerV1(AppDbContext db, IAuthService auth) : Controller {
+public sealed class ProfileControllerV1(AppDbContext db, IAuthService auth) : Controller {
 
 	[HttpGet]
 	public async Task<IActionResult> Get() {

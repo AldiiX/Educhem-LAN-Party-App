@@ -6,66 +6,66 @@
     place-items: center;
     padding: 24px;
     overflow: auto;
-    backdrop-filter: blur(7px) brightness(.48);
     background: rgba(0, 0, 0, .34);
     animation: layerIn .22s ease both;
-}
+    backdrop-filter: blur(7px) brightness(.48);
 
-.content {
-    position: relative;
-    width: min(400px, 92vw);
-    max-height: calc(100vh - 48px);
-    overflow-x: hidden;
-    overflow-y: auto;
-    border: 1px solid var(--border-color);
-    border-radius: 24px;
-    background: var(--element-bg);
-    box-shadow: 0 0 20px rgba(0, 0, 0, .22);
-    animation: modalIn .22s cubic-bezier(.2, .8, .2, 1) both;
-}
+    &:is(.closing) {
+        animation: layerOut .22s ease both;
 
-.closing {
-    animation: layerOut .22s ease both;
+        .content {
+            animation: modalOut .22s ease both;
+        }
+    }
 
     .content {
-        animation: modalOut .22s ease both;
-    }
-}
-
-.closeButton {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    z-index: 3;
-    width: 24px;
-    height: 24px;
-    border-radius: 100%;
-    background: var(--element-bg);
-    transition: background .2s ease, transform .2s ease;
-
-    &:hover {
-        background: var(--element-bg-colored);
-        transform: scale(1.06);
+        position: relative;
+        width: min(400px, 92vw);
+        max-height: calc(100vh - 48px);
+        overflow-x: hidden;
+        overflow-y: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        background: var(--element-bg);
+        box-shadow: 0 0 20px rgba(0, 0, 0, .22);
+        animation: modalIn .22s cubic-bezier(.2, .8, .2, 1) both;
     }
 
-    &::before,
-    &::after {
-        content: "";
+    .closeButton {
         position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 13px;
-        height: 2px;
-        border-radius: 999px;
-        background: var(--text-color);
-    }
+        top: 12px;
+        right: 12px;
+        z-index: 3;
+        width: 24px;
+        height: 24px;
+        border-radius: 100%;
+        background: var(--element-bg);
+        transition: background .2s ease, transform .2s ease;
 
-    &::before {
-        transform: translate(-50%, -50%) rotate(45deg);
-    }
+        &:hover {
+            background: var(--element-bg-colored);
+            transform: scale(1.06);
+        }
 
-    &::after {
-        transform: translate(-50%, -50%) rotate(-45deg);
+        &::before,
+        &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 13px;
+            height: 2px;
+            border-radius: 999px;
+            background: var(--text-color);
+        }
+
+        &::before {
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        &::after {
+            transform: translate(-50%, -50%) rotate(-45deg);
+        }
     }
 }
 
