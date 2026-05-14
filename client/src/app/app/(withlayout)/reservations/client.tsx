@@ -205,7 +205,8 @@ export default function Client({
                                             <Avatar name={reservation.profile.fullName} size="40px" src={reservation.profile.avatarUrl} />
                                             <span>
                                                 <strong>{ reservation.profile.fullName }<If as="small" condition={reservation.profile.class !== null}>{ reservation.profile.class}</If></strong>
-                                                <span>{ reservation.computer?.label ?? reservation.room?.label}</span>
+                                                <If condition={reservation.computer !== null} as="span">{ reservation.computer?.label } - {reservation.computer?.room?.id}</If>
+                                                <If condition={reservation.room !== null} as="span">{ reservation.room?.label }</If>
                                                 <time>{ (reservation.createdAtUtc as Date).toLocaleString() }</time>
                                             </span>
                                         </Link>
