@@ -14,22 +14,29 @@ namespace server.Hubs;
 
 public sealed class ReservationsHub(
 	IAuthService auth,
-	AppDbContext db
+	AppDbContext db,
+	ReservationCacheService reservationCache,
+	IHubContext<ReservationsHub> hubContext
 ) : Hub {
 	public static readonly ConcurrentDictionary<string, byte> ConnectedIds = [];
+	private static readonly object ConnectedStatusLock = new();
+	private static readonly TimeSpan ConnectedStatusInterval = TimeSpan.FromSeconds(1);
+	private static DateTime LastConnectedStatusSentUtc = DateTime.MinValue;
+	private static bool ConnectedStatusQueued;
 
 	public override async Task OnConnectedAsync() {
 		ConnectedIds.TryAdd(Context.ConnectionId, 0);
 		var account = await auth.ReAuthAsync();
+		// anonymum neposilame profily, prihlasenej clovek je muze videt
 		await Groups.AddToGroupAsync(Context.ConnectionId, account == null ? "anonymous" : "authenticated");
 		await Clients.Caller.SendAsync("ReceiveReservations", new { reservations = await FetchReservations() });
-		await Clients.All.SendAsync("ReceiveStatus", new { connectedIds = ConnectedIds.Count });
+		await QueueConnectedStatusBroadcast();
 		await base.OnConnectedAsync();
 	}
 
 	public override async Task OnDisconnectedAsync(Exception? exception) {
 		ConnectedIds.TryRemove(Context.ConnectionId, out _);
-		await Clients.All.SendAsync("ReceiveStatus", new { connectedIds = ConnectedIds.Count });
+		await QueueConnectedStatusBroadcast();
 		await base.OnDisconnectedAsync(exception);
 	}
 
@@ -51,6 +58,7 @@ public sealed class ReservationsHub(
 		}
 
 		try {
+			// serializable, at se dva rychly lidi nenacpou na stejny misto naraz
 			await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
 			var accountEntity = await db.Accounts.FirstAsync(a => a.Id == account.Id);
@@ -82,6 +90,7 @@ public sealed class ReservationsHub(
 					if (existingReservation != null) db.Reservations.Remove(existingReservation);
 
 					reservation = new ComputerReservation {
+						Id = Guid.CreateVersion7(),
 						Account = accountEntity,
 						AccountId = account.Id,
 						Computer = computer,
@@ -109,6 +118,7 @@ public sealed class ReservationsHub(
 					if (existingReservation != null) db.Reservations.Remove(existingReservation);
 
 					reservation = new RoomReservation {
+						Id = Guid.CreateVersion7(),
 						Account = accountEntity,
 						AccountId = account.Id,
 						Room = room,
@@ -121,6 +131,8 @@ public sealed class ReservationsHub(
 
 			await db.SaveChangesAsync();
 			await transaction.CommitAsync();
+			// cache drzime stejne jako klienty - jen delta update, zadnej full reload po kazdy zmene
+			await reservationCache.ApplyReservationChangeAsync(previousReservation, reservation);
 
 			await BroadcastReservationsChanged("booked", "Rezervace byla upravena.", previousReservation, reservation);
 		} catch (DbUpdateException ex) when (IsConcurrentReservationWrite(ex)) {
@@ -148,24 +160,63 @@ public sealed class ReservationsHub(
 
 		db.Reservations.Remove(existingReservation);
 		await db.SaveChangesAsync();
+		await reservationCache.ApplyReservationChangeAsync(existingReservation, null);
 		await BroadcastReservationsChanged("unbooked", "Rezervace byla smazána.", existingReservation, null);
 	}
 
 	// helpery metodiky
 	private async Task<List<object>> FetchReservations() {
 		var account = await auth.ReAuthAsync();
-		var r = await db.ReservationsEf().AsNoTracking().ToListAsync();
-
-		return account == null
-			? r.Select(x => x.ToAnonymousDto()).Cast<object>().ToList()
-			: r.Select(x => x.ToDto()).Cast<object>().ToList();
+		return await reservationCache.GetReservationsAsync(account != null);
 	}
 
 	private Task SendError(string message) {
 		return Clients.Caller.SendAsync("ReceiveError", new { message });
 	}
 
+	private Task QueueConnectedStatusBroadcast() {
+		var delay = TimeSpan.Zero;
+		var sendNow = false;
+		var queuedNow = false;
+
+		lock (ConnectedStatusLock) {
+			var nowUtc = DateTime.UtcNow;
+			var elapsed = nowUtc - LastConnectedStatusSentUtc;
+
+			if (elapsed >= ConnectedStatusInterval && !ConnectedStatusQueued) {
+				LastConnectedStatusSentUtc = nowUtc;
+				sendNow = true;
+			} else if (!ConnectedStatusQueued) {
+				// kdyz se pripojuje/odpojuje hromada lidi, poslu max jednu zpravu za sekundu
+				ConnectedStatusQueued = true;
+				queuedNow = true;
+				delay = ConnectedStatusInterval - elapsed;
+			}
+		}
+
+		if (sendNow) return BroadcastConnectedStatus();
+		if (queuedNow) _ = BroadcastConnectedStatusLater(delay);
+
+		return Task.CompletedTask;
+	}
+
+	private async Task BroadcastConnectedStatusLater(TimeSpan delay) {
+		if (delay > TimeSpan.Zero) await Task.Delay(delay);
+
+		lock (ConnectedStatusLock) {
+			LastConnectedStatusSentUtc = DateTime.UtcNow;
+			ConnectedStatusQueued = false;
+		}
+
+		await BroadcastConnectedStatus();
+	}
+
+	private Task BroadcastConnectedStatus() {
+		return hubContext.Clients.All.SendAsync("ReceiveStatus", new { connectedIds = ConnectedIds.Count });
+	}
+
 	private Task BroadcastReservationsChanged(string action, string message, Reservation? previousReservation, Reservation? reservation) {
+		// stejna zprava, ale dve verze dat: s profilama a anonymni
 		return Task.WhenAll(
 			Clients.Group("authenticated").SendAsync("ReservationsChanged", new {
 				action,

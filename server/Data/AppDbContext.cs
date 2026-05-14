@@ -92,6 +92,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 		});
 
 		modelBuilder.Entity<Reservation>(e => {
+			e.Property(r => r.Id)
+				.ValueGeneratedOnAdd()
+				.HasDefaultValueSql("uuidv7()");
+
+			e.HasIndex(r => r.AccountId)
+				.IsUnique();
 		});
 	}
 }

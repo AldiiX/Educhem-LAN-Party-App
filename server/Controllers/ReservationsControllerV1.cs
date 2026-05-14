@@ -4,12 +4,15 @@ using Microsoft.EntityFrameworkCore;
 using server.Data;
 using server.Dto.Mappers;
 using server.Infrastructure;
+using server.Services;
 
 namespace server.Controllers;
 
 [ApiController]
 [Route("api/v1/reservations")]
-public sealed class ReservationsControllerV1(AppDbContext db) : Controller {
+public sealed class ReservationsControllerV1(
+	ReservationCacheService reservationCache
+) : Controller {
 
 	#if !DEBUG
 	[HttpGet]
@@ -19,36 +22,18 @@ public sealed class ReservationsControllerV1(AppDbContext db) : Controller {
 	#if DEBUG
 	[HttpGet]
 	public async Task<IActionResult> Index() {
-		var reservations = db.ReservationsEf().ToList().Select(r => r.ToDto());
+		var reservations = await reservationCache.GetReservationsAsync(true);
 		return new JsonResult(reservations);
 	}
 	#endif
 
 	[HttpGet("computers-and-rooms"), HttpGet("rooms-and-computers")]
 	public async Task<IActionResult> GetComputersAndRooms() {
-		var computers = db.ComputersEf().AsNoTracking().ToList().Select(c => c.ToDto());
-		var rooms = db.RoomsEf().AsNoTracking().ToList().Select(r => r.ToDto());
-		var result = new {
-			Computers = computers,
-			Rooms = rooms
-		};
-		return new JsonResult(result);
+		return new JsonResult(await reservationCache.GetRoomsAndComputersAsync());
 	}
 
 	[HttpGet("status")]
 	public async Task<IActionResult> Status() {
-		var reservations = db.ReservationsEf().AsNoTracking().ToList();
-		var computers = db.ComputersEf().AsNoTracking().ToList();
-		var rooms = db.RoomsEf().AsNoTracking().ToList();
-		var maxCapacity = computers.Count + rooms.Sum(r => r.Capacity);
-		var accounts = db.Accounts.AsNoTracking().ToList();
-
-		return new JsonResult(new {
-			maxCapacity,
-			accountsWithEnabledReservations = accounts.Count(a => a.EnableReservations),
-			accountsWithEnabledReservationsPercentage = accounts.Count == 0 ? 0 : Math.Min(Math.Round((double)accounts.Count(a => a.EnableReservations) / accounts.Count * 100), 100),
-			capacityUsed = reservations.Count,
-			capacityUsedPercentage = maxCapacity == 0 ? 0 : Math.Min(Math.Round((double)reservations.Count / maxCapacity * 100), 100),
-		});
+		return new JsonResult(await reservationCache.GetStatusAsync());
 	}
 }

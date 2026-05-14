@@ -10,6 +10,7 @@ export function useReservationsHub() {
     const [connectedIds, setConnectedIds] = useState<number | null>(null);
     const [reservations, setReservations] = useState<Reservation[] | null>(null);
     const [isReservationMutationPending, setIsReservationMutationPending] = useState(false);
+    // state se prepise az po renderu, ref je hned - takze dvojklik nemuze poslat druhej request
     const reservationMutationPendingRef = useRef(false);
 
     const setParsedReservations = useCallback((reservations: unknown) => {
@@ -18,6 +19,7 @@ export function useReservationsHub() {
     }, []);
 
     const applyReservationChange = useCallback((payload: any) => {
+        // server posila jen zmenu, ne celej seznam, tak si to tady slepi lokalne
         const previousReservation = payload.previousReservation
             ? ReservationSchema.parse(payload.previousReservation)
             : null;
@@ -117,21 +119,11 @@ export function useReservationsHub() {
 }
 
 function removeReservation(reservations: Reservation[], reservationToRemove: Reservation) {
-    const index = reservations.findIndex(reservation => reservationsMatch(reservation, reservationToRemove));
+    // rezervace uz ma svoje id, tak zadny bullshity podle roomky a casu
+    const index = reservations.findIndex(reservation => reservation.id === reservationToRemove.id);
     if(index === -1) return reservations;
 
     return reservations.filter((_, reservationIndex) => reservationIndex !== index);
-}
-
-function reservationsMatch(a: Reservation, b: Reservation) {
-    return sameReservationTarget(a, b)
-        && a.createdAtUtc.getTime() === b.createdAtUtc.getTime()
-        && a.updatedAtUtc.getTime() === b.updatedAtUtc.getTime();
-}
-
-function sameReservationTarget(a: Reservation, b: Reservation) {
-    return a.computer?.id === b.computer?.id
-        && a.room?.id === b.room?.id;
 }
 
 function getErrorMessage(payload: unknown) {

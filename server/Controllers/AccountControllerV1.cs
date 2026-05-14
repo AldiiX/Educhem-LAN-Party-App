@@ -26,7 +26,8 @@ public sealed class AccountControllerV1(
 	AppDbContext db,
 	IServiceProvider serviceProvider,
 	IDataProtectionProvider dataProtectionProvider,
-	IDistributedCache distributedCache
+	IDistributedCache distributedCache,
+	ReservationCacheService reservationCache
 ) : Controller {
 
 	private readonly IDataProtector passwordResetProtector = dataProtectionProvider.CreateProtector("account-password-reset");
@@ -200,6 +201,7 @@ public sealed class AccountControllerV1(
 		}
 
 		await db.SaveChangesAsync(ct);
+		reservationCache.InvalidateReservations();
 
 		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == account.Id, ct);
 		var emailSent = false;
@@ -233,6 +235,7 @@ public sealed class AccountControllerV1(
 
 		db.Accounts.Remove(account);
 		await db.SaveChangesAsync(ct);
+		reservationCache.InvalidateReservations();
 		return NoContent();
 	}
 
@@ -251,6 +254,7 @@ public sealed class AccountControllerV1(
 		var password = GenerateRandomPassword();
 		account.PasswordHash = AuthService.HashPassword(password);
 		await db.SaveChangesAsync(ct);
+		reservationCache.InvalidateReservations();
 
 		var emailSent = await SendCredentialsEmailAsync(
 			account,
@@ -305,6 +309,7 @@ public sealed class AccountControllerV1(
 		account.BannerUrl = NormalizeOptional(request.BannerUrl);
 
 		await db.SaveChangesAsync(ct);
+		reservationCache.InvalidateReservations();
 
 		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == account.Id, ct);
 		return Ok(updated.ToDto());

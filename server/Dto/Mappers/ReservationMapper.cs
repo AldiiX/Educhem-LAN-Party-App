@@ -28,6 +28,7 @@ public static class ReservationMapper {
 
 	public static ReservationDto ToDto(this Reservation reservation, bool deep = true) {
 		return new ReservationDto() {
+			Id = reservation.Id,
 			Profile = reservation.Account.ToProfileDto(false),
 			Note = reservation.Note,
 			UpdatedAtUtc = reservation.UpdatedAtUtc,
@@ -39,6 +40,7 @@ public static class ReservationMapper {
 
 	public static AnonymousReservationDto ToAnonymousDto(this Reservation reservation, bool deep = true) {
 		return new AnonymousReservationDto() {
+			Id = reservation.Id,
 			Note = reservation.Note,
 			UpdatedAtUtc = reservation.UpdatedAtUtc,
 			CreatedAtUtc = reservation.CreatedAtUtc,
