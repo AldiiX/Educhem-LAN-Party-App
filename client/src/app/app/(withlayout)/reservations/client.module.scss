@@ -369,12 +369,19 @@
             overflow-y: auto;
 
             &::-webkit-scrollbar {
-                width: 6px !important;
-                background-color: var(--element-bg);
+                width: 4px;
+            }
+
+            &::-webkit-scrollbar-track {
+                box-shadow: none;
+                background-color: var(--background-bg);
+                border: none;
+                outline: none;
             }
 
             &::-webkit-scrollbar-thumb {
-                background-color: var(--text-color-3) !important;
+                background-color: var(--text-color-3);
+                box-shadow: none;
             }
 
             &:not(.loggedIn) {

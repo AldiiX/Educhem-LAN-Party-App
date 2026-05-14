@@ -10,13 +10,14 @@ public static class ReservationMapper {
 			Room = computer.Room?.ToDto(false),
 			Available = computer.Available,
 			IsTeachersComputer = computer.IsTeachersComputer,
+			Label =  computer.Label ?? computer.Id,
 		};
 	}
 
 	public static RoomDto ToDto(this Room room, bool deep = true) {
 		return new RoomDto() {
 			Id = room.Id,
-			Label = room.Label,
+			Label = room.Label ?? room.Id,
 			Capacity = room.Capacity,
 			Available = room.Available,
 			ImageUrl = room.ImageUrl,

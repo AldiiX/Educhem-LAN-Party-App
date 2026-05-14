@@ -8,6 +8,9 @@ public sealed class Computer : Entity<string> {
 	[MaxLength(255)]
 	public required string? ImageUrl { get; set; }
 
+	[MaxLength(64)]
+	public required string? Label { get; set; }
+
 	public required Room? Room { get; set; }
 
 	public required bool Available { get; set; }

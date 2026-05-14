@@ -12,7 +12,7 @@ public class ComputerDto : EntityDto<string> {
 		set;
 	}
 
+	public required string Label { get; set; }
 	public required bool Available { get; set; }
 	public required bool IsTeachersComputer { get; set; }
-	public string Label => Id;
 }
