@@ -51,7 +51,7 @@ export default function Client({
         "reservationsLegendCollapsed",
     );
 
-    const { reservations, connectedIds, isConnected, isDisconnected, isConnecting, isReconnecting } = useReservationsHub();
+    const { reservations, connectedIds, isConnected, isDisconnected, isConnecting, isReconnecting, reserve, unbook, isReservationMutationPending } = useReservationsHub();
     const { roomsCapacity, maxCapacity, computersCapacity, rooms, computers } = useRoomsAndComputers();
     const isConnectionLost = useMemo(() =>{
         return isReconnecting || isDisconnected;
@@ -151,7 +151,7 @@ export default function Client({
                     }
                 </MovableMap>
 
-                <SelectedRoomOrComputer reservations={reservations} />
+                <SelectedRoomOrComputer reservations={reservations} reserve={reserve} unbook={unbook} isReservationMutationPending={isReservationMutationPending} />
             </div>
 
             <aside className={`${style.right} ${isRightPanelCollapsed ? style.collapsed : ""}`}>

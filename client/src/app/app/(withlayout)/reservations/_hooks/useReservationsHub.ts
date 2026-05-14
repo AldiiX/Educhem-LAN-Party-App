@@ -1,26 +1,65 @@
 ﻿"use client"
 
-import {useCallback, useMemo, useState} from "react";
+import {useCallback, useMemo, useRef, useState} from "react";
 import {useSignalRHub} from "@/hooks/useSignalRHub";
 import {BACKEND_URL} from "@/lib/vars";
 import {Reservation, ReservationSchema} from "@/schemas/ReservationSchema";
+import toast from "react-hot-toast";
 
 export function useReservationsHub() {
     const [connectedIds, setConnectedIds] = useState<number | null>(null);
     const [reservations, setReservations] = useState<Reservation[] | null>(null);
+    const [isReservationMutationPending, setIsReservationMutationPending] = useState(false);
+    const reservationMutationPendingRef = useRef(false);
+
+    const setParsedReservations = useCallback((reservations: unknown) => {
+        const data = ReservationSchema.array().parse(reservations);
+        setReservations(data);
+    }, []);
+
+    const applyReservationChange = useCallback((payload: any) => {
+        const previousReservation = payload.previousReservation
+            ? ReservationSchema.parse(payload.previousReservation)
+            : null;
+        const reservation = payload.reservation
+            ? ReservationSchema.parse(payload.reservation)
+            : null;
+
+        setReservations(currentReservations => {
+            if(!currentReservations) return currentReservations;
+
+            let nextReservations = previousReservation
+                ? removeReservation(currentReservations, previousReservation)
+                : currentReservations;
+
+            if(reservation) {
+                nextReservations = removeReservation(nextReservations, reservation);
+                nextReservations = [reservation, ...nextReservations];
+            }
+
+            return nextReservations;
+        });
+    }, []);
 
     const handlers = useMemo(() => {
         return {
             ReceiveReservations: (payload: any) => {
-                const data = ReservationSchema.array().parse(payload.reservations);
-                setReservations(data);
+                setParsedReservations(payload.reservations);
             },
 
             ReceiveStatus: (payload: any) => {
                 setConnectedIds(payload.connectedIds);
+            },
+
+            ReceiveError: (payload: any) => {
+                toast.error(getErrorMessage(payload));
+            },
+
+            ReservationsChanged: (payload: any) => {
+                applyReservationChange(payload);
             }
         };
-    }, []);
+    }, [applyReservationChange, setParsedReservations]);
 
     const hub = useSignalRHub("/hubs/reservations", {
         // baseUrl: BACKEND_URL,
@@ -31,15 +70,81 @@ export function useReservationsHub() {
         reconnectDelays: [0, 2000, 10000],
         startRetryDelays: [0, 1000, 3000]
     });
+    const { invoke } = hub;
 
     const sendMessage = useCallback(async (message: string) => {
-        await hub.invoke("SendMessage", message);
-    }, [hub]);
+        await invoke("SendMessage", message);
+    }, [invoke]);
+
+    const reserve = useCallback(async (id: string, type: "room" | "computer") => {
+        if(reservationMutationPendingRef.current) return;
+
+        reservationMutationPendingRef.current = true;
+        setIsReservationMutationPending(true);
+        try {
+            await invoke("Reserve", {
+                id,
+                type: type,
+            });
+        } finally {
+            reservationMutationPendingRef.current = false;
+            setIsReservationMutationPending(false);
+        }
+    }, [invoke])
+
+    const unbook = useCallback(async () => {
+        if(reservationMutationPendingRef.current) return;
+
+        reservationMutationPendingRef.current = true;
+        setIsReservationMutationPending(true);
+        try {
+            await invoke("Unbook")
+        } finally {
+            reservationMutationPendingRef.current = false;
+            setIsReservationMutationPending(false);
+        }
+    }, [invoke])
 
     return {
         ...hub,
         reservations,
         connectedIds,
-        sendMessage
+        isReservationMutationPending,
+        sendMessage,
+        reserve,
+        unbook
     };
+}
+
+function removeReservation(reservations: Reservation[], reservationToRemove: Reservation) {
+    const index = reservations.findIndex(reservation => reservationsMatch(reservation, reservationToRemove));
+    if(index === -1) return reservations;
+
+    return reservations.filter((_, reservationIndex) => reservationIndex !== index);
+}
+
+function reservationsMatch(a: Reservation, b: Reservation) {
+    return sameReservationTarget(a, b)
+        && a.createdAtUtc.getTime() === b.createdAtUtc.getTime()
+        && a.updatedAtUtc.getTime() === b.updatedAtUtc.getTime();
+}
+
+function sameReservationTarget(a: Reservation, b: Reservation) {
+    return a.computer?.id === b.computer?.id
+        && a.room?.id === b.room?.id;
+}
+
+function getErrorMessage(payload: unknown) {
+    if(typeof payload === "string") return payload;
+
+    if(
+        payload
+        && typeof payload === "object"
+        && "message" in payload
+        && typeof payload.message === "string"
+    ) {
+        return payload.message;
+    }
+
+    return "Něco se nepodařilo. Zkuste to prosím znovu.";
 }

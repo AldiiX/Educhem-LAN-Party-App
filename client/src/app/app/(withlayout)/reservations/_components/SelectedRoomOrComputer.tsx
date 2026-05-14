@@ -21,7 +21,7 @@ export const useSelectedRoomOrComputerStore = create<{
 }))
 
 
-export default function SelectedRoomOrComputer({ reservations }: { reservations: Reservation[] | null }) {
+export default function SelectedRoomOrComputer({ reservations, reserve, unbook, isReservationMutationPending }: { reservations: Reservation[] | null, reserve: (id: string, type: "room" | "computer") => void, unbook: () => void, isReservationMutationPending: boolean }) {
     const { account } = useAuth();
 
     const roomOrComputer = useSelectedRoomOrComputerStore(state => state.selectedRoomOrComputer)
@@ -109,7 +109,7 @@ export default function SelectedRoomOrComputer({ reservations }: { reservations:
                             <p>{ reservations.filter(r => r.room?.id === room?.id ).length} / {room?.capacity}</p>
                         </div>
 
-                        <If condition={account !== null} as="div" className={style.users}>
+                        <If condition={account !== null && roomReservations !== null && roomReservations !== undefined && roomReservations.length > 0} as="div" className={style.users}>
                             {
                                 roomReservations?.map((rr) => {
                                     if(typeof rr.profile === "string") return;
@@ -131,12 +131,12 @@ export default function SelectedRoomOrComputer({ reservations }: { reservations:
                         <If condition={account !== null} fallback={
                             <p>Pro rezervaci <Link href={"/app/login"} style={{ color: "var(--accent-color)"}}>se musíš přihlásit</Link>.</p>
                         }>
-                            <Button type={"primary"} icon={"/icons/door.svg"} text="Rezervovat" />
+                            <Button type={"primary"} icon={"/icons/door.svg"} text="Rezervovat" loading={isReservationMutationPending} disabled={isReservationMutationPending} onClick={() => reserve(roomOrComputer.id, isComputerReservation ? "computer" : "room") } />
                         </If>
                     </If>
 
                     <If condition={showDeleteReservationButton}>
-                        <Button type={"secondary"} icon={"/icons/cancel.svg"} text="Zrušit rezervaci" />
+                        <Button type={"secondary"} icon={"/icons/cancel.svg"} text="Zrušit rezervaci" loading={isReservationMutationPending} disabled={isReservationMutationPending} onClick={() => unbook() } />
                     </If>
                 </If>
             </div>
