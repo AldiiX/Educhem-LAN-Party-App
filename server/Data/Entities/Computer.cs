@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace server.Data.Entities;
 
@@ -11,6 +12,7 @@ public sealed class Computer : Entity<string> {
 	[MaxLength(64)]
 	public required string? Label { get; set; }
 
+	[DeleteBehavior(DeleteBehavior.Cascade)]
 	public required Room? Room { get; set; }
 
 	public required bool Available { get; set; }

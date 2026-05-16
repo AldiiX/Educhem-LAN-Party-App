@@ -1,0 +1,77 @@
+.tournaments {
+    padding-right: 12px;
+
+    h1 {
+        font-size: 32px;
+        line-height: 1;
+        font-weight: 600;
+    }
+}
+
+.hero {
+    margin-top: 28px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--element-bg);
+    padding: 24px;
+
+    >div {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        max-width: 720px;
+
+        >span {
+            width: 48px;
+            height: 48px;
+            flex: 0 0 48px;
+            background: var(--accent-color);
+            mask-position: center;
+            mask-repeat: no-repeat;
+            mask-size: contain;
+        }
+
+        h2 {
+            font-size: 26px;
+            line-height: 1.1;
+            font-weight: 600;
+        }
+
+        p {
+            color: var(--text-color-darker);
+            line-height: 1.35;
+            margin-top: 8px;
+        }
+    }
+}
+
+.tabs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 28px;
+
+    button {
+        min-height: 44px;
+        padding: 0 14px;
+        border-radius: 8px;
+        background: var(--element-bg);
+        color: var(--text-color);
+        font-weight: 500;
+        transition: background .2s ease, color .2s ease;
+
+        &:hover,
+        &.active {
+            background: var(--accent-soft);
+            color: var(--accent-color);
+        }
+    }
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+    margin-top: 28px;
+}

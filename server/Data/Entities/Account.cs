@@ -25,6 +25,8 @@ public class Account : AuditableEntity<Guid> {
 
 	public Gender? Gender { get; set; }
 	public School? School { get; set; }
+
+	[Column(TypeName = "timestamp with time zone")]
 	public DateTime LastActiveUtc { get; set; } = DateTime.UtcNow;
 
 	public AccountType AccountType { get; set; } = AccountType.Student;

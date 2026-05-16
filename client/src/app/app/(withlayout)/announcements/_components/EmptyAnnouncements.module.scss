@@ -1,0 +1,29 @@
+.empty {
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 62px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--element-bg);
+    text-align: center;
+
+    span {
+        width: 52px;
+        height: 52px;
+        background: var(--accent-color);
+        mask-position: center;
+        mask-repeat: no-repeat;
+        mask-size: contain;
+    }
+
+    h2 {
+        color: var(--text-color);
+        font-size: 24px;
+        line-height: 1.15;
+        font-weight: 500;
+    }
+}

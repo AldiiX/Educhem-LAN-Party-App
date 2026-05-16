@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 	public DbSet<Reservation> Reservations { get; set; }
 	public DbSet<ComputerReservation> ComputerReservations { get; set; }
 	public DbSet<RoomReservation> RoomReservations { get; set; }
+	public DbSet<ProblemReport> ProblemReports { get; set; }
 
 
 
@@ -42,62 +43,61 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 			var builder = modelBuilder.Entity(clrType);
 
 			builder.Property(nameof(IAuditable.CreatedAtUtc))
-				.HasColumnType("timestamp with time zone")
-				.ValueGeneratedOnAdd()
 				.HasDefaultValueSql("now()");
 
 			builder.Property(nameof(IAuditable.UpdatedAtUtc))
-				.HasColumnType("timestamp with time zone")
-				.ValueGeneratedOnAdd()
 				.HasDefaultValueSql("now()");
 		}
 
 		modelBuilder.Entity<Account>(e => {
 			e.Property(a => a.Id)
-				.ValueGeneratedOnAdd()
 				.HasDefaultValueSql("uuidv7()");
 
 			e.Property(a => a.LastActiveUtc)
-				.HasColumnType("timestamp with time zone")
-				.ValueGeneratedOnAdd()
 				.HasDefaultValueSql("now()");
 
 			e.Property(a => a.EnableReservations)
-				.ValueGeneratedOnAdd()
 				.HasDefaultValue(false);
 
 			e.Property(a => a.AccountType)
-				.ValueGeneratedOnAdd()
 				.HasDefaultValue(AccountType.Student);
 		});
 
 		modelBuilder.Entity<Room>(e => {
 			e.Property(r => r.Available)
-				.ValueGeneratedOnAdd()
 				.HasDefaultValue(true);
 
 			e.Property(r => r.Capacity)
-				.ValueGeneratedOnAdd()
 				.HasDefaultValue(1);
 		});
 
 		modelBuilder.Entity<Computer>(e => {
 			e.Property(r => r.Available)
-				.ValueGeneratedOnAdd()
 				.HasDefaultValue(true);
 
 			e.Property(r => r.IsTeachersComputer)
-				.ValueGeneratedOnAdd()
 				.HasDefaultValue(true);
 		});
 
 		modelBuilder.Entity<Reservation>(e => {
 			e.Property(r => r.Id)
-				.ValueGeneratedOnAdd()
+				.HasDefaultValueSql("uuidv7()");
+		});
+
+		modelBuilder.Entity<ProblemReport>(e => {
+			e.Property(r => r.Id)
 				.HasDefaultValueSql("uuidv7()");
 
-			e.HasIndex(r => r.AccountId)
-				.IsUnique();
+			e.Property(r => r.Category)
+				.HasConversion<string>();
+
+			e.Property(r => r.Priority)
+				.HasConversion<string>();
+
+			e.Property(r => r.Status)
+				.HasConversion<string>()
+				.HasDefaultValue(ProblemReportStatus.Pending);
+
 		});
 	}
 }
