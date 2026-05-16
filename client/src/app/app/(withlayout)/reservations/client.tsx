@@ -17,7 +17,7 @@ import {useReservationsDisplay} from "@/app/app/(withlayout)/reservations/_hooks
 import Switch, {Case} from "@/components/util/Switch";
 import SelectedRoomOrComputer from "@/app/app/(withlayout)/reservations/_components/SelectedRoomOrComputer";
 
-const maps = [
+export const maps = [
     { id: "ithub", name: "IT Hub (Spodní patro)"},
     { id: "spirala", name: "Spirála (Horní patro)"}
 ]
