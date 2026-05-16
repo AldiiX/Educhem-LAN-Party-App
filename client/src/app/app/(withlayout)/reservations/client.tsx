@@ -17,7 +17,7 @@ import {useReservationsDisplay} from "@/app/app/(withlayout)/reservations/_hooks
 import Switch, {Case} from "@/components/util/Switch";
 import SelectedRoomOrComputer from "@/app/app/(withlayout)/reservations/_components/SelectedRoomOrComputer";
 
-const maps = [
+export const maps = [
     { id: "ithub", name: "IT Hub (Spodní patro)"},
     { id: "spirala", name: "Spirála (Horní patro)"}
 ]
@@ -51,7 +51,7 @@ export default function Client({
         "reservationsLegendCollapsed",
     );
 
-    const { reservations, connectedIds, isConnected, isDisconnected, isConnecting, isReconnecting } = useReservationsHub();
+    const { reservations, connectedIds, isConnected, isDisconnected, isConnecting, isReconnecting, reserve, unbook, isReservationMutationPending } = useReservationsHub();
     const { roomsCapacity, maxCapacity, computersCapacity, rooms, computers } = useRoomsAndComputers();
     const isConnectionLost = useMemo(() =>{
         return isReconnecting || isDisconnected;
@@ -151,7 +151,7 @@ export default function Client({
                     }
                 </MovableMap>
 
-                <SelectedRoomOrComputer reservations={reservations} />
+                <SelectedRoomOrComputer reservations={reservations} reserve={reserve} unbook={unbook} isReservationMutationPending={isReservationMutationPending} />
             </div>
 
             <aside className={`${style.right} ${isRightPanelCollapsed ? style.collapsed : ""}`}>
@@ -205,7 +205,8 @@ export default function Client({
                                             <Avatar name={reservation.profile.fullName} size="40px" src={reservation.profile.avatarUrl} />
                                             <span>
                                                 <strong>{ reservation.profile.fullName }<If as="small" condition={reservation.profile.class !== null}>{ reservation.profile.class}</If></strong>
-                                                <span>{ reservation.computer?.label ?? reservation.room?.label}</span>
+                                                <If condition={reservation.computer !== null} as="span">{ reservation.computer?.label } - {reservation.computer?.room?.id}</If>
+                                                <If condition={reservation.room !== null} as="span">{ reservation.room?.label }</If>
                                                 <time>{ (reservation.createdAtUtc as Date).toLocaleString() }</time>
                                             </span>
                                         </Link>

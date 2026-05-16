@@ -49,6 +49,26 @@
             margin-top: 80px;
             display: flex;
             overflow: auto;
+            direction: rtl;
+
+            &::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            &::-webkit-scrollbar-track {
+                background-color: var(--background-bg);
+                box-shadow: none;
+            }
+
+            &::-webkit-scrollbar-thumb {
+                border-radius: 4px;
+                box-shadow: none;
+                background-color: var(--border-color);
+            }
+
+            >* {
+                direction: ltr;
+            }
 
             >a {
                 background-color: #0000;

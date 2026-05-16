@@ -10,13 +10,14 @@ public static class ReservationMapper {
 			Room = computer.Room?.ToDto(false),
 			Available = computer.Available,
 			IsTeachersComputer = computer.IsTeachersComputer,
+			Label =  computer.Label ?? computer.Id,
 		};
 	}
 
 	public static RoomDto ToDto(this Room room, bool deep = true) {
 		return new RoomDto() {
 			Id = room.Id,
-			Label = room.Label,
+			Label = room.Label ?? room.Id,
 			Capacity = room.Capacity,
 			Available = room.Available,
 			ImageUrl = room.ImageUrl,
@@ -27,6 +28,7 @@ public static class ReservationMapper {
 
 	public static ReservationDto ToDto(this Reservation reservation, bool deep = true) {
 		return new ReservationDto() {
+			Id = reservation.Id,
 			Profile = reservation.Account.ToProfileDto(false),
 			Note = reservation.Note,
 			UpdatedAtUtc = reservation.UpdatedAtUtc,
@@ -38,6 +40,7 @@ public static class ReservationMapper {
 
 	public static AnonymousReservationDto ToAnonymousDto(this Reservation reservation, bool deep = true) {
 		return new AnonymousReservationDto() {
+			Id = reservation.Id,
 			Note = reservation.Note,
 			UpdatedAtUtc = reservation.UpdatedAtUtc,
 			CreatedAtUtc = reservation.CreatedAtUtc,

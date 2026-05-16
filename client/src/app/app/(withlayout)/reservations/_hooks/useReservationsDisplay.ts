@@ -10,7 +10,7 @@ export function useReservationsDisplay(rooms: Room[], computers: Computer[], res
     const setSelectedRoomOrComputer = useSelectedRoomOrComputerStore(state => state.setSelectedRoomOrComputer);
 
     function openReservationPopup(target: any | null) {
-        const id = target.id;
+        const id = String(target.id).replace("ROOM_", "");
         setSelectedRoomOrComputer(computers.find((computer) => computer.id === id) ?? rooms.find((room) => room.id === id) ?? null);
     }
 

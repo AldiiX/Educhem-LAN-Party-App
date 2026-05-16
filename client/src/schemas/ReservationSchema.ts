@@ -19,6 +19,7 @@ export const ComputerSchema = z.object({
 })
 
 export const ReservationSchema = z.object({
+    id: z.string(),
     profile: z.union([AccountSchema, z.literal("Anonymous")]),
     note: z.string().nullable(),
     updatedAtUtc: z.coerce.date(),

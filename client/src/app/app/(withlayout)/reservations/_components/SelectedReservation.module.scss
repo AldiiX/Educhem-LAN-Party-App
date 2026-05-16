@@ -55,10 +55,36 @@
         flex-direction: column;
         gap: 16px;
 
-        >.profile {
+        >.roomDesc {
+            margin: 0;
+            margin-top: -14px;
+            font-size: 14px;
+            color: var(--text-color-darker);
+        }
+
+        >.status {
+            display: flex;
+            justify-content: space-between;
+
+            h3 {
+                font-size: 20px;
+            }
+        }
+
+        >.profile,
+        >.users .user {
             display: flex;
             align-items: center;
             gap: 8px;
+            transition-duration: 0.3s;
+            padding: 4px 0;
+            border-radius: 8px;
+
+
+            &:hover {
+                transition-duration: 0.3s;
+                background-color: var(--background-bg);
+            }
 
             >p {
             }
@@ -67,6 +93,44 @@
                 margin-left: auto;
                 font-size: 12px;
                 color: var(--text-color-darker);
+            }
+        }
+
+        >.profile {
+            padding: 0;
+        }
+
+        >.users {
+            flex-direction: column;
+            max-height: 200px;
+            display: flex;
+            overflow-y: auto;
+
+            // zmeneni scrollbaru na neco hezciho
+            &::-webkit-scrollbar {
+                width: 4px;
+            }
+
+            &::-webkit-scrollbar-track {
+                box-shadow: none;
+                background-color: var(--background-bg);
+            }
+
+            &::-webkit-scrollbar-thumb {
+                background-color: var(--text-color-3);
+                box-shadow: none;
+            }
+
+            //direction: rtl;
+
+            /*>* {
+                direction: ltr;
+            }*/
+
+            .user {
+                >small {
+                    margin-left: 0;
+                }
             }
         }
     }

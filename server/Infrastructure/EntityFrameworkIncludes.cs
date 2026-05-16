@@ -38,4 +38,14 @@ public static class EntityFrameworkIncludes {
 			.Include(c => c.Room)
 			.AsSplitQuery();
 	}
+
+	public static IQueryable<ProblemReport> ProblemReportsEf(this AppDbContext db) {
+		return db.ProblemReports
+			.Include(r => r.Reporter)
+				.ThenInclude(a => a.School)
+			.Include(r => r.ResolvedBy)
+				.ThenInclude(a => a!.School)
+			.OrderByDescending(r => r.CreatedAtUtc)
+			.AsSplitQuery();
+	}
 }

@@ -29,6 +29,7 @@ namespace server.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
                         .HasColumnType("uuid")
                         .HasDefaultValueSql("uuidv7()");
 
@@ -105,88 +106,55 @@ namespace server.Migrations
                     b.ToTable("Accounts", "public");
                 });
 
-            modelBuilder.Entity("server.Data.Entities.AccountAchievement", b =>
+            modelBuilder.Entity("server.Data.Entities.Computer", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("uuidv7()");
+                    b.Property<string>("Id")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
-                    b.Property<Guid>("AccountId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AchievementId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<bool>("IsHidden")
+                    b.Property<bool>("Available")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
-                        .HasDefaultValue(false);
+                        .HasDefaultValue(true);
 
-                    b.Property<DateTime>("UpdatedAtUtc")
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsTeachersComputer")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("RoomId")
+                        .HasColumnType("character varying(255)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AchievementId");
+                    b.HasIndex("RoomId");
 
-                    b.HasIndex("AccountId", "AchievementId")
-                        .IsUnique();
-
-                    b.ToTable("AccountAchievements", "public");
+                    b.ToTable("Computers", "reservations");
                 });
 
-            modelBuilder.Entity("server.Data.Entities.AccountBadge", b =>
+            modelBuilder.Entity("server.Data.Entities.ProblemReport", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
                         .HasColumnType("uuid")
                         .HasDefaultValueSql("uuidv7()");
 
-                    b.Property<Guid>("AccountId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                    b.Property<Guid>("BadgeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<bool>("IsTakenOut")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BadgeId");
-
-                    b.HasIndex("AccountId", "BadgeId")
-                        .IsUnique();
-
-                    b.ToTable("AccountBadges", "public");
-                });
-
-            modelBuilder.Entity("server.Data.Entities.Achievement", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("uuidv7()");
+                    b.Property<string>("Contact")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
@@ -194,84 +162,61 @@ namespace server.Migrations
                         .HasDefaultValueSql("now()");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<string>("IconUrl")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<bool>("IsHidden")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Key")
                         .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("Priority")
                         .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("text");
 
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Achievements", "public");
-                });
-
-            modelBuilder.Entity("server.Data.Entities.Badge", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("uuidv7()");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<string>("IconUrl")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Badges", "public");
-                });
-
-            modelBuilder.Entity("server.Data.Entities.BadgeAchievement", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("uuidv7()");
-
-                    b.Property<Guid>("AchievementId")
+                    b.Property<Guid>("ReporterId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("BadgeId")
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReporterId");
+
+                    b.HasIndex("ResolvedById");
+
+                    b.ToTable("ProblemReports", "public");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.Reservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("uuidv7()");
+
+                    b.Property<Guid>("AccountId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAtUtc")
@@ -279,6 +224,14 @@ namespace server.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasMaxLength(21)
+                        .HasColumnType("character varying(21)");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("UpdatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -286,18 +239,50 @@ namespace server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AchievementId");
-
-                    b.HasIndex("BadgeId", "AchievementId")
+                    b.HasIndex("AccountId")
                         .IsUnique();
 
-                    b.ToTable("BadgeAchievements", "public");
+                    b.ToTable("Reservations", "reservations");
+
+                    b.HasDiscriminator<string>("Discriminator").HasValue("Reservation");
+
+                    b.UseTphMappingStrategy();
+                });
+
+            modelBuilder.Entity("server.Data.Entities.Room", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("Available")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("Capacity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Rooms", "reservations");
                 });
 
             modelBuilder.Entity("server.Data.Entities.School", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
@@ -330,6 +315,34 @@ namespace server.Migrations
                     b.ToTable("Schools", "public");
                 });
 
+            modelBuilder.Entity("server.Data.Entities.ComputerReservation", b =>
+                {
+                    b.HasBaseType("server.Data.Entities.Reservation");
+
+                    b.Property<string>("ComputerId")
+                        .HasColumnType("character varying(255)");
+
+                    b.HasIndex("ComputerId");
+
+                    b.ToTable("Reservations", "reservations");
+
+                    b.HasDiscriminator().HasValue("ComputerReservation");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.RoomReservation", b =>
+                {
+                    b.HasBaseType("server.Data.Entities.Reservation");
+
+                    b.Property<string>("RoomId")
+                        .HasColumnType("character varying(255)");
+
+                    b.HasIndex("RoomId");
+
+                    b.ToTable("Reservations", "reservations");
+
+                    b.HasDiscriminator().HasValue("RoomReservation");
+                });
+
             modelBuilder.Entity("server.Data.Entities.Account", b =>
                 {
                     b.HasOne("server.Data.Entities.School", "School")
@@ -339,82 +352,63 @@ namespace server.Migrations
                     b.Navigation("School");
                 });
 
-            modelBuilder.Entity("server.Data.Entities.AccountAchievement", b =>
+            modelBuilder.Entity("server.Data.Entities.Computer", b =>
+                {
+                    b.HasOne("server.Data.Entities.Room", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.ProblemReport", b =>
+                {
+                    b.HasOne("server.Data.Entities.Account", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("server.Data.Entities.Account", "ResolvedBy")
+                        .WithMany()
+                        .HasForeignKey("ResolvedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Reporter");
+
+                    b.Navigation("ResolvedBy");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.Reservation", b =>
                 {
                     b.HasOne("server.Data.Entities.Account", "Account")
-                        .WithMany("AccountAchievements")
+                        .WithMany()
                         .HasForeignKey("AccountId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("server.Data.Entities.Achievement", "Achievement")
-                        .WithMany("AccountAchievements")
-                        .HasForeignKey("AchievementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Account");
-
-                    b.Navigation("Achievement");
                 });
 
-            modelBuilder.Entity("server.Data.Entities.AccountBadge", b =>
+            modelBuilder.Entity("server.Data.Entities.ComputerReservation", b =>
                 {
-                    b.HasOne("server.Data.Entities.Account", "Account")
-                        .WithMany("AccountBadges")
-                        .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasOne("server.Data.Entities.Computer", "Computer")
+                        .WithMany()
+                        .HasForeignKey("ComputerId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("server.Data.Entities.Badge", "Badge")
-                        .WithMany("AccountBadges")
-                        .HasForeignKey("BadgeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
-
-                    b.Navigation("Badge");
+                    b.Navigation("Computer");
                 });
 
-            modelBuilder.Entity("server.Data.Entities.BadgeAchievement", b =>
+            modelBuilder.Entity("server.Data.Entities.RoomReservation", b =>
                 {
-                    b.HasOne("server.Data.Entities.Achievement", "Achievement")
-                        .WithMany("BadgeRequirements")
-                        .HasForeignKey("AchievementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasOne("server.Data.Entities.Room", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("server.Data.Entities.Badge", "Badge")
-                        .WithMany("BadgeAchievements")
-                        .HasForeignKey("BadgeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Achievement");
-
-                    b.Navigation("Badge");
-                });
-
-            modelBuilder.Entity("server.Data.Entities.Account", b =>
-                {
-                    b.Navigation("AccountAchievements");
-
-                    b.Navigation("AccountBadges");
-                });
-
-            modelBuilder.Entity("server.Data.Entities.Achievement", b =>
-                {
-                    b.Navigation("AccountAchievements");
-
-                    b.Navigation("BadgeRequirements");
-                });
-
-            modelBuilder.Entity("server.Data.Entities.Badge", b =>
-                {
-                    b.Navigation("AccountBadges");
-
-                    b.Navigation("BadgeAchievements");
+                    b.Navigation("Room");
                 });
 #pragma warning restore 612, 618
         }

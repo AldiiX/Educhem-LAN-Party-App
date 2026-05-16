@@ -13,7 +13,7 @@ import {hasRoleAtLeast} from "@/lib/roles";
 
 
 
-export default function({ children }: { children: ReactNode }) {
+export default function({ children, appVersion }: { children: ReactNode, appVersion: string }) {
     const pathname = usePathname();
     const router = useRouter();
     const { account: loggedAccount, setAccount } = useAuth();
@@ -96,7 +96,7 @@ export default function({ children }: { children: ReactNode }) {
             <footer>
                 <p>© { new Date().getFullYear() } EDUCHEM LAN Party</p>
                 <p>Vytvořili: <a href="https://stanislavskudrna.cz" target="_blank">Stanislav Škudrna</a>, <a href="https://serhii.cz" target="_blank">Serhii Yavorskyi</a></p>
-                <p>v4.1.0</p>
+                <p>v{appVersion}</p>
             </footer>
         </div>
 

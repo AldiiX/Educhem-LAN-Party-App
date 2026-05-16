@@ -1,0 +1,37 @@
+.modal {
+    width: min(760px, calc(100vw - 32px)) !important;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--element-bg);
+    box-shadow: 0 26px 72px rgba(0, 0, 0, .38);
+    padding: 28px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+
+    >span {
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        background: var(--accent-color);
+        mask-position: center;
+        mask-repeat: no-repeat;
+        mask-size: contain;
+    }
+
+    h2 {
+        font-size: 26px;
+        line-height: 1.1;
+        font-weight: 600;
+    }
+
+    p {
+        color: var(--text-color-darker);
+        line-height: 1.35;
+        margin-top: 6px;
+    }
+}
