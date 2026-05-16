@@ -5,13 +5,11 @@ namespace server.Dto.Mappers;
 public static class AccountMapper {
 	extension(Account account) {
 		public ProfileDto ToProfileDto(bool deep = true) {
-			var visibleAchievements = account.AccountAchievements
-				?.Where(x => !x.IsHidden && !x.Achievement.IsHidden)
-				.Select(x => x.ToDto())
+			var achievements = account.AccountAchievements
+				?.Select(x => x.ToDto())
 				.ToList() ?? new List<AccountAchievementDto>();
-			var visibleBadges = account.AccountBadges
-				?.Where(x => x.IsTakenOut)
-				.Select(x => x.ToDto())
+			var badges = account.AccountBadges
+				?.Select(x => x.ToDto())
 				.ToList() ?? new List<AccountBadgeDto>();
 
 			return new ProfileDto {
@@ -25,8 +23,8 @@ public static class AccountMapper {
 				Gender = account.Gender,
 				CreatedAtUtc = account.CreatedAtUtc,
 				AccountType = account.AccountType,
-				Achievements = visibleAchievements,
-				Badges = visibleBadges,
+				Achievements = achievements,
+				Badges = badges,
 			};
 		}
 

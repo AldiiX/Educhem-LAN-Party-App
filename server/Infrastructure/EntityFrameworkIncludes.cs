@@ -9,9 +9,9 @@ public static class EntityFrameworkIncludes {
 	public static IQueryable<Account> AccountsEf(this AppDbContext db) {
 		return db.Accounts
 			.Include(a => a.School)
-			.Include(a => a.AccountAchievements)
+			.Include(a => a.AccountAchievements.Where(x => !x.IsHidden && !x.Achievement.IsHidden))
 				.ThenInclude(x => x.Achievement)
-			.Include(a => a.AccountBadges)
+			.Include(a => a.AccountBadges.Where(x => x.IsTakenOut))
 				.ThenInclude(x => x.Badge)
 			.AsSplitQuery();
 	}

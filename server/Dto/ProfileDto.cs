@@ -13,6 +13,6 @@ public class ProfileDto : EntityDto<Guid> {
 	public required Gender? Gender { get; set; }
 	public required DateTime CreatedAtUtc { get; set; }
 	public required AccountType AccountType { get; set; }
-	public required IReadOnlyList<AccountAchievementDto> Achievements { get; set; }
-	public required IReadOnlyList<AccountBadgeDto> Badges { get; set; }
+	public IReadOnlyList<AccountAchievementDto> Achievements { get; set; } = new List<AccountAchievementDto>();
+	public IReadOnlyList<AccountBadgeDto> Badges { get; set; } = new List<AccountBadgeDto>();
 }
