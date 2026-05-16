@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Night shift">
+  <defs><linearGradient id="g" x1="30" y1="226" x2="226" y2="30"><stop stop-color="#1e1b4b"/><stop offset="1" stop-color="#818cf8"/></linearGradient></defs>
+  <rect width="256" height="256" rx="56" fill="url(#g)"/>
+  <path d="M154 54c-21 14-34 38-34 65 0 37 25 68 58 78-13 8-29 13-46 13-47 0-86-38-86-86 0-43 32-79 74-85 12-2 24 4 34 15z" fill="#eef2ff"/>
+  <path d="M190 67l7 19 20 2-16 12 5 20-16-11-17 11 5-20-16-12 20-2 8-19z" fill="#c7d2fe"/>
+</svg>

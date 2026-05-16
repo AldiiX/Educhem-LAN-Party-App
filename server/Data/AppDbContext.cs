@@ -6,12 +6,19 @@ namespace server.Data;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options) {
 
 	public DbSet<Account> Accounts { get; set; }
+
+	public DbSet<Achievement> Achievements { get; set; }
+	public DbSet<Badge> Badges { get; set; }
+	public DbSet<AccountAchievement> AccountAchievements { get; set; }
+	public DbSet<AccountBadge> AccountBadges { get; set; }
+
 	public DbSet<Computer> Computers { get; set; }
 	public DbSet<Room> Rooms { get; set; }
 
 	public DbSet<Reservation> Reservations { get; set; }
 	public DbSet<ComputerReservation> ComputerReservations { get; set; }
 	public DbSet<RoomReservation> RoomReservations { get; set; }
+
 	public DbSet<ProblemReport> ProblemReports { get; set; }
 
 
@@ -98,6 +105,30 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 				.HasConversion<string>()
 				.HasDefaultValue(ProblemReportStatus.Pending);
 
+		});
+
+		modelBuilder.Entity<Achievement>(e => {
+			e.Property(a => a.Id)
+				.HasDefaultValueSql("uuidv7()");
+			e.Property(a => a.IsHidden)
+				.HasDefaultValue(false);
+		});
+
+		modelBuilder.Entity<Badge>(e => {
+			e.Property(a => a.Id)
+				.HasDefaultValueSql("uuidv7()");
+		});
+
+		modelBuilder.Entity<AccountAchievement>(e => {
+			e.Property(x => x.Id).HasDefaultValueSql("uuidv7()");
+			e.Property(x => x.IsHidden)
+				.HasDefaultValue(false);
+		});
+
+		modelBuilder.Entity<AccountBadge>(e => {
+			e.Property(x => x.Id).HasDefaultValueSql("uuidv7()");
+			e.Property(x => x.IsTakenOut)
+				.HasDefaultValue(false);
 		});
 	}
 }

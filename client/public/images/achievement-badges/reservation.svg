@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Reservation">
+  <defs><linearGradient id="g" x1="30" y1="226" x2="226" y2="30"><stop stop-color="#4338ca"/><stop offset="1" stop-color="#a5b4fc"/></linearGradient></defs>
+  <rect width="256" height="256" rx="56" fill="url(#g)"/>
+  <rect x="66" y="61" width="124" height="136" rx="20" fill="#eef2ff"/>
+  <path d="M91 54v28M165 54v28M86 110h84M86 143h50" stroke="#3730a3" stroke-width="14" stroke-linecap="round"/>
+  <path d="M133 164l18 18 31-39" fill="none" stroke="#4f46e5" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

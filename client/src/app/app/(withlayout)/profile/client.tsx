@@ -1,18 +1,46 @@
 ﻿"use client"
 
+import {useEffect, useState} from "react";
 import style from "./client.module.scss"
 import {Avatar} from "@/components/Avatar";
-import {Account} from "@/schemas/AccountSchema";
+import {Account, AccountSchema} from "@/schemas/AccountSchema";
 import {translateGender} from "@/lib/translateEnums";
 import If from "@/components/util/If";
 import {accountTypeLabel, genderLabel} from "@/lib/enumLabels";
 
 export default function({ account }: { account: Account }) {
-    /*const els = [
-        account.class,
-        account.gender ? translateGender(account.gender) : null,
-        accountTypeLabel(account.accountType, account.gender)
-    ].filter(Boolean) as string[];*/
+    const [profile, setProfile] = useState(account);
+
+    useEffect(() => {
+        let active = true;
+
+        async function refreshProfile() {
+            try {
+                const response = await fetch(`/api/v1/profile/${account.id}`, {cache: "no-cache"});
+                if(!response.ok) return;
+                const json = await response.json();
+                const parsed = AccountSchema.safeParse(json);
+                if(active && parsed.success) setProfile(parsed.data);
+            } catch {
+                // Ignore refresh failures
+            }
+        }
+
+        const source = new EventSource(`/api/v1/profile/${account.id}/events`);
+        const onUpdate = () => refreshProfile();
+        source.addEventListener("update", onUpdate);
+
+        refreshProfile();
+
+        return () => {
+            active = false;
+            source.removeEventListener("update", onUpdate);
+            source.close();
+        };
+    }, [account.id]);
+
+    const achievements = (profile.achievements ?? []).filter((entry) => !entry.isHidden);
+    const badges = (profile.badges ?? []).filter((entry) => entry.isTakenOut).slice(0, 3);
 
     return <>
         <div className={style.banner} style={{ '--banner': `url(${account.bannerUrl})` } as React.CSSProperties}>
@@ -21,33 +49,81 @@ export default function({ account }: { account: Account }) {
 
         <div className={style.flex}>
             <div className={style.left}>
-                <h1>{ account.fullName }</h1>
+                <h1>{ profile.fullName }</h1>
                 {/*<p>{ els.join("   •   ") }</p>*/}
-                <p>{ accountTypeLabel(account.accountType, account.gender) }</p>
+                <p>{ accountTypeLabel(profile.accountType, profile.gender) }</p>
 
                 <div className={style.items}>
-                    <If condition={account.class != null} as="div" className={style.item} title={`Třída: ${account.class}`}>
+                    <If condition={profile.class != null} as="div" className={style.item} title={`Třída: ${profile.class}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/class.svg)` }}></div>
-                        <p>{ account.class }</p>
+                        <p>{ profile.class }</p>
                     </If>
 
-                    <If condition={account.gender != null} as="div" className={style.item} title={`Pohlaví: ${translateGender(account.gender)}`}>
+                    <If condition={profile.gender != null} as="div" className={style.item} title={`Pohlaví: ${translateGender(profile.gender)}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/gender.svg)` }}></div>
-                        <p>{ genderLabel(account.gender) }</p>
+                        <p>{ genderLabel(profile.gender) }</p>
                     </If>
 
-                    <If condition={account.createdAtUtc != null} as="div" className={style.item} title={`Datum registrace: ${account.createdAtUtc.toLocaleDateString()}`}>
+                    <If condition={profile.createdAtUtc != null} as="div" className={style.item} title={`Datum registrace: ${profile.createdAtUtc.toLocaleDateString()}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/login.svg)` }}></div>
-                        <p>{ account.createdAtUtc.toLocaleDateString() }</p>
+                        <p>{ profile.createdAtUtc.toLocaleDateString() }</p>
                     </If>
                 </div>
             </div>
 
             <div className={style.right}>
-                <If condition={account.school != null} as="div" className={style.school}>
-                    <div className={style.img} style={{ backgroundImage: `url(${account.school?.iconUrl})` }}></div>
-                    <p>{ account.school?.displayName }</p>
-                </If>
+                <div className={style.rightHeader}>
+                    <If as="div" condition={badges.length > 0} className={style.badgeBar}>
+                        {
+                            badges.map((entry) => (
+                                <div key={entry.id} className={style.badgeItem} title={entry.badge.name}>
+                                    {entry.badge.iconUrl ? (
+                                        <img src={entry.badge.iconUrl} alt="" />
+                                    ) : (
+                                        <span>{entry.badge.name.charAt(0)}</span>
+                                    )}
+                                </div>
+                            ))
+                        }
+                    </If>
+                    <If condition={profile.school != null} as="div" className={style.school}>
+                        <div className={style.img} style={{ backgroundImage: `url(${profile.school?.iconUrl})` }}></div>
+                        <p>{ profile.school?.displayName }</p>
+                    </If>
+                </div>
+
+                <div className={style.achievementBar}>
+                    <div className={style.barHeader}>
+                        <h3>Achievementy</h3>
+                        <span>{achievements.length}</span>
+                    </div>
+                    {achievements.length === 0 ? (
+                        <p className={style.barEmpty}>Zatím žádné achievementy.</p>
+                    ) : (
+                        <div className={style.achievementList}>
+                            {achievements.map((entry) => (
+                                <div key={entry.id} className={style.achievementRow}>
+                                    <div className={style.achievementMain}>
+                                        <div className={style.achievementIcon}>
+                                            {entry.achievement.iconUrl ? (
+                                                <img src={entry.achievement.iconUrl} alt="" />
+                                            ) : (
+                                                <span>{entry.achievement.name.charAt(0)}</span>
+                                            )}
+                                        </div>
+                                        <div className={style.achievementInfo}>
+                                            <p className={style.achievementTitle}>{entry.achievement.name}</p>
+                                            {entry.achievement.description && <p className={style.achievementDescription}>{entry.achievement.description}</p>}
+                                        </div>
+                                        <div className={style.achievementMeta}>
+                                            <span>Získáno {entry.createdAtUtc.toLocaleDateString("cs-CZ")}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     </>

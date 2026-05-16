@@ -38,6 +38,9 @@ public class Account : AuditableEntity<Guid> {
 	public string? BannerUrl  { get; set; }
 
 	public bool EnableReservations { get; set; } = false;
+
+	public ICollection<AccountAchievement> AccountAchievements { get; set; } = new List<AccountAchievement>();
+	public ICollection<AccountBadge> AccountBadges { get; set; } = new List<AccountBadge>();
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]

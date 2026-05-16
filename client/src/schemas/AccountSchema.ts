@@ -1,4 +1,5 @@
 ﻿import { z } from "zod";
+import { AccountAchievementSchema, AccountBadgeSchema } from "@/schemas/AchievementBadgeSchema";
 
 export const AccountGenderSchema = z.enum(["Male", "Female", "Other"]);
 
@@ -26,6 +27,8 @@ export const AccountSchema = z.object({
     }).nullish(),
     class: z.string().nullish(),
     enableReservations: z.boolean().nullish(),
+    achievements: z.array(AccountAchievementSchema).optional().default([]),
+    badges: z.array(AccountBadgeSchema).optional().default([]),
 });
 
 export type Account = z.infer<typeof AccountSchema>;

@@ -1,0 +1,205 @@
+﻿.wrapper {
+    display: grid;
+    gap: 32px;
+}
+
+.block {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+
+    > h2 {
+        font-size: 22px;
+    }
+}
+
+.empty {
+    color: var(--text-muted);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.badgeItem {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.badgeFull {
+    display: flex;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--element-bg);
+    min-height: 96px;
+}
+
+.badgeCompact {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+}
+
+.icon,
+.iconPlaceholder {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font-weight: 700;
+}
+
+.icon {
+    object-fit: cover;
+}
+
+.cardContent {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    > h3 {
+        font-size: 16px;
+    }
+
+    > p {
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+}
+
+.cardActions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.badgeActions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.achievementList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.achievementRow {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--element-bg);
+}
+
+.achievementMain {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.achievementIcon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font-weight: 700;
+    flex-shrink: 0;
+    overflow: hidden;
+
+    > img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+.achievementInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+
+    > h3 {
+        font-size: 16px;
+    }
+
+    > p {
+        color: var(--text-muted);
+        font-size: 13px;
+    }
+}
+
+.achievementMeta {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-color);
+    white-space: nowrap;
+}
+
+.achievementActions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.actionButton {
+    border-radius: 8px;
+    padding: 6px 10px;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font-weight: 600;
+    font-size: 12px;
+    transition: background .2s ease, color .2s ease;
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    &:hover:not(:disabled) {
+        background: var(--accent-color);
+        color: var(--background-bg);
+    }
+}
+
+@media (max-width: 720px) {
+    .achievementMain {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .achievementMeta {
+        margin-left: 0;
+    }
+
+    .achievementActions {
+        justify-content: flex-start;
+    }
+
+    .cardActions {
+        flex-direction: column;
+    }
+
+    .badgeActions {
+        justify-content: flex-start;
+    }
+}

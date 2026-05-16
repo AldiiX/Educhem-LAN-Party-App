@@ -12,7 +12,6 @@
         <PackageReference Include="dotenv.net" Version="4.0.2" />
         <PackageReference Include="MailKit" Version="4.16.0" />
         <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.0.7" />
-        <PackageReference Include="Microsoft.AspNetCore.SignalR.Common" Version="10.0.7" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
           <PrivateAssets>all</PrivateAssets>

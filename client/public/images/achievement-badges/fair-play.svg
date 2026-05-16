@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Fair play">
+  <defs><linearGradient id="g" x1="36" y1="220" x2="220" y2="36"><stop stop-color="#15803d"/><stop offset="1" stop-color="#86efac"/></linearGradient></defs>
+  <rect width="256" height="256" rx="56" fill="url(#g)"/>
+  <path d="M128 52l58 24v42c0 45-26 73-58 88-32-15-58-43-58-88V76l58-24z" fill="#ecfdf5" opacity=".96"/>
+  <path d="M99 128l19 19 43-49" fill="none" stroke="#166534" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
