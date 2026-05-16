@@ -86,10 +86,8 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 6px 10px;
             border-radius: 12px;
             background: var(--element-bg);
-            min-height: 44px;
         }
 
         .badgeEmpty {
@@ -124,6 +122,7 @@
             margin-left: auto;
             width: fit-content;
             user-select: none;
+            padding: 2px 0;
 
             .img {
                 width: 32px;

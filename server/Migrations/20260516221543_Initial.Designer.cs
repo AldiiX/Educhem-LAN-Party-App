@@ -13,8 +13,8 @@ using server.Data.Entities;
 namespace server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260516154814_AddProblemReports")]
-    partial class AddProblemReports
+    [Migration("20260516221543_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -107,6 +107,181 @@ namespace server.Migrations
                     b.HasIndex("SchoolId");
 
                     b.ToTable("Accounts", "public");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.AccountAchievement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("uuidv7()");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AchievementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<bool>("IsHidden")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AchievementId");
+
+                    b.HasIndex("AccountId", "AchievementId")
+                        .IsUnique();
+
+                    b.ToTable("AccountAchievements", "achievements");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.AccountBadge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("uuidv7()");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BadgeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<bool>("IsTakenOut")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BadgeId");
+
+                    b.HasIndex("AccountId", "BadgeId")
+                        .IsUnique();
+
+                    b.ToTable("AccountBadges", "achievements");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.Achievement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("uuidv7()");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("IconUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<bool>("IsHidden")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Achievements", "achievements");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.Badge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("uuidv7()");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("IconUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Badges", "achievements");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.BadgeRequirement", b =>
+                {
+                    b.Property<Guid>("BadgeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AchievementId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("BadgeId", "AchievementId");
+
+                    b.HasIndex("AchievementId");
+
+                    b.ToTable("BadgeRequirements", "achievements");
                 });
 
             modelBuilder.Entity("server.Data.Entities.Computer", b =>
@@ -355,6 +530,63 @@ namespace server.Migrations
                     b.Navigation("School");
                 });
 
+            modelBuilder.Entity("server.Data.Entities.AccountAchievement", b =>
+                {
+                    b.HasOne("server.Data.Entities.Account", "Account")
+                        .WithMany("AccountAchievements")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("server.Data.Entities.Achievement", "Achievement")
+                        .WithMany("AccountAchievements")
+                        .HasForeignKey("AchievementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Achievement");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.AccountBadge", b =>
+                {
+                    b.HasOne("server.Data.Entities.Account", "Account")
+                        .WithMany("AccountBadges")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("server.Data.Entities.Badge", "Badge")
+                        .WithMany("AccountBadges")
+                        .HasForeignKey("BadgeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Badge");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.BadgeRequirement", b =>
+                {
+                    b.HasOne("server.Data.Entities.Achievement", "Achievement")
+                        .WithMany("BadgeRequirements")
+                        .HasForeignKey("AchievementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("server.Data.Entities.Badge", "Badge")
+                        .WithMany("Requirements")
+                        .HasForeignKey("BadgeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Achievement");
+
+                    b.Navigation("Badge");
+                });
+
             modelBuilder.Entity("server.Data.Entities.Computer", b =>
                 {
                     b.HasOne("server.Data.Entities.Room", "Room")
@@ -412,6 +644,27 @@ namespace server.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.Account", b =>
+                {
+                    b.Navigation("AccountAchievements");
+
+                    b.Navigation("AccountBadges");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.Achievement", b =>
+                {
+                    b.Navigation("AccountAchievements");
+
+                    b.Navigation("BadgeRequirements");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.Badge", b =>
+                {
+                    b.Navigation("AccountBadges");
+
+                    b.Navigation("Requirements");
                 });
 #pragma warning restore 612, 618
         }

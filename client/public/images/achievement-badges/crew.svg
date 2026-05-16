@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Crew">
+  <defs><linearGradient id="g" x1="28" y1="228" x2="228" y2="28"><stop stop-color="#0f766e"/><stop offset="1" stop-color="#5eead4"/></linearGradient></defs>
+  <rect width="256" height="256" rx="56" fill="url(#g)"/>
+  <circle cx="128" cy="82" r="30" fill="#f0fdfa"/>
+  <circle cx="76" cy="102" r="23" fill="#ccfbf1"/>
+  <circle cx="180" cy="102" r="23" fill="#ccfbf1"/>
+  <path d="M70 190c8-38 33-58 58-58s50 20 58 58" fill="#f0fdfa"/>
+  <path d="M40 184c8-28 26-43 47-43M216 184c-8-28-26-43-47-43" fill="none" stroke="#ccfbf1" stroke-width="18" stroke-linecap="round"/>
+</svg>

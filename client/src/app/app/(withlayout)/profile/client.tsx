@@ -73,10 +73,8 @@ export default function({ account }: { account: Account }) {
 
             <div className={style.right}>
                 <div className={style.rightHeader}>
-                    <div className={style.badgeBar}>
-                        {badges.length === 0 ? (
-                            <span className={style.badgeEmpty}>Zatím žádné badge.</span>
-                        ) : (
+                    <If as="div" condition={badges.length > 0} className={style.badgeBar}>
+                        {
                             badges.map((entry) => (
                                 <div key={entry.id} className={style.badgeItem} title={entry.badge.name}>
                                     {entry.badge.iconUrl ? (
@@ -86,8 +84,8 @@ export default function({ account }: { account: Account }) {
                                     )}
                                 </div>
                             ))
-                        )}
-                    </div>
+                        }
+                    </If>
                     <If condition={profile.school != null} as="div" className={style.school}>
                         <div className={style.img} style={{ backgroundImage: `url(${profile.school?.iconUrl})` }}></div>
                         <p>{ profile.school?.displayName }</p>

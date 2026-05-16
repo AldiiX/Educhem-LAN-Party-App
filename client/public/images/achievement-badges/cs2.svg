@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="CS2 champion">
+  <defs><linearGradient id="g" x1="30" y1="226" x2="226" y2="30"><stop stop-color="#991b1b"/><stop offset="1" stop-color="#fca5a5"/></linearGradient></defs>
+  <rect width="256" height="256" rx="56" fill="url(#g)"/>
+  <path d="M82 60h92v31c0 37-20 63-46 76-26-13-46-39-46-76V60z" fill="#fff1f2"/>
+  <path d="M83 77H53c0 41 18 63 52 68M173 77h30c0 41-18 63-52 68" fill="none" stroke="#fee2e2" stroke-width="16" stroke-linecap="round"/>
+  <path d="M128 167v29M101 203h54" stroke="#7f1d1d" stroke-width="15" stroke-linecap="round"/>
+</svg>
