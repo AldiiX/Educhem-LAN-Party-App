@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace server.Data.Entities;
 
-[Table("Achievements", Schema = "public")]
+[Table("Achievements", Schema = "achievements")]
 public sealed class Achievement : AuditableEntity<Guid> {
     [MaxLength(128)]
     public required string Key { get; set; }
@@ -21,12 +21,12 @@ public sealed class Achievement : AuditableEntity<Guid> {
 
     public bool IsHidden { get; set; } = false;
 
-    public ICollection<BadgeAchievement>? BadgeRequirements { get; set; }
+    public ICollection<BadgeRequirement>? BadgeRequirements { get; set; }
     public ICollection<AccountAchievement>? AccountAchievements { get; set; }
 }
 
 
-[Table("Badges", Schema = "public")]
+[Table("Badges", Schema = "achievements")]
 public sealed class Badge : AuditableEntity<Guid> {
     [MaxLength(128)]
     public required string Name { get; set; }
@@ -37,33 +37,61 @@ public sealed class Badge : AuditableEntity<Guid> {
     [MaxLength(512)]
     public string? IconUrl { get; set; }
 
-    public ICollection<BadgeAchievement>? BadgeAchievements { get; set; }
+    public ICollection<BadgeRequirement>? Requirements { get; set; }
     public ICollection<AccountBadge>? AccountBadges { get; set; }
 }
 
 
-[Table("BadgeAchievements", Schema = "public")]
-public sealed class BadgeAchievement : AuditableEntity<Guid> {
+[Table("BadgeRequirements", Schema = "achievements")]
+[PrimaryKey(nameof(BadgeId), nameof(AchievementId))]
+public sealed class BadgeRequirement {
+    public Guid BadgeId { get; set; }
+
+    [ForeignKey(nameof(BadgeId))]
+    [DeleteBehavior(DeleteBehavior.Cascade)]
     public required Badge Badge { get; set; }
+
+    public Guid AchievementId { get; set; }
+
+    [ForeignKey(nameof(AchievementId))]
+    [DeleteBehavior(DeleteBehavior.Cascade)]
     public required Achievement Achievement { get; set; }
 }
 
 
-[Table("AccountAchievements", Schema = "public")]
+[Table("AccountAchievements", Schema = "achievements")]
+[Index(nameof(AccountId), nameof(AchievementId), IsUnique = true)]
 public sealed class AccountAchievement : AuditableEntity<Guid> {
     public Guid AccountId { get; set; }
+
+    [ForeignKey(nameof(AccountId))]
+    [DeleteBehavior(DeleteBehavior.Cascade)]
     public required Account Account { get; set; }
+
     public Guid AchievementId { get; set; }
+
+    [ForeignKey(nameof(AchievementId))]
+    [DeleteBehavior(DeleteBehavior.Cascade)]
     public required Achievement Achievement { get; set; }
+
     public bool IsHidden { get; set; } = false;
 }
 
 
-[Table("AccountBadges", Schema = "public")]
+[Table("AccountBadges", Schema = "achievements")]
+[Index(nameof(AccountId), nameof(BadgeId), IsUnique = true)]
 public sealed class AccountBadge : AuditableEntity<Guid> {
     public Guid AccountId { get; set; }
+
+    [ForeignKey(nameof(AccountId))]
+    [DeleteBehavior(DeleteBehavior.Cascade)]
     public required Account Account { get; set; }
+
     public Guid BadgeId { get; set; }
+
+    [ForeignKey(nameof(BadgeId))]
+    [DeleteBehavior(DeleteBehavior.Cascade)]
     public required Badge Badge { get; set; }
+
     public bool IsTakenOut { get; set; } = false;
 }

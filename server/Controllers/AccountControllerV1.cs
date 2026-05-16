@@ -413,49 +413,6 @@ public sealed class AccountControllerV1(
 		return NoContent();
 	}
 
-	[HttpPut("me/achievements/{id:guid}")]
-	public async Task<IActionResult> UpdateMyAchievementVisibility(Guid id, [FromBody] AccountAchievementVisibilityRequest request, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-
-		var entry = await db.AccountAchievements
-			.Include(x => x.Achievement)
-			.FirstOrDefaultAsync(x => x.Id == id && x.AccountId == acc.Id, ct);
-		if(entry == null) return NotFound();
-
-		entry.IsHidden = request.IsHidden;
-		await db.SaveChangesAsync(ct);
-
-		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == acc.Id, ct);
-		return Ok(updated.ToDto());
-	}
-
-	[HttpPut("me/badges/{id:guid}")]
-	public async Task<IActionResult> UpdateMyBadgeTakenOut(Guid id, [FromBody] AccountBadgeTakeoutRequest request, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-
-		var entry = await db.AccountBadges
-			.Include(x => x.Badge)
-			.FirstOrDefaultAsync(x => x.Id == id && x.AccountId == acc.Id, ct);
-		if(entry == null) return NotFound();
-
-		if(request.IsTakenOut && !entry.IsTakenOut) {
-			var takenOutCount = await db.AccountBadges
-				.AsNoTracking()
-				.CountAsync(x => x.AccountId == acc.Id && x.IsTakenOut, ct);
-			if(takenOutCount >= 3) return BadRequest("Na profilu mohou být maximálně 3 badge.");
-		}
-
-		entry.IsTakenOut = request.IsTakenOut;
-		await db.SaveChangesAsync(ct);
-
-		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == acc.Id, ct);
-		return Ok(updated.ToDto());
-	}
-
-	public sealed record AccountAchievementVisibilityRequest(bool IsHidden);
-	public sealed record AccountBadgeTakeoutRequest(bool IsTakenOut);
 
 	public sealed record AccountMutationRequest(
 		string? FirstName,

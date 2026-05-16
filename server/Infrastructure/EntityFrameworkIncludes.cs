@@ -16,6 +16,16 @@ public static class EntityFrameworkIncludes {
 			.AsSplitQuery();
 	}
 
+	public static IQueryable<AccountAchievement> AccountAchievementsEf(this AppDbContext db) {
+		return db.AccountAchievements
+			.Include(x => x.Achievement);
+	}
+
+	public static IQueryable<AccountBadge> AccountBadgesEf(this AppDbContext db) {
+		return db.AccountBadges
+			.Include(x => x.Badge);
+	}
+
 	public static IQueryable<Reservation> ReservationsEf(this AppDbContext db) {
 		return db.Reservations
 			.Include(r => r.Account)

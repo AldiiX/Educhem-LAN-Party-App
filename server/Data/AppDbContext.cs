@@ -9,7 +9,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
 	public DbSet<Achievement> Achievements { get; set; }
 	public DbSet<Badge> Badges { get; set; }
-	public DbSet<BadgeAchievement> BadgeAchievements { get; set; }
 	public DbSet<AccountAchievement> AccountAchievements { get; set; }
 	public DbSet<AccountBadge> AccountBadges { get; set; }
 
@@ -106,6 +105,30 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 				.HasConversion<string>()
 				.HasDefaultValue(ProblemReportStatus.Pending);
 
+		});
+
+		modelBuilder.Entity<Achievement>(e => {
+			e.Property(a => a.Id)
+				.HasDefaultValueSql("uuidv7()");
+			e.Property(a => a.IsHidden)
+				.HasDefaultValue(false);
+		});
+
+		modelBuilder.Entity<Badge>(e => {
+			e.Property(a => a.Id)
+				.HasDefaultValueSql("uuidv7()");
+		});
+
+		modelBuilder.Entity<AccountAchievement>(e => {
+			e.Property(x => x.Id).HasDefaultValueSql("uuidv7()");
+			e.Property(x => x.IsHidden)
+				.HasDefaultValue(false);
+		});
+
+		modelBuilder.Entity<AccountBadge>(e => {
+			e.Property(x => x.Id).HasDefaultValueSql("uuidv7()");
+			e.Property(x => x.IsTakenOut)
+				.HasDefaultValue(false);
 		});
 	}
 }

@@ -7,20 +7,11 @@ public static class AccountMapper {
 		public ProfileDto ToProfileDto(bool deep = true) {
 			var visibleAchievements = account.AccountAchievements
 				?.Where(x => !x.IsHidden && !x.Achievement.IsHidden)
-				.Select(x => new AccountAchievementDto {
-					Id = x.Id,
-					Achievement = x.Achievement.ToDto(),
-					IsHidden = x.IsHidden,
-					CreatedAtUtc = x.CreatedAtUtc,
-				})
+				.Select(x => x.ToDto())
 				.ToList() ?? new List<AccountAchievementDto>();
 			var visibleBadges = account.AccountBadges
 				?.Where(x => x.IsTakenOut)
-				.Select(x => new AccountBadgeDto {
-					Id = x.Id,
-					Badge = x.Badge.ToDto(),
-					IsTakenOut = x.IsTakenOut,
-				})
+				.Select(x => x.ToDto())
 				.ToList() ?? new List<AccountBadgeDto>();
 
 			return new ProfileDto {
@@ -41,19 +32,10 @@ public static class AccountMapper {
 
 		public AccountDto ToDto(bool deep = true) {
 			var achievements = account.AccountAchievements
-				?.Select(x => new AccountAchievementDto {
-					Id = x.Id,
-					Achievement = x.Achievement.ToDto(),
-					IsHidden = x.IsHidden,
-					CreatedAtUtc = x.CreatedAtUtc,
-				})
+				?.Select(x => x.ToDto())
 				.ToList() ?? new List<AccountAchievementDto>();
 			var badges = account.AccountBadges
-				?.Select(x => new AccountBadgeDto {
-					Id = x.Id,
-					Badge = x.Badge.ToDto(),
-					IsTakenOut = x.IsTakenOut,
-				})
+				?.Select(x => x.ToDto())
 				.ToList() ?? new List<AccountBadgeDto>();
 
 			return new AccountDto {
@@ -78,19 +60,10 @@ public static class AccountMapper {
 
 		public AccountSessionDto ToSessionDto(bool deep = true) {
 			var achievements = account.AccountAchievements
-				?.Select(x => new AccountAchievementDto {
-					Id = x.Id,
-					Achievement = x.Achievement.ToDto(),
-					IsHidden = x.IsHidden,
-					CreatedAtUtc = x.CreatedAtUtc,
-				})
+				?.Select(x => x.ToDto())
 				.ToList() ?? new List<AccountAchievementDto>();
 			var badges = account.AccountBadges
-				?.Select(x => new AccountBadgeDto {
-					Id = x.Id,
-					Badge = x.Badge.ToDto(),
-					IsTakenOut = x.IsTakenOut,
-				})
+				?.Select(x => x.ToDto())
 				.ToList() ?? new List<AccountBadgeDto>();
 
 			return new AccountSessionDto() {

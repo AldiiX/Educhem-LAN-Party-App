@@ -26,5 +26,25 @@ public static class AchievementBadgeMapper {
 			};
 		}
 	}
-}
 
+	extension(AccountAchievement accountAchievement) {
+		public AccountAchievementDto ToDto() {
+			return new AccountAchievementDto {
+				Id = accountAchievement.Id,
+				Achievement = accountAchievement.Achievement.ToDto(),
+				IsHidden = accountAchievement.IsHidden,
+				CreatedAtUtc = accountAchievement.CreatedAtUtc,
+			};
+		}
+	}
+
+	extension(AccountBadge accountBadge) {
+		public AccountBadgeDto ToDto() {
+			return new AccountBadgeDto {
+				Id = accountBadge.Id,
+				Badge = accountBadge.Badge.ToDto(),
+				IsTakenOut = accountBadge.IsTakenOut,
+			};
+		}
+	}
+}
