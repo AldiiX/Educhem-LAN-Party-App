@@ -9,6 +9,11 @@ type PasswordRouter = {
     refresh: () => void;
 };
 
+async function getErrorMessage(response: Response, fallback: string) {
+    const text = await response.text();
+    return text.trim() || fallback;
+}
+
 export function useAccountPassword(setAccount: (account: null) => void, router: PasswordRouter) {
     const [changingPassword, setChangingPassword] = useState(false);
     const [passwordForm, setPasswordForm] = useState<PasswordForm>({
@@ -23,7 +28,8 @@ export function useAccountPassword(setAccount: (account: null) => void, router: 
         upper: /[A-Z]/.test(passwordForm.newPassword),
         number: /\d/.test(passwordForm.newPassword),
         special: /[^a-zA-Z0-9]/.test(passwordForm.newPassword),
-    }), [passwordForm.newPassword]);
+        differentFromOld: passwordForm.oldPassword.length === 0 || passwordForm.newPassword !== passwordForm.oldPassword,
+    }), [passwordForm.newPassword, passwordForm.oldPassword]);
 
     const canSubmitPassword = Object.values(passwordValidations).every(Boolean)
         && passwordForm.newPassword === passwordForm.newPasswordConfirmation
@@ -44,7 +50,7 @@ export function useAccountPassword(setAccount: (account: null) => void, router: 
             });
 
             if(!response.ok) {
-                toast.error("Heslo se nepodařilo změnit.");
+                toast.error(await getErrorMessage(response, "Heslo se nepodařilo změnit."));
                 return;
             }
 

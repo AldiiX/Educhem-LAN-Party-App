@@ -14,6 +14,18 @@ export default function() {
     const [resetEmail, setResetEmail] = useState("");
     const [resetOpen, setResetOpen] = useState(false);
     const [resetLoading, setResetLoading] = useState(false);
+    const [loginLoading, setLoginLoading] = useState(false);
+
+    async function submitLogin() {
+        if(loginLoading) return;
+
+        setLoginLoading(true);
+        try {
+            await login(email, password);
+        } finally {
+            setLoginLoading(false);
+        }
+    }
 
     async function submitResetPassword() {
         setResetLoading(true);
@@ -35,7 +47,7 @@ export default function() {
 
                 <form className={style["login-container"]} onSubmit={event => {
                     event.preventDefault();
-                    login(email, password);
+                    submitLogin();
                 }}>
                     <div>
                         <p>E-mail</p>
@@ -46,7 +58,7 @@ export default function() {
                         <p>Heslo</p>
                         <input type="password" placeholder="•••••••" onChange={(e) => setPassword(e.currentTarget.value)} />
                     </div>
-                    <button type="submit" className={style.submitBtn}>Přihlásit se</button>
+                    <Button type="primary" text="Přihlásit se" buttonType="submit" className={style.submitBtn} disabled={loginLoading} loading={loginLoading} />
 
                     <button type="button" className={style.forgotPassword} onClick={() => {
                         setResetEmail(email);

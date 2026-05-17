@@ -60,6 +60,7 @@ export function AccountSettings({state}: {state: AccountPageState}) {
                 <p className={state.passwordValidations.upper ? styles.valid : ""}>Alespoň 1 velké písmeno</p>
                 <p className={state.passwordValidations.number ? styles.valid : ""}>Alespoň 1 číslo</p>
                 <p className={state.passwordValidations.special ? styles.valid : ""}>Alespoň 1 speciální znak</p>
+                <p className={state.passwordValidations.differentFromOld ? styles.valid : ""}>Nesmí být stejné jako staré heslo</p>
             </div>}
 
             <Button type="primary" text="Uložit změny" buttonType="submit" disabled={!state.canSubmitPassword || state.changingPassword} loading={state.changingPassword} />

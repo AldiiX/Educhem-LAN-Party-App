@@ -22,6 +22,7 @@ export type PasswordValidations = {
     upper: boolean;
     number: boolean;
     special: boolean;
+    differentFromOld: boolean;
 };
 
 export type AccountPageState = {

@@ -292,7 +292,7 @@ public sealed class AccountControllerV1(
 	[HttpPost("login")]
 	public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct = default) {
 		var acc = await auth.LoginAsync(request.Email, request.PasswordPlain, ct);
-		if (acc == null) return Unauthorized();
+		if (acc == null) return Unauthorized("Nesprávný e-mail nebo heslo.");
 
 		return new OkObjectResult(acc.ToDto());
 	}
@@ -322,12 +322,14 @@ public sealed class AccountControllerV1(
 		if(acc == null) return new UnauthorizedResult();
 
 		if(string.IsNullOrWhiteSpace(request.OldPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
-			return BadRequest("Missing password.");
+			return BadRequest("Vyplň staré i nové heslo.");
 
 		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == acc.Id, ct);
 		if(account == null) return NotFound();
 		if(!AuthService.VerifyPassword(request.OldPassword, account.PasswordHash))
-			return BadRequest("Invalid old password.");
+			return BadRequest("Nesprávné staré heslo.");
+		if(AuthService.VerifyPassword(request.NewPassword, account.PasswordHash))
+			return BadRequest("Nové heslo nesmí být stejné jako staré heslo.");
 
 		account.PasswordHash = AuthService.HashPassword(request.NewPassword);
 		await db.SaveChangesAsync(ct);

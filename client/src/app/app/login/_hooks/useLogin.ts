@@ -3,6 +3,11 @@ import {redirect} from "next/navigation"
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {AccountSchema} from "@/schemas/AccountSchema";
 
+async function getErrorMessage(response: Response, fallback: string) {
+    const text = await response.text();
+    return text.trim() || fallback;
+}
+
 export default function useLogin() {
     const { setAccount } = useAuth();
 
@@ -25,7 +30,7 @@ export default function useLogin() {
         const res = await promise;
 
         if(!res.ok) {
-            toast.error("Login failed: " + res.statusText);
+            toast.error(await getErrorMessage(res, "Přihlášení se nezdařilo."));
             return;
         }
 
