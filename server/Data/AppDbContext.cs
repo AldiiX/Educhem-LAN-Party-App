@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel;
+using server.Data.Attributes;
 using server.Data.Entities;
 
 namespace server.Data;
@@ -45,90 +47,44 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
 		foreach (var entityType in modelBuilder.Model.GetEntityTypes()) {
 			var clrType = entityType.ClrType;
-			if (!typeof(IAuditable).IsAssignableFrom(clrType)) continue;
+			var entityBuilder = modelBuilder.Entity(clrType);
 
-			var builder = modelBuilder.Entity(clrType);
+			foreach (var property in entityType.GetProperties()) {
+				var propertyInfo = property.PropertyInfo;
+				if (propertyInfo == null) continue;
 
-			builder.Property(nameof(IAuditable.CreatedAtUtc))
-				.HasDefaultValueSql("now()");
+				var propertyBuilder = entityBuilder.Property(property.Name);
+				var hasEntityUuidV7 = property.Name == nameof(Entity<Guid>.Id)
+					&& clrType.IsDefined(typeof(UuidV7Attribute), inherit: true);
+				var defaultValueSql = propertyInfo.GetCustomAttributes(typeof(DefaultValueSqlAttribute), inherit: true)
+					.OfType<DefaultValueSqlAttribute>()
+					.FirstOrDefault();
+				var defaultValue = propertyInfo.GetCustomAttributes(typeof(DefaultValueAttribute), inherit: true)
+					.OfType<DefaultValueAttribute>()
+					.FirstOrDefault();
 
-			builder.Property(nameof(IAuditable.UpdatedAtUtc))
-				.HasDefaultValueSql("now()");
+				if (hasEntityUuidV7 && property.ClrType == typeof(Guid)) {
+					propertyBuilder.HasDefaultValueSql("uuidv7()");
+				} else if (defaultValueSql != null && (defaultValueSql is not UuidV7Attribute || property.ClrType == typeof(Guid))) {
+					propertyBuilder.HasDefaultValueSql(defaultValueSql.Sql);
+				}
+
+				if (defaultValue != null) {
+					propertyBuilder.HasDefaultValue(defaultValue.Value);
+				}
+
+				if (propertyInfo.IsDefined(typeof(StringEnumAttribute), inherit: true)) {
+					propertyBuilder.HasConversion<string>();
+				}
+			}
+
+			foreach (var navigation in entityType.GetNavigations()) {
+				var hasAutoInclude = navigation.PropertyInfo?.IsDefined(typeof(AutoIncludeAttribute), inherit: true) == true;
+
+				if (hasAutoInclude) {
+					entityBuilder.Navigation(navigation.Name).AutoInclude();
+				}
+			}
 		}
-
-		modelBuilder.Entity<Account>(e => {
-			e.Property(a => a.Id)
-				.HasDefaultValueSql("uuidv7()");
-
-			e.Property(a => a.LastActiveUtc)
-				.HasDefaultValueSql("now()");
-
-			e.Property(a => a.EnableReservations)
-				.HasDefaultValue(false);
-
-			e.Property(a => a.AccountType)
-				.HasDefaultValue(AccountType.Student);
-		});
-
-		modelBuilder.Entity<Room>(e => {
-			e.Property(r => r.Available)
-				.HasDefaultValue(true);
-
-			e.Property(r => r.Capacity)
-				.HasDefaultValue(1);
-		});
-
-		modelBuilder.Entity<Computer>(e => {
-			e.Property(r => r.Available)
-				.HasDefaultValue(true);
-
-			e.Property(r => r.IsTeachersComputer)
-				.HasDefaultValue(true);
-		});
-
-		modelBuilder.Entity<Reservation>(e => {
-			e.Property(r => r.Id)
-				.HasDefaultValueSql("uuidv7()");
-		});
-
-		modelBuilder.Entity<ProblemReport>(e => {
-			e.Property(r => r.Id)
-				.HasDefaultValueSql("uuidv7()");
-
-			e.Property(r => r.Category)
-				.HasConversion<string>();
-
-			e.Property(r => r.Priority)
-				.HasConversion<string>();
-
-			e.Property(r => r.Status)
-				.HasConversion<string>()
-				.HasDefaultValue(ProblemReportStatus.Pending);
-
-		});
-
-		modelBuilder.Entity<Achievement>(e => {
-			e.Property(a => a.Id)
-				.HasDefaultValueSql("uuidv7()");
-			e.Property(a => a.IsHidden)
-				.HasDefaultValue(false);
-		});
-
-		modelBuilder.Entity<Badge>(e => {
-			e.Property(a => a.Id)
-				.HasDefaultValueSql("uuidv7()");
-		});
-
-		modelBuilder.Entity<AccountAchievement>(e => {
-			e.Property(x => x.Id).HasDefaultValueSql("uuidv7()");
-			e.Property(x => x.IsHidden)
-				.HasDefaultValue(false);
-		});
-
-		modelBuilder.Entity<AccountBadge>(e => {
-			e.Property(x => x.Id).HasDefaultValueSql("uuidv7()");
-			e.Property(x => x.IsTakenOut)
-				.HasDefaultValue(false);
-		});
 	}
 }

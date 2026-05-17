@@ -17,7 +17,7 @@ public static class AccountMapper {
 				FirstName = account.FirstName,
 				LastName = account.LastName,
 				Class = account.Class,
-				School = deep ? account.School?.ToDto() : null,
+				School = deep ? account.School?.ToDto(false) : null,
 				AvatarUrl = account.AvatarUrl,
 				BannerUrl = account.BannerUrl,
 				Gender = account.Gender,

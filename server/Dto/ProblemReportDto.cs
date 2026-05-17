@@ -11,6 +11,6 @@ public class ProblemReportDto : AuditableEntityDto<Guid> {
 	public required string? Contact { get; set; }
 	public required string? ResolutionNote { get; set; }
 	public required DateTime? ResolvedAtUtc { get; set; }
-	public required AccountDto Reporter { get; set; }
-	public required AccountDto? ResolvedBy { get; set; }
+	public required ProfileDto Reporter { get; set; }
+	public required ProfileDto? ResolvedBy { get; set; }
 }

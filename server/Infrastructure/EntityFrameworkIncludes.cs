@@ -8,7 +8,6 @@ public static class EntityFrameworkIncludes {
 
 	public static IQueryable<Account> AccountsEf(this AppDbContext db) {
 		return db.Accounts
-			.Include(a => a.School)
 			.Include(a => a.AccountAchievements.Where(x => !x.IsHidden && !x.Achievement.IsHidden))
 				.ThenInclude(x => x.Achievement)
 			.Include(a => a.AccountBadges.Where(x => x.IsTakenOut))
@@ -17,21 +16,15 @@ public static class EntityFrameworkIncludes {
 	}
 
 	public static IQueryable<AccountAchievement> AccountAchievementsEf(this AppDbContext db) {
-		return db.AccountAchievements
-			.Include(x => x.Achievement);
+		return db.AccountAchievements;
 	}
 
 	public static IQueryable<AccountBadge> AccountBadgesEf(this AppDbContext db) {
-		return db.AccountBadges
-			.Include(x => x.Badge);
+		return db.AccountBadges;
 	}
 
 	public static IQueryable<Reservation> ReservationsEf(this AppDbContext db) {
 		return db.Reservations
-			.Include(r => r.Account)
-			.Include(r => ((ComputerReservation)r).Computer)
-				.ThenInclude(c => c.Room)
-			.Include(r => ((RoomReservation)r).Room)
 			.OrderByDescending(r => r.CreatedAtUtc)
 			.AsSplitQuery();
 	}
@@ -45,17 +38,28 @@ public static class EntityFrameworkIncludes {
 	public static IQueryable<Computer> ComputersEf(this AppDbContext db) {
 		return db.Computers
 			.Where(c => c.Available)
-			.Include(c => c.Room)
 			.AsSplitQuery();
 	}
 
 	public static IQueryable<ProblemReport> ProblemReportsEf(this AppDbContext db) {
 		return db.ProblemReports
-			.Include(r => r.Reporter)
-				.ThenInclude(a => a.School)
-			.Include(r => r.ResolvedBy)
-				.ThenInclude(a => a!.School)
-			.OrderByDescending(r => r.CreatedAtUtc)
+
+			// filtered reporter collections
+			.Include(pr => pr.Reporter)
+				.ThenInclude(a => a.AccountAchievements.Where(x => !x.IsHidden && !x.Achievement.IsHidden))
+					.ThenInclude(aa => aa.Achievement)
+			.Include(pr => pr.Reporter)
+				.ThenInclude(a => a.AccountBadges.Where(x => x.IsTakenOut))
+					.ThenInclude(ab => ab.Badge)
+
+			.Include(pr => pr.ResolvedBy)
+				.ThenInclude(a => a!.AccountAchievements.Where(x => !x.IsHidden && !x.Achievement.IsHidden))
+					.ThenInclude(aa => aa.Achievement)
+			.Include(pr => pr.ResolvedBy)
+				.ThenInclude(a => a!.AccountBadges.Where(x => x.IsTakenOut))
+					.ThenInclude(ab => ab.Badge)
+
+			.OrderByDescending(pr => pr.CreatedAtUtc)
 			.AsSplitQuery();
 	}
 }

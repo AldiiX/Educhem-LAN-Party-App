@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
+using server.Data.Attributes;
+
 namespace server.Data.Entities;
 
 public class Entity<TId> {

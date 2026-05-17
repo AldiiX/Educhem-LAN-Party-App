@@ -1,20 +1,28 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using server.Data.Attributes;
 
 namespace server.Data.Entities;
 
 [Table("ProblemReports", Schema = "public")]
+[UuidV7]
 public class ProblemReport : AuditableEntity<Guid> {
 	[ForeignKey(nameof(Reporter))]
 	public required Guid ReporterId { get; set; }
 
+	[AutoInclude]
 	[DeleteBehavior(DeleteBehavior.Cascade)]
 	public required Account Reporter { get; set; }
 
+	[StringEnum]
 	public required ProblemReportCategory Category { get; set; } = ProblemReportCategory.TechnicalProblem;
+	[StringEnum]
 	public required ProblemReportPriority Priority { get; set; } = ProblemReportPriority.Medium;
+	[StringEnum]
+	[DefaultValue(ProblemReportStatus.Pending)]
 	public required ProblemReportStatus Status { get; set; } = ProblemReportStatus.Pending;
 
 	[MaxLength(128)]
@@ -35,6 +43,7 @@ public class ProblemReport : AuditableEntity<Guid> {
 	[ForeignKey(nameof(ResolvedBy))]
 	public Guid? ResolvedById { get; set; }
 
+	[AutoInclude]
 	[DeleteBehavior(DeleteBehavior.SetNull)]
 	public Account? ResolvedBy { get; set; }
 }

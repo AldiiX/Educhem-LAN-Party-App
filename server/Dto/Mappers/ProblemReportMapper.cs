@@ -17,8 +17,8 @@ public static class ProblemReportMapper {
 				Contact = report.Contact,
 				ResolutionNote = report.ResolutionNote,
 				ResolvedAtUtc = report.ResolvedAtUtc,
-				Reporter = report.Reporter.ToDto(deep),
-				ResolvedBy = report.ResolvedBy?.ToDto(deep),
+				Reporter = report.Reporter.ToProfileDto(false),
+				ResolvedBy = report.ResolvedBy?.ToProfileDto(false),
 			};
 		}
 	}
