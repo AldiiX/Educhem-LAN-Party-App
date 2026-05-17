@@ -1,0 +1,44 @@
+.page {
+    min-height: calc(100svh - 100px);
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+.panel {
+    width: min(100%, 667px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 36px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--element-bg);
+    box-shadow: 0 18px 60px var(--shadow-color);
+    text-align: center;
+}
+
+.kicker {
+    color: var(--accent-color);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.panel h1 {
+    font-family: "leaguespartan", "Gabarito", system-ui, sans-serif;
+    font-size: clamp(2.15rem, 6vw, 4rem);
+    line-height: 0.95;
+}
+
+.message {
+    max-width: 420px;
+    color: var(--text-color-secondary);
+}
+
+@media (max-width: 520px) {
+    .panel {
+        padding: 28px 20px;
+    }
+}
