@@ -11,6 +11,7 @@ import {Avatar} from "@/components/Avatar";
 import Link from "next/link";
 import {useRoomsAndComputers} from "@/app/app/(withlayout)/reservations/_hooks/useRoomsAndComputers";
 import {Button} from "@/components/Button";
+import {ProfileHoverCard} from "@/components/ProfileHoverCard";
 
 export const useSelectedRoomOrComputerStore = create<{
     selectedRoomOrComputer: Room | Computer | null,
@@ -94,11 +95,15 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
                         <If condition={hasReservation}>
                             <If condition={reservationProfileIsAnonymous} as="p">Obsazeno</If>
                             <If condition={!reservationProfileIsAnonymous}>
-                                <Link href={`/app/profile/${reservationProfile?.id}`} className={style.profile}>
-                                    <Avatar name={reservationProfile?.fullName ?? ""} src={reservationProfile?.avatarUrl} size="24px" />
-                                    <p>{reservationProfile?.fullName}</p>
-                                    <small>{ reservationProfile?.class }</small>
-                                </Link>
+                                {reservationProfile && (
+                                    <ProfileHoverCard account={reservationProfile}>
+                                        <Link href={`/app/profile/${reservationProfile.id}`} className={style.profile}>
+                                            <Avatar name={reservationProfile.fullName} src={reservationProfile.avatarUrl} size="24px" />
+                                            <p>{reservationProfile.fullName}</p>
+                                            <small>{ reservationProfile.class }</small>
+                                        </Link>
+                                    </ProfileHoverCard>
+                                )}
                             </If>
                         </If>
                     </Case>
@@ -114,11 +119,13 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
                                 roomReservations?.map((rr) => {
                                     if(typeof rr.profile === "string") return;
 
-                                    return <Link className={style.user} key={rr.profile.id} href={`/app/profile/${rr.profile.id}`}>
+                                    return <ProfileHoverCard account={rr.profile} key={rr.profile.id}>
+                                    <Link className={style.user} href={`/app/profile/${rr.profile.id}`}>
                                         <Avatar name={rr.profile.fullName} src={rr.profile.avatarUrl} size="24px" />
                                         <p>{rr.profile.fullName}</p>
                                         <small>{ rr.profile.class }</small>
                                     </Link>
+                                    </ProfileHoverCard>
                                 })
                             }
                         </If>

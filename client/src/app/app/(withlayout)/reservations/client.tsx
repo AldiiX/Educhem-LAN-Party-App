@@ -16,6 +16,7 @@ import {useRoomsAndComputers} from "@/app/app/(withlayout)/reservations/_hooks/u
 import {useReservationsDisplay} from "@/app/app/(withlayout)/reservations/_hooks/useReservationsDisplay";
 import Switch, {Case} from "@/components/util/Switch";
 import SelectedRoomOrComputer from "@/app/app/(withlayout)/reservations/_components/SelectedRoomOrComputer";
+import {ProfileHoverCard} from "@/components/ProfileHoverCard";
 
 export const maps = [
     { id: "ithub", name: "IT Hub (Spodní patro)"},
@@ -200,7 +201,8 @@ export default function Client({
                                     reservations?.map(reservation => {
                                         if(typeof(reservation.profile) === "string") return null;
 
-                                        return <Link href={"/app/profile/" + reservation.profile.id} className={style.child} key={reservation.profile.id}>
+                                        return <ProfileHoverCard account={reservation.profile} key={reservation.profile.id}>
+                                        <Link href={"/app/profile/" + reservation.profile.id} className={style.child}>
                                             <If condition={Boolean(reservation.profile.bannerUrl)} as="span" className={style.bannerBackdrop} style={{backgroundImage: `url(${reservation.profile.bannerUrl})`}} />
                                             <Avatar name={reservation.profile.fullName} size="40px" src={reservation.profile.avatarUrl} />
                                             <span>
@@ -210,6 +212,7 @@ export default function Client({
                                                 <time>{ (reservation.createdAtUtc as Date).toLocaleString() }</time>
                                             </span>
                                         </Link>
+                                        </ProfileHoverCard>
                                     })
                                 }
                             </If>

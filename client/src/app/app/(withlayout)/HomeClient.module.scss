@@ -301,7 +301,8 @@
                 display: grid;
                 gap: 16px;
 
-                >a {
+                >a,
+                >span >a {
                     position: relative;
                     display: grid;
                     grid-template-columns: 32px 1fr;

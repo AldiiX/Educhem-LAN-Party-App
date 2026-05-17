@@ -9,6 +9,7 @@ import {useHomeGreeting} from "./_hooks/useHomeGreeting";
 import styles from "./HomeClient.module.scss";
 import {Avatar} from "@/components/Avatar";
 import {StatusData, useStatus} from "@/app/app/(withlayout)/_hooks/useStatus";
+import {ProfileHoverCard} from "@/components/ProfileHoverCard";
 
 type HomeClientProps = {
     account: Account | null;
@@ -101,7 +102,8 @@ export default function HomeClient({account, dashboard, status}: HomeClientProps
                 {account ? (
                     <div className={styles.recent}>
                         {(dashboard?.latestAccounts.length ? dashboard.latestAccounts : []).map(item => (
-                            <Link href={"/app/profile/" + item.id} key={`${item.fullName}-${item.createdAtUtc.toISOString()}`}>
+                            <ProfileHoverCard account={item} key={`${item.fullName}-${item.createdAtUtc.toISOString()}`}>
+                            <Link href={"/app/profile/" + item.id}>
                                 {item.bannerUrl && <span className={styles.bannerBackdrop} style={{backgroundImage: `url(${item.bannerUrl})`}}></span>}
                                 <Avatar name={item.fullName} size="32px" src={item.avatarUrl} className={styles.avatar} />
                                 
@@ -110,6 +112,7 @@ export default function HomeClient({account, dashboard, status}: HomeClientProps
                                     <p>{item.class ?? "Bez třídy"} · {item.createdAtUtc.toLocaleDateString("cs-CZ")}</p>
                                 </div>
                             </Link>
+                            </ProfileHoverCard>
                         ))}
                         {!dashboard?.latestAccounts.length && <p className={styles.empty}>Zatím nejsou k dispozici žádné účty.</p>}
                     </div>

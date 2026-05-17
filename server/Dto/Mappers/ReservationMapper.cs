@@ -29,7 +29,7 @@ public static class ReservationMapper {
 	public static ReservationDto ToDto(this Reservation reservation, bool deep = true) {
 		return new ReservationDto() {
 			Id = reservation.Id,
-			Profile = reservation.Account.ToProfileDto(false),
+			Profile = reservation.Account.ToProfileDto(),
 			Note = reservation.Note,
 			UpdatedAtUtc = reservation.UpdatedAtUtc,
 			CreatedAtUtc = reservation.CreatedAtUtc,
