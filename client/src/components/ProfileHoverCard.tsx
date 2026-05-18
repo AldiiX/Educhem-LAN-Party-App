@@ -7,6 +7,7 @@ import {Account} from "@/schemas/AccountSchema";
 import {accountTypeLabel, genderLabel, schoolLabel} from "@/lib/enumLabels";
 import {Avatar} from "@/components/Avatar";
 import styles from "./ProfileHoverCard.module.scss";
+import If from "@/components/util/If";
 
 type ProfileHoverCardProps = {
     account: Account;
@@ -248,6 +249,11 @@ function ProfileHoverCardContent({account, closing, position, onMouseEnter, onMo
                     <h3>{account.fullName}</h3>
                     <p>{accountTypeLabel(account.accountType, account.gender)}</p>
                 </div>
+                <If condition={badges.length == 0 }>
+                    <div>
+                        <h3>Nejsou zadny badge</h3>
+                    </div>
+                </If>
                 {badges.length > 0 && (
                     <div className={styles.badges}>
                         {badges.map(entry => (
