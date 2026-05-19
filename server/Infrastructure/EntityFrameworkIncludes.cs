@@ -8,9 +8,9 @@ public static class EntityFrameworkIncludes {
 
 	public static IQueryable<Account> AccountsEf(this AppDbContext db) {
 		return db.Accounts
-			.Include(a => a.AccountAchievements.Where(x => !x.IsHidden && !x.Achievement.IsHidden))
+			.Include(a => a.AccountAchievements)
 				.ThenInclude(x => x.Achievement)
-			.Include(a => a.AccountBadges.Where(x => x.IsTakenOut))
+			.Include(a => a.AccountBadges)
 				.ThenInclude(x => x.Badge)
 			.AsSplitQuery();
 	}
@@ -25,6 +25,12 @@ public static class EntityFrameworkIncludes {
 
 	public static IQueryable<Reservation> ReservationsEf(this AppDbContext db) {
 		return db.Reservations
+			.Include(r => r.Account)
+				.ThenInclude(a => a.AccountAchievements)
+					.ThenInclude(x => x.Achievement)
+			.Include(r => r.Account)
+				.ThenInclude(a => a.AccountBadges)
+					.ThenInclude(x => x.Badge)
 			.OrderByDescending(r => r.CreatedAtUtc)
 			.AsSplitQuery();
 	}
@@ -46,17 +52,17 @@ public static class EntityFrameworkIncludes {
 
 			// filtered reporter collections
 			.Include(pr => pr.Reporter)
-				.ThenInclude(a => a.AccountAchievements.Where(x => !x.IsHidden && !x.Achievement.IsHidden))
+				.ThenInclude(a => a.AccountAchievements)
 					.ThenInclude(aa => aa.Achievement)
 			.Include(pr => pr.Reporter)
-				.ThenInclude(a => a.AccountBadges.Where(x => x.IsTakenOut))
+				.ThenInclude(a => a.AccountBadges)
 					.ThenInclude(ab => ab.Badge)
 
 			.Include(pr => pr.ResolvedBy)
-				.ThenInclude(a => a!.AccountAchievements.Where(x => !x.IsHidden && !x.Achievement.IsHidden))
+				.ThenInclude(a => a!.AccountAchievements)
 					.ThenInclude(aa => aa.Achievement)
 			.Include(pr => pr.ResolvedBy)
-				.ThenInclude(a => a!.AccountBadges.Where(x => x.IsTakenOut))
+				.ThenInclude(a => a!.AccountBadges)
 					.ThenInclude(ab => ab.Badge)
 
 			.OrderByDescending(pr => pr.CreatedAtUtc)
