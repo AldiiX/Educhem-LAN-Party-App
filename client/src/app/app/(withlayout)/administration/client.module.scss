@@ -97,3 +97,91 @@
     font-weight: 500;
     padding: 0 12px;
 }
+
+.logsWrapper {
+    margin-top: 32px;
+}
+
+.logsFilters {
+    margin-top: 24px;
+    background: var(--element-bg);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: grid;
+    gap: 18px;
+}
+
+.logsFilterGroup {
+    display: grid;
+    gap: 10px;
+}
+
+.logsFilterLabel {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.logsCheckboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.logsCheckbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+
+.logsDateFilters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.logsDateField {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    input {
+        min-height: 36px;
+        background: var(--main-bg);
+        border-radius: 8px;
+        border: 1px solid transparent;
+        color: var(--text-color);
+        padding: 0 10px;
+    }
+}
+
+.logsTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 24px;
+    background: var(--element-bg);
+    border-radius: 12px;
+    overflow: hidden;
+
+    th,
+    td {
+        padding: 14px 16px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    th {
+        color: var(--accent-color);
+        font-weight: 600;
+        font-size: 14px;
+        text-transform: none;
+    }
+
+    tbody tr:last-child td {
+        border-bottom: 0;
+    }
+}
+
+.logType {
+    font-weight: 600;
+}
