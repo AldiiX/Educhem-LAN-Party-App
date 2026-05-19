@@ -10,6 +10,7 @@ import {Button} from "@/components/Button";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {useWebTheme} from "@/app/_providers/WebThemeProvider";
 import {hasRoleAtLeast} from "@/lib/roles";
+import { useEffect } from "react";
 
 
 
@@ -18,6 +19,39 @@ export default function({ children, appVersion }: { children: ReactNode, appVers
     const router = useRouter();
     const { account: loggedAccount, setAccount } = useAuth();
     const {toggleTheme} = useWebTheme();
+
+    useEffect(() => {
+        const styleId = "minecraft-easter-egg-style";
+
+        (window as any).minecraft = () => {
+            if(document.getElementById(styleId)) {
+                return;
+            }
+
+            const styleElement = document.createElement("style");
+            styleElement.id = styleId;
+            styleElement.innerHTML = `
+            @font-face {
+                font-family: "monocraft";
+                src: url("/fonts/Monocraft.ttc");
+            }
+
+            *, *:before, *:after {
+                font-family: "monocraft", sans-serif !important;
+                border-radius: 0 !important;
+            }
+        `;
+
+            document.head.appendChild(styleElement);
+            window.open("https://youtu.be/iTRhAlvQjVQ?si=D5wLIenHe3RWw8na&t=28");
+            return "chicken jockey!"
+        };
+
+        return () => {
+            delete (window as any).minecraft;
+            document.getElementById(styleId)?.remove();
+        };
+    }, []);
 
     const logout = async () => {
         await fetch("/api/v1/account/logout", {method: "POST"});

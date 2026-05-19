@@ -12,7 +12,7 @@ namespace server.Controllers;
 public sealed class AccountAchievementsControllerV1(
 	IAuthService auth,
 	AppDbContext db,
-	ReservationCacheService reservationCache
+	ReservationCacheService reservationCache // toto je diskutabilni - vymyslet nekdy nejaky zpusob, jak invalidovat cache pri zmene profilu, ale aby to bylo porad optimalizovane
 ) : Controller {
 
 	[HttpPut("me/achievements/{id:guid}")]
@@ -26,7 +26,7 @@ public sealed class AccountAchievementsControllerV1(
 
 		entry.IsHidden = request.IsHidden;
 		await db.SaveChangesAsync(ct);
-		reservationCache.InvalidateReservations();
+		//reservationCache.InvalidateReservations();
 
 		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == acc.Id, ct);
 		return Ok(updated.ToDto());
@@ -50,7 +50,7 @@ public sealed class AccountAchievementsControllerV1(
 
 		entry.IsTakenOut = request.IsTakenOut;
 		await db.SaveChangesAsync(ct);
-		reservationCache.InvalidateReservations();
+		//reservationCache.InvalidateReservations();
 
 		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == acc.Id, ct);
 		return Ok(updated.ToDto());

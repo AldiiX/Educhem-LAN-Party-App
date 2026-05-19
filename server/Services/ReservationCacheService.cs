@@ -57,14 +57,12 @@ public sealed class ReservationCacheService(
 		await ReservationsLock.WaitAsync();
 		try {
 			// po book/unbook nechcem tahat vse znova z db, jen prepisem cache deltou
-			// pro prihlaseny rezervace neupdatujeme cache deltou, at neprepisem plny profil
 			if (cache.TryGetValue(AuthenticatedReservationsKey, out List<object>? authenticatedReservations) && authenticatedReservations != null) {
 				cache.Set(AuthenticatedReservationsKey, ApplyReservationChange(
 					authenticatedReservations,
 					previousReservation?.Id,
 					reservation?.ToDto()
 				));
-				cache.Remove(AuthenticatedReservationsKey);
 			}
 
 			if (cache.TryGetValue(AnonymousReservationsKey, out List<object>? anonymousReservations) && anonymousReservations != null) {
