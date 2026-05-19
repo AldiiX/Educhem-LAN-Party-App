@@ -11,7 +11,8 @@ namespace server.Controllers;
 [Route("api/v1/account")]
 public sealed class AccountAchievementsControllerV1(
 	IAuthService auth,
-	AppDbContext db
+	AppDbContext db,
+	ReservationCacheService reservationCache
 ) : Controller {
 
 	[HttpPut("me/achievements/{id:guid}")]
@@ -25,6 +26,7 @@ public sealed class AccountAchievementsControllerV1(
 
 		entry.IsHidden = request.IsHidden;
 		await db.SaveChangesAsync(ct);
+		reservationCache.InvalidateReservations();
 
 		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == acc.Id, ct);
 		return Ok(updated.ToDto());
@@ -48,6 +50,7 @@ public sealed class AccountAchievementsControllerV1(
 
 		entry.IsTakenOut = request.IsTakenOut;
 		await db.SaveChangesAsync(ct);
+		reservationCache.InvalidateReservations();
 
 		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == acc.Id, ct);
 		return Ok(updated.ToDto());

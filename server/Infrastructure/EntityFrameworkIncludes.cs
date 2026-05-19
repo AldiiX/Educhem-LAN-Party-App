@@ -25,6 +25,12 @@ public static class EntityFrameworkIncludes {
 
 	public static IQueryable<Reservation> ReservationsEf(this AppDbContext db) {
 		return db.Reservations
+			.Include(r => r.Account)
+				.ThenInclude(a => a.AccountAchievements.Where(x => !x.IsHidden && !x.Achievement.IsHidden))
+					.ThenInclude(x => x.Achievement)
+			.Include(r => r.Account)
+				.ThenInclude(a => a.AccountBadges.Where(x => x.IsTakenOut))
+					.ThenInclude(x => x.Badge)
 			.OrderByDescending(r => r.CreatedAtUtc)
 			.AsSplitQuery();
 	}

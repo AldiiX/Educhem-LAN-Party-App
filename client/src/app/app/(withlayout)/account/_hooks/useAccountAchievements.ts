@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Account, AccountSchema } from "@/schemas/AccountSchema";
+import { getTakenOutBadges } from "@/lib/profileBadges";
 
 export function useAccountAchievements(account: Account, setAccount: (account: Account) => void) {
     const [updatingAchievements, setUpdatingAchievements] = useState<Set<string>>(() => new Set());
