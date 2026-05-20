@@ -6,10 +6,12 @@ public static class AccountMapper {
 	extension(Account account) {
 		public ProfileDto ToProfileDto(bool deep = true) {
 			var achievements = account.AccountAchievements
-				?.Select(x => x.ToDto())
+				?.Where(x => !x.IsHidden && !x.Achievement.IsHidden)
+				.Select(x => x.ToDto())
 				.ToList() ?? new List<AccountAchievementDto>();
 			var badges = account.AccountBadges
-				?.Select(x => x.ToDto())
+				?.Where(x => x.IsTakenOut)
+				.Select(x => x.ToDto())
 				.ToList() ?? new List<AccountBadgeDto>();
 
 			return new ProfileDto {

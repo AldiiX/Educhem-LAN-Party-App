@@ -248,6 +248,7 @@ function ProfileHoverCardContent({account, closing, position, onMouseEnter, onMo
                     <h3>{account.fullName}</h3>
                     <p>{accountTypeLabel(account.accountType, account.gender)}</p>
                 </div>
+                
                 {badges.length > 0 && (
                     <div className={styles.badges}>
                         {badges.map(entry => (
