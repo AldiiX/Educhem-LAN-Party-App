@@ -28,7 +28,8 @@ public sealed class AccountControllerV1(
 	IServiceProvider serviceProvider,
 	IDataProtectionProvider dataProtectionProvider,
 	IDistributedCache distributedCache,
-	ReservationCacheService reservationCache
+	ReservationCacheService reservationCache,
+	IDbLoggerService dbLogger
 ) : Controller {
 
 	private readonly IDataProtector passwordResetProtector = dataProtectionProvider.CreateProtector("account-password-reset");
@@ -154,6 +155,12 @@ public sealed class AccountControllerV1(
 			);
 		}
 
+		await dbLogger.LogInfoAsync(
+			$"Uživatel {FormatAccount(created)} byl vytvořen uživatelem {FormatAccount(acc)}.",
+			"user-create",
+			ct
+		);
+
 		return Ok(new AccountMutationResponse(created.ToDto(), emailSent));
 	}
 
@@ -169,6 +176,7 @@ public sealed class AccountControllerV1(
 		if(!CanManageAccount(acc, account))
 			return Forbid();
 
+		var previousEnableReservations = account.EnableReservations;
 		var requestedAccountType = request.AccountType ?? account.AccountType;
 		if(!CanManageRole(acc, requestedAccountType))
 			return Forbid();
@@ -219,6 +227,20 @@ public sealed class AccountControllerV1(
 			);
 		}
 
+		await dbLogger.LogInfoAsync(
+			$"Uživatel {FormatAccount(updated)} byl upraven uživatelem {FormatAccount(acc)}.",
+			"user-edit",
+			ct
+		);
+
+		if(request.EnableReservations.HasValue && previousEnableReservations != updated.EnableReservations) {
+			var stateMessage = updated.EnableReservations
+				? $"Uživatel {FormatAccount(acc)} změnil stav žáka {FormatAccount(updated)} na možnost rezervace."
+				: $"Uživatel {FormatAccount(acc)} změnil stav žáka {FormatAccount(updated)} na zákaz rezervace.";
+
+			await dbLogger.LogInfoAsync(stateMessage, "user-edit", ct);
+		}
+
 		return Ok(new AccountMutationResponse(updated.ToDto(), emailSent));
 	}
 
@@ -237,6 +259,13 @@ public sealed class AccountControllerV1(
 		db.Accounts.Remove(account);
 		await db.SaveChangesAsync(ct);
 		reservationCache.InvalidateReservations();
+
+		await dbLogger.LogInfoAsync(
+			$"Uživatel {FormatAccount(account)} byl smazán uživatelem {FormatAccount(acc)}.",
+			"user-delete",
+			ct
+		);
+
 		return NoContent();
 	}
 
@@ -551,5 +580,9 @@ public sealed class AccountControllerV1(
 
 		var request = HttpContext.Request;
 		return $"{request.Scheme}://{request.Host}{pathAndQuery}";
+	}
+
+	private static string FormatAccount(Account account) {
+		return $"{account.FirstName} {account.LastName} ({account.Email})";
 	}
 }

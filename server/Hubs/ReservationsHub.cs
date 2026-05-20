@@ -16,7 +16,8 @@ public sealed class ReservationsHub(
 	IAuthService auth,
 	AppDbContext db,
 	ReservationCacheService reservationCache,
-	IHubContext<ReservationsHub> hubContext
+	IHubContext<ReservationsHub> hubContext,
+	IDbLoggerService dbLogger
 ) : Hub {
 	public static readonly ConcurrentDictionary<string, byte> ConnectedIds = [];
 	private static readonly object ConnectedStatusLock = new();
@@ -65,6 +66,7 @@ public sealed class ReservationsHub(
 			var existingReservation = await db.ReservationsEf().FirstOrDefaultAsync(r => r.AccountId == account.Id);
 			Reservation? previousReservation = existingReservation;
 			Reservation? reservation = null;
+			string? reservedTarget = null;
 
 			switch (request.Type) {
 				case "computer": {
@@ -97,6 +99,7 @@ public sealed class ReservationsHub(
 						Note = null,
 					};
 					db.Reservations.Add(reservation);
+					reservedTarget = computer.Id;
 					break;
 				}
 
@@ -125,6 +128,7 @@ public sealed class ReservationsHub(
 						Note = null,
 					};
 					db.Reservations.Add(reservation);
+					reservedTarget = room.Id;
 					break;
 				}
 			}
@@ -133,6 +137,13 @@ public sealed class ReservationsHub(
 			await transaction.CommitAsync();
 			// cache drzime stejne jako klienty - jen delta update, zadnej full reload po kazdy zmene
 			await reservationCache.ApplyReservationChangeAsync(previousReservation, reservation);
+
+			if (reservation != null && !string.IsNullOrWhiteSpace(reservedTarget)) {
+				await dbLogger.LogInfoAsync(
+					$"Uživatel {FormatAccount(account)} rezervoval {reservedTarget}.",
+					"reservation"
+				);
+			}
 
 			await BroadcastReservationsChanged("booked", "Rezervace byla upravena.", previousReservation, reservation);
 		} catch (DbUpdateException ex) when (IsConcurrentReservationWrite(ex)) {
@@ -161,6 +172,12 @@ public sealed class ReservationsHub(
 		db.Reservations.Remove(existingReservation);
 		await db.SaveChangesAsync();
 		await reservationCache.ApplyReservationChangeAsync(existingReservation, null);
+
+		await dbLogger.LogInfoAsync(
+			$"Uživatel {FormatAccount(account)} zrušil rezervaci.",
+			"reservation"
+		);
+
 		await BroadcastReservationsChanged("unbooked", "Rezervace byla smazána.", existingReservation, null);
 	}
 
@@ -237,5 +254,9 @@ public sealed class ReservationsHub(
 		return exception is PostgresException {
 			SqlState: PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.UniqueViolation
 		} || exception.InnerException is not null && IsConcurrentReservationWrite(exception.InnerException);
+	}
+
+	private static string FormatAccount(Account account) {
+		return $"{account.FirstName} {account.LastName} ({account.Email})";
 	}
 }
