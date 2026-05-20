@@ -98,60 +98,133 @@
     padding: 0 12px;
 }
 
+.clearFiltersButton {
+    min-height: 46px;
+    padding: 0 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--background-bg-2);
+    color: var(--text-color-secondary);
+    font-weight: 500;
+    transition: color .2s ease, border-color .2s ease, background .2s ease;
+
+    &:hover:not(:disabled) {
+        color: var(--text-color);
+        border-color: var(--accent-line);
+    }
+
+    &:disabled {
+        opacity: .4;
+        cursor: not-allowed;
+    }
+}
+
 .logsWrapper {
     margin-top: 32px;
 }
 
 .logsFilters {
-    margin-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+    margin-top: 22px;
+    padding: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
     background: var(--element-bg);
-    border-radius: 12px;
-    padding: 16px 18px;
-    display: grid;
-    gap: 18px;
-}
+    box-shadow: 0 16px 38px rgba(0, 0, 0, .08);
+    align-items: start;
 
-.logsFilterGroup {
-    display: grid;
-    gap: 10px;
-}
+    .logsFilterGroup {
+        grid-column: span 4;
+        min-width: 0;
 
-.logsFilterLabel {
-    color: var(--accent-color);
-    font-weight: 600;
-}
+        >p {
+            color: var(--accent-color);
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1;
+            margin-bottom: 10px;
+            white-space: nowrap;
+        }
+    }
 
-.logsCheckboxes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
+    .logsCheckboxes,
+    .logsDateFilters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
 
-.logsCheckbox {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-}
-
-.logsDateFilters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.logsDateField {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-
-    input {
-        min-height: 36px;
-        background: var(--main-bg);
+    .logsCheckbox {
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border-color);
         border-radius: 8px;
-        border: 1px solid transparent;
-        color: var(--text-color);
+        background: var(--background-bg-2);
+        color: var(--text-color-secondary);
         padding: 0 10px;
+        font-size: 14px;
+        font-weight: 400;
+        cursor: pointer;
+        transition: transform .16s ease, color .16s ease, background .16s ease, border-color .16s ease;
+
+        input {
+            width: 14px;
+            height: 14px;
+            margin: 0;
+            accent-color: var(--accent-color);
+        }
+
+        span {
+            white-space: nowrap;
+        }
+
+        &:hover {
+            transform: translateY(-1px);
+            color: var(--text-color);
+            border-color: var(--accent-line);
+        }
+    }
+
+    .logsDateField {
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--background-bg-2);
+        color: var(--text-color-secondary);
+        padding: 0 10px;
+        font-size: 14px;
+        white-space: nowrap;
+
+        input {
+            border: 0;
+            background: transparent;
+            color: var(--text-color);
+            min-width: 140px;
+        }
+    }
+}
+
+@media (max-width: 1200px) {
+    .logsFilters {
+        .logsFilterGroup {
+            grid-column: span 6;
+        }
+    }
+}
+
+@media (max-width: 900px) {
+    .logsFilters {
+        .logsFilterGroup {
+            grid-column: 1 / -1;
+        }
     }
 }
 

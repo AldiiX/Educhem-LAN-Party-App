@@ -233,10 +233,12 @@ public sealed class AccountControllerV1(
 			ct
 		);
 
+		// var previousEnableReservations = account.EnableReservations;
 		if(request.EnableReservations.HasValue && previousEnableReservations != updated.EnableReservations) {
 			var stateMessage = updated.EnableReservations
 				? $"Uživatel {FormatAccount(acc)} změnil stav žáka {FormatAccount(updated)} na možnost rezervace."
 				: $"Uživatel {FormatAccount(acc)} změnil stav žáka {FormatAccount(updated)} na zákaz rezervace.";
+				
 
 			await dbLogger.LogInfoAsync(stateMessage, "user-edit", ct);
 		}
@@ -285,6 +287,12 @@ public sealed class AccountControllerV1(
 		account.PasswordHash = AuthService.HashPassword(password);
 		await db.SaveChangesAsync(ct);
 		reservationCache.InvalidateReservations();
+
+		await dbLogger.LogInfoAsync(
+			$"Uživatel {FormatAccount(account)} měl resetované heslo uživatelem {FormatAccount(acc)}.",
+			"user-reset-password",
+			ct
+		);
 
 		var emailSent = await SendCredentialsEmailAsync(
 			account,

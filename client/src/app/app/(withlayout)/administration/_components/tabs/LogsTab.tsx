@@ -69,6 +69,14 @@ export function LogsTab() {
         });
     }, []);
 
+    const clearFilters = useCallback(() => {
+        setSelectedLogTypes(new Set());
+        setSelectedExactTypes(new Set());
+        setDateFrom("");
+        setDateTo("");
+        setSearchTerm("");
+    }, []);
+
     const filteredLogs = useMemo(() => (logs ?? []).filter((log) => {
         if(selectedLogTypes.size > 0 && !selectedLogTypes.has(String(log.type))) {
             return false;
@@ -119,6 +127,20 @@ export function LogsTab() {
                     onChange={(event) => setSearchTerm(event.target.value)}
                 />
             </div>
+            <button
+                type="button"
+                className={style.clearFiltersButton}
+                onClick={clearFilters}
+                disabled={
+                    selectedLogTypes.size === 0
+                    && selectedExactTypes.size === 0
+                    && !dateFrom
+                    && !dateTo
+                    && !searchTerm
+                }
+            >
+                Vyčistit filtry
+            </button>
         </section>
 
         {isSuperAdmin(account) && (
@@ -201,4 +223,3 @@ export function LogsTab() {
         </table>
     </section>;
 }
-
