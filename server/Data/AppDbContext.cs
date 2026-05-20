@@ -23,7 +23,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
 	public DbSet<ProblemReport> ProblemReports { get; set; }
 
-
+	public DbSet<LogEntry> LogEntries { get; set; }
 
 	public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
 		var nowUtc = DateTime.UtcNow;
