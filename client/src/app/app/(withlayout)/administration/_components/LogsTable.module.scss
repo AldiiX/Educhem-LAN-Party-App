@@ -1,0 +1,56 @@
+﻿.logsTableWrapper {
+    margin-top: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--element-bg);
+    overflow: hidden;
+
+    .logsTable {
+        width: 100%;
+        border-collapse: collapse;
+
+        th,
+        td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        th {
+            color: var(--accent-color);
+            font-weight: 600;
+            font-size: 14px;
+            background: var(--background-bg-2);
+        }
+
+        tbody tr:nth-child(even) {
+            background: var(--background-bg-2);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: 0;
+        }
+    }
+    
+    .logType {
+        font-weight: 600;
+    }
+
+    .exactType {
+        color: var(--accent-color);
+    }
+
+    .message {
+        max-width: 700px;
+        line-height: 1.45;
+        word-break: break-word;
+    }
+
+    .date {
+        white-space: nowrap;
+        color: var(--text-color-darker);
+    }
+}
+
+
+
