@@ -3,6 +3,8 @@
     width: 100vw;
     height: 100vh;
     position: relative;
+    overflow: hidden;
+    overscroll-behavior: none;
 
     .panel {
         min-width: 312px;
@@ -168,6 +170,8 @@
         flex: 1;
         padding: 48px;
         overflow: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
 
         .loginShell {
             position: absolute;
@@ -323,6 +327,8 @@
         transform: translateY(100%);
         transition: transform .38s cubic-bezier(.22, 1, .36, 1), opacity .24s ease, visibility .38s ease;
         pointer-events: none;
+        overscroll-behavior: contain;
+        touch-action: pan-y;
 
         .menuHeader {
             display: flex;
@@ -441,8 +447,13 @@
 
 @media (max-width: 920px) {
     .layout {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        max-width: 100dvw;
         min-height: 100dvh;
         height: 100dvh;
+        touch-action: none;
 
         .panel {
             display: none;
@@ -450,7 +461,9 @@
 
         .content {
             width: 100%;
+            height: 100%;
             padding: 28px 20px 112px;
+            touch-action: pan-y;
 
             .bannerWallpaper {
                 width: 100%;
@@ -512,6 +525,7 @@
             box-shadow: 0 18px 42px var(--shadow-color);
             transform: translateX(-50%);
             backdrop-filter: blur(18px);
+            touch-action: manipulation;
 
             >a,
             >label {
@@ -561,6 +575,12 @@
             transform: translateY(0);
             transition: transform .42s cubic-bezier(.22, 1, .36, 1), opacity .24s ease;
             pointer-events: auto;
+        }
+
+        .mobileMenu {
+            width: 100%;
+            height: 100dvh;
+            max-width: 100dvw;
         }
     }
 }
