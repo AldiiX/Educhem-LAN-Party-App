@@ -98,6 +98,7 @@ public static class Program {
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<ReservationCacheService>();
         builder.Services.AddScoped<IDbLoggerService, DbLoggerService>();
+        builder.Services.AddScoped<IAppSettingsService, AppSettingsService>();
 
         Application = builder.Build();
 

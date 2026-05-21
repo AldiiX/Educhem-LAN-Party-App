@@ -7,15 +7,17 @@ import {ReservationsTab} from "./_components/tabs/ReservationsTab";
 import {ForumPostsTab} from "./_components/tabs/ForumPostsTab";
 import {LogsTab} from "./_components/tabs/LogsTab";
 import {AppSettingsTab} from "./_components/tabs/AppSettingsTab";
+import {AchievementsTab} from "./_components/tabs/AchievementsTab";
 
 export default function AdministrationClient() {
-    const [activeTab, setActiveTab] = useState<"users" | "reservations" | "forum" | "logs" | "settings">("users");
+    const [activeTab, setActiveTab] = useState<"users" | "reservations" | "forum" | "logs" | "settings" | "achievements">("users");
     const tabs = [
         { key: "users", label: "Uživatelé" },
         { key: "reservations", label: "Rezervace" },
         { key: "forum", label: "Forum příspěvky" },
         { key: "logs", label: "Bezpečnostní logy" },
         { key: "settings", label: "Nastavení aplikace" },
+        { key: "achievements", label: "Správa ocenění" },
     ] as const;
 
     return <main className={style.administration}>
@@ -39,5 +41,6 @@ export default function AdministrationClient() {
         {activeTab === "forum" && <ForumPostsTab />}
         {activeTab === "logs" && <LogsTab />}
         {activeTab === "settings" && <AppSettingsTab />}
+        {activeTab === "achievements" && <AchievementsTab />}
     </main>
 }

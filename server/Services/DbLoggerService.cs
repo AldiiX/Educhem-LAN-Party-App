@@ -8,9 +8,9 @@ public class DbLoggerService(AppDbContext db) : IDbLoggerService {
         var entry = new LogEntry {
             Id = 0,
             Type = type switch {
-                IDbLoggerService.LogType.ERROR => LogType.ERROR,
-                IDbLoggerService.LogType.WARN => LogType.WARN,
-                _ => LogType.INFO
+                IDbLoggerService.LogType.ERROR => LogType.Error,
+                IDbLoggerService.LogType.WARN => LogType.Warn,
+                _ => LogType.Info
             },
             ExactType = exactType,
             Message = message,

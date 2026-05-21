@@ -9,8 +9,8 @@ namespace server.Data.Entities;
 public class LogEntry : AuditableEntity<int>
 {
     [StringEnum]
-    [DefaultValue(LogType.INFO)]
-    public LogType Type { get; set; } = LogType.INFO;
+    [DefaultValue(LogType.Info)]
+    public LogType Type { get; set; } = LogType.Info;
 
     [MaxLength(32)]
     [DefaultValue("basic")]
@@ -19,13 +19,13 @@ public class LogEntry : AuditableEntity<int>
     [MaxLength(256)]
     public string Message { get; set; } = string.Empty;
 
-    [DefaultValueSql("CURRENT_TIMESTAMP")]
+    [DefaultValueSql("NOW()")]
     public DateTime? Date { get; set; }
 }
 
 public enum LogType
 {
-    INFO,
-    WARN,
-    ERROR,
+    Info,
+    Warn,
+    Error,
 }
