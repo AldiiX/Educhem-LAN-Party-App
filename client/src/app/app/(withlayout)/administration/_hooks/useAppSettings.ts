@@ -89,8 +89,8 @@ export function useAppSettings() {
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 reservationsStatus: status,
-                reservationsEnabledFrom: from || null,
-                reservationsEnabledTo: to || null,
+                reservationsEnabledFrom: from ? new Date(from).toISOString() : null,
+                reservationsEnabledTo: to ? new Date(to).toISOString() : null,
             }),
         });
 

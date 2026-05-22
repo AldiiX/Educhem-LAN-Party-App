@@ -28,6 +28,12 @@ type ClientProps = {
     initialLegendCollapsed?: boolean;
 };
 
+type ReservationStatusResponse = {
+    reservationsEnabled: boolean;
+    reservationsStatus: "UseTimer" | "Open" | "Closed";
+    message: string;
+};
+
 function useRememberedCollapseState(initialValue: boolean, key: string) {
     const [isCollapsed, setIsCollapsed] = useRememberState(key, initialValue);
 
@@ -43,6 +49,7 @@ export default function Client({
     initialLegendCollapsed = false,
 }: ClientProps) {
     const [selectedTab, setSelectedTab] = useState<string>("ithub");
+    const [reservationStatus, setReservationStatus] = useState<ReservationStatusResponse | null>(null);
     const [isRightPanelCollapsed, toggleRightPanelCollapsed] = useRememberedCollapseState(
         initialRightPanelCollapsed,
         "reservationsRightPanelCollapsed",
@@ -61,7 +68,32 @@ export default function Client({
     const {account} = useAuth();
     const reservedCount = reservations?.filter(reservation => reservation.computer !== null || reservation.room !== null).length ?? 0;
     const filledCapacityPercentage = Math.min(100, Math.round((reservedCount / Math.max(maxCapacity, 1)) * 100));
+    const reservationsEnabled = reservationStatus?.reservationsEnabled === true;
 
+    useEffect(() => {
+        let ignore = false;
+
+        async function loadReservationStatus() {
+            const res = await fetch("/api/v1/reservations/status");
+
+            if (!res.ok) {
+                return;
+            }
+
+            const data = await res.json() as ReservationStatusResponse;
+
+            if (!ignore) {
+                setReservationStatus(data);
+            }
+        }
+
+        void loadReservationStatus();
+
+        return () => {
+            ignore = true;
+        };
+    }, []);
+    
     return <>
         <h1 className={style.title}>Rezervace</h1>
         <div className={style.tabs}>
@@ -152,7 +184,7 @@ export default function Client({
                     }
                 </MovableMap>
 
-                <SelectedRoomOrComputer reservations={reservations} reserve={reserve} unbook={unbook} isReservationMutationPending={isReservationMutationPending} />
+                <SelectedRoomOrComputer reservations={reservations} reserve={reserve} unbook={unbook} isReservationMutationPending={isReservationMutationPending} reservationsEnabled={reservationsEnabled}/>
             </div>
 
             <aside className={`${style.right} ${isRightPanelCollapsed ? style.collapsed : ""}`}>
@@ -167,6 +199,15 @@ export default function Client({
                 </button>
 
                 <div className={style.rightContent} aria-hidden={isRightPanelCollapsed}>
+                    <If as="div" condition={reservationStatus !== null} className={`${style.block} ${style.block0}`}>
+                        <h2>{reservationsEnabled ? "Rezervace jsou otevřené" : "Rezervace jsou uzavřené"}</h2>
+                        <p>
+                            {reservationsEnabled
+                                ? "Můžeš si vytvořit nebo upravit rezervaci."
+                                : "Momentálně není možné vytvářet nové rezervace."}
+                        </p>
+                    </If>
+                    
                     <If as="div" condition={account?.enableReservations === false} className={`${style.block} ${style.block0}`}>
                         <h2>Tvůj účet nemá povolené rezervace!</h2>
                         <p>Důvodem může být to, že nemáš zaplacený vstup. Pokud si myslíš, že se jedná o chybu, kontaktuj administrátora.</p>

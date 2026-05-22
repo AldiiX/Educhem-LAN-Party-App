@@ -1,6 +1,6 @@
 ﻿namespace server.Dto;
 
-public sealed class AppSettingsDto
+public sealed class AppSettingsItemDto
 {
     public bool ChatEnabled { get; set; }
 

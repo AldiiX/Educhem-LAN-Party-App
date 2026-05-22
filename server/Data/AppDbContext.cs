@@ -24,7 +24,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
 	public DbSet<LogEntry> LogEntries { get; set; }
 	
-	public DbSet<AppSetting> AppSettings { get; set; }
+	public DbSet<AppSettingsItem> AppSettings { get; set; }
 
 	public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
 		var nowUtc = DateTime.UtcNow;

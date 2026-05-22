@@ -13,7 +13,7 @@ public interface IAppSettingsService
     Task<bool> GetBoolAsync(string key, CancellationToken ct = default);
     Task<DateTime?> GetDateTimeAsync(string key, CancellationToken ct = default);
     Task SetValueAsync(string key, string value, CancellationToken ct = default);
-
+    
     Task<DateTime> GetReservationsEnabledFromAsync(CancellationToken ct = default);
     Task SetReservationsEnabledFromAsync(DateTime value, CancellationToken ct = default);
 
@@ -27,4 +27,7 @@ public interface IAppSettingsService
     Task SetChatEnabledAsync(bool value, CancellationToken ct = default);
 
     Task<bool> AreReservationsEnabledRightNowAsync(CancellationToken ct = default);
+    Task<bool> GetReservationsEnabledRightNowStoredAsync(CancellationToken ct = default);
+    Task SetReservationsEnabledRightNowAsync(bool value, CancellationToken ct = default);
+    Task<bool> SyncReservationsEnabledRightNowAsync(CancellationToken ct = default);
 }

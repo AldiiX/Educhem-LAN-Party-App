@@ -1,6 +1,6 @@
 ﻿export type ReservationStatusType = "UseTimer" | "Open" | "Closed";
 
-export type AppSettings = {
+export type AppSettingsItem = {
     chatEnabled: boolean;
     serverNow: Date;
     reservationsEnabledFrom: Date;
@@ -18,7 +18,7 @@ export type AppSettingsResponse = {
     reservationsEnabledRightNow: boolean;
 };
 
-export function mapAppSettings(data: AppSettingsResponse): AppSettings {
+export function mapAppSettings(data: AppSettingsResponse): AppSettingsItem {
     return {
         chatEnabled: data.chatEnabled,
         serverNow: new Date(data.serverNow),

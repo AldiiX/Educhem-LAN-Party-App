@@ -7,12 +7,13 @@ namespace server.Services;
 
 public sealed class AppSettingsService : IAppSettingsService
 {
-    private const string DateFormat = "yyyy-MM-dd HH:mm:ss";
+    private const string DateFormat = "O";
 
     private const string ChatEnabledKey = "ChatEnabled";
     private const string ReservationsEnabledFromKey = "ReservationsEnabledFrom";
     private const string ReservationsEnabledToKey = "ReservationsEnabledTo";
     private const string ReservationsStatusKey = "ReservationsStatus";
+    private const string ReservationsEnabledRightNowKey = "ReservationsEnabledRightNow";
 
     private readonly AppDbContext _db;
 
@@ -20,6 +21,7 @@ public sealed class AppSettingsService : IAppSettingsService
     private DateTime? _reservationsEnabledTo;
     private IAppSettingsService.ReservationStatusType? _reservationsStatus;
     private bool? _chatEnabled;
+    private bool? _reservationsEnabledRightNow;
 
     public AppSettingsService(AppDbContext db)
     {
@@ -51,19 +53,26 @@ public sealed class AppSettingsService : IAppSettingsService
             return null;
         }
 
-        if (DateTime.TryParseExact(
+        if (DateTime.TryParse(
                 value,
-                DateFormat,
                 CultureInfo.InvariantCulture,
-                DateTimeStyles.None,
-                out var exactDate))
+                DateTimeStyles.RoundtripKind,
+                out var date))
         {
-            return exactDate;
+            if (date.Kind == DateTimeKind.Utc)
+            {
+                return date;
+            }
+
+            if (date.Kind == DateTimeKind.Local)
+            {
+                return date.ToUniversalTime();
+            }
+
+            return DateTime.SpecifyKind(date, DateTimeKind.Utc);
         }
 
-        return DateTime.TryParse(value, out var date)
-            ? date
-            : null;
+        return null;
     }
 
     public async Task SetValueAsync(string key, string value, CancellationToken ct = default)
@@ -73,7 +82,7 @@ public sealed class AppSettingsService : IAppSettingsService
 
         if (setting == null)
         {
-            _db.AppSettings.Add(new AppSetting
+            _db.AppSettings.Add(new AppSettingsItem()
             {
                 Property = key,
                 Value = value
@@ -89,10 +98,10 @@ public sealed class AppSettingsService : IAppSettingsService
 
     public async Task<DateTime> GetReservationsEnabledFromAsync(CancellationToken ct = default)
     {
-        if (_reservationsEnabledFrom.HasValue)
-        {
-            return _reservationsEnabledFrom.Value;
-        }
+        // if (_reservationsEnabledFrom.HasValue)
+        // {
+        //     return _reservationsEnabledFrom.Value;
+        // }
 
         var value = await GetDateTimeAsync(ReservationsEnabledFromKey, ct);
 
@@ -100,23 +109,13 @@ public sealed class AppSettingsService : IAppSettingsService
 
         return _reservationsEnabledFrom.Value;
     }
-
-    public async Task SetReservationsEnabledFromAsync(DateTime value, CancellationToken ct = default)
-    {
-        await SetValueAsync(
-            ReservationsEnabledFromKey,
-            value.ToString(DateFormat, CultureInfo.InvariantCulture),
-            ct);
-
-        _reservationsEnabledFrom = value;
-    }
-
+    
     public async Task<DateTime> GetReservationsEnabledToAsync(CancellationToken ct = default)
     {
-        if (_reservationsEnabledTo.HasValue)
-        {
-            return _reservationsEnabledTo.Value;
-        }
+        // if (_reservationsEnabledTo.HasValue)
+        // {
+        //     return _reservationsEnabledTo.Value;
+        // }
 
         var value = await GetDateTimeAsync(ReservationsEnabledToKey, ct);
 
@@ -124,23 +123,45 @@ public sealed class AppSettingsService : IAppSettingsService
 
         return _reservationsEnabledTo.Value;
     }
+    
+    public async Task SetReservationsEnabledFromAsync(DateTime value, CancellationToken ct = default)
+    {
+        var utc = value.Kind == DateTimeKind.Utc
+            ? value
+            : value.ToUniversalTime();
+
+        await SetValueAsync(
+            ReservationsEnabledFromKey,
+            utc.ToString(DateFormat, CultureInfo.InvariantCulture),
+            ct);
+
+        _reservationsEnabledFrom = utc;
+
+        await SyncReservationsEnabledRightNowAsync(ct);
+    }
 
     public async Task SetReservationsEnabledToAsync(DateTime value, CancellationToken ct = default)
     {
+        var utc = value.Kind == DateTimeKind.Utc
+            ? value
+            : value.ToUniversalTime();
+
         await SetValueAsync(
             ReservationsEnabledToKey,
-            value.ToString(DateFormat, CultureInfo.InvariantCulture),
+            utc.ToString(DateFormat, CultureInfo.InvariantCulture),
             ct);
 
-        _reservationsEnabledTo = value;
+        _reservationsEnabledTo = utc;
+
+        await SyncReservationsEnabledRightNowAsync(ct);
     }
 
     public async Task<IAppSettingsService.ReservationStatusType> GetReservationsStatusAsync(CancellationToken ct = default)
     {
-        if (_reservationsStatus.HasValue)
-        {
-            return _reservationsStatus.Value;
-        }
+        // if (_reservationsStatus.HasValue)
+        // {
+        //     return _reservationsStatus.Value;
+        // }
 
         var value = await GetValueAsync(ReservationsStatusKey, ct);
 
@@ -166,6 +187,8 @@ public sealed class AppSettingsService : IAppSettingsService
         await SetValueAsync(ReservationsStatusKey, value.ToString(), ct);
 
         _reservationsStatus = value;
+
+        await SyncReservationsEnabledRightNowAsync(ct);
     }
 
     public async Task<bool> GetChatEnabledAsync(CancellationToken ct = default)
@@ -203,8 +226,47 @@ public sealed class AppSettingsService : IAppSettingsService
 
         var from = await GetReservationsEnabledFromAsync(ct);
         var to = await GetReservationsEnabledToAsync(ct);
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
 
         return now >= from && now <= to;
+    }
+    
+    // public async Task<bool> GetReservationsEnabledRightNowStoredAsync(CancellationToken ct = default)
+    // {
+    //     if (_reservationsEnabledRightNow.HasValue)
+    //     {
+    //         return _reservationsEnabledRightNow.Value;
+    //     }
+    //
+    //     _reservationsEnabledRightNow = await GetBoolAsync(ReservationsEnabledRightNowKey, ct);
+    //
+    //     return _reservationsEnabledRightNow.Value;
+    // }
+    
+    public async Task<bool> GetReservationsEnabledRightNowStoredAsync(CancellationToken ct = default)
+    {
+        _reservationsEnabledRightNow = await GetBoolAsync(ReservationsEnabledRightNowKey, ct);
+    
+        return _reservationsEnabledRightNow.Value;
+    }
+
+    public async Task SetReservationsEnabledRightNowAsync(bool value, CancellationToken ct = default)
+    {
+        await SetValueAsync(ReservationsEnabledRightNowKey, value.ToString(), ct);
+
+        _reservationsEnabledRightNow = value;
+    }
+
+    public async Task<bool> SyncReservationsEnabledRightNowAsync(CancellationToken ct = default)
+    {
+        var realValue = await AreReservationsEnabledRightNowAsync(ct);
+        var storedValue = await GetReservationsEnabledRightNowStoredAsync(ct);
+
+        if (realValue != storedValue)
+        {
+            await SetReservationsEnabledRightNowAsync(realValue, ct);
+        }
+
+        return realValue;
     }
 }

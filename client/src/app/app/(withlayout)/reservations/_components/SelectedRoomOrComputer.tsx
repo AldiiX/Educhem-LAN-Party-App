@@ -12,6 +12,8 @@ import Link from "next/link";
 import {useRoomsAndComputers} from "@/app/app/(withlayout)/reservations/_hooks/useRoomsAndComputers";
 import {Button} from "@/components/Button";
 import {ProfileHoverCard} from "@/components/ProfileHoverCard";
+import {toast} from "react-hot-toast"
+
 
 export const useSelectedRoomOrComputerStore = create<{
     selectedRoomOrComputer: Room | Computer | null,
@@ -22,7 +24,7 @@ export const useSelectedRoomOrComputerStore = create<{
 }))
 
 
-export default function SelectedRoomOrComputer({ reservations, reserve, unbook, isReservationMutationPending }: { reservations: Reservation[] | null, reserve: (id: string, type: "room" | "computer") => void, unbook: () => void, isReservationMutationPending: boolean }) {
+export default function SelectedRoomOrComputer({ reservations, reserve, unbook, isReservationMutationPending, reservationsEnabled }: { reservations: Reservation[] | null, reserve: (id: string, type: "room" | "computer") => void, unbook: () => void, isReservationMutationPending: boolean,  reservationsEnabled: boolean}) {
     const { account } = useAuth();
 
     const roomOrComputer = useSelectedRoomOrComputerStore(state => state.selectedRoomOrComputer)
@@ -59,7 +61,7 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
             showDeleteReservationButton = true;
         }
 
-        else if(isComputerReservation && !reservations?.find(r => computer?.id === r.computer?.id)) {
+        else if(reservationsEnabled && isComputerReservation && !reservations?.find(r => computer?.id === r.computer?.id)) {
             showReserveButton = true;
         }
 
@@ -68,12 +70,22 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
             showDeleteReservationButton = true;
         }
 
-        else if(isRoomReservation && reservations && reservations.filter(r => r.room?.id === room?.id).length < (room?.capacity ?? 0) && !reservations?.find(r => r.room?.id === room?.id && typeof r.profile !== "string" && r.profile.id === account?.id)) {
+        else if(reservationsEnabled && isRoomReservation && reservations && reservations.filter(r => r.room?.id === room?.id).length < (room?.capacity ?? 0) && !reservations?.find(r => r.room?.id === room?.id && typeof r.profile !== "string" && r.profile.id === account?.id)) {
             showReserveButton = true;
         }
 
         return [showReserveButton, showDeleteReservationButton];
-    }, [reservations, roomOrComputer])
+    }, [
+        account,
+        computer,
+        isComputerReservation,
+        isRoomReservation,
+        reservation,
+        reservations,
+        reservationsEnabled,
+        room,
+        roomReservations
+    ])
 
 
     if(!roomOrComputer || !reservations) return null;
@@ -132,13 +144,31 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
                     </Case>
                 </Switch>
 
+                <If condition={!reservationsEnabled && !showDeleteReservationButton}>
+                    <div style={{ width: "100%", height: 1, backgroundColor: "var(--border-color)"}}></div>
+                    <p>Rezervace jsou momentálně uzavřené.</p>
+                </If>
                 <If condition={showReserveButton || showDeleteReservationButton}>
                     <div style={{ width: "100%", height: 1, backgroundColor: "var(--border-color)"}}></div>
                     <If condition={showReserveButton}>
                         <If condition={account !== null} fallback={
                             <p>Pro rezervaci <Link href={"/app/login"} style={{ color: "var(--accent-color)"}}>se musíš přihlásit</Link>.</p>
                         }>
-                            <Button type={"primary"} icon={"/icons/door.svg"} text="Rezervovat" loading={isReservationMutationPending} disabled={isReservationMutationPending} onClick={() => reserve(roomOrComputer.id, isComputerReservation ? "computer" : "room") } />
+                            <Button
+                                type={"primary"}
+                                icon={"/icons/door.svg"}
+                                text="Rezervovat"
+                                loading={isReservationMutationPending}
+                                disabled={isReservationMutationPending || !reservationsEnabled}
+                                onClick={() => {
+                                    if (!reservationsEnabled) {
+                                        toast.error("Rezervace jsou momentálně zablokované.");
+                                        return;
+                                    }
+
+                                    reserve(roomOrComputer.id, isComputerReservation ? "computer" : "room");
+                                }}
+                            />
                         </If>
                     </If>
 

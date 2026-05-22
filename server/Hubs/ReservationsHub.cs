@@ -17,7 +17,8 @@ public sealed class ReservationsHub(
 	AppDbContext db,
 	ReservationCacheService reservationCache,
 	IHubContext<ReservationsHub> hubContext,
-	IDbLoggerService dbLogger
+	IDbLoggerService dbLogger,
+	IAppSettingsService appSettings
 ) : Hub {
 	public static readonly ConcurrentDictionary<string, byte> ConnectedIds = [];
 	private static readonly object ConnectedStatusLock = new();
@@ -45,6 +46,11 @@ public sealed class ReservationsHub(
 		var account = await auth.ReAuthAsync();
 		if (account == null) {
 			await SendError("Nejste přihlášený.");
+			return;
+		}
+		
+		if (!await appSettings.AreReservationsEnabledRightNowAsync()) {
+			await SendError("Rezervace jsou momentálně uzavřené.");
 			return;
 		}
 

@@ -9,6 +9,7 @@ using server.Data.Entities;
 using server.Hubs;
 using server.Services;
 using StackExchange.Redis;
+using server.Data.Seeders;
 
 namespace server;
 
@@ -101,10 +102,12 @@ public static class Program {
         builder.Services.AddScoped<IAppSettingsService, AppSettingsService>();
 
         Application = builder.Build();
-
+        
+        await AppSettingsItemSeeder.SeedAsync(Application);
+        
         using (var scope = Application.Services.CreateScope()) {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
+            
             Application.Logger.LogInformation("NPGSQL provider: {}", db.Database.ProviderName);
         }
 

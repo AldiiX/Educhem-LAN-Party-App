@@ -3,114 +3,153 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px;
-}
 
-.timerInfo {
-    padding: 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background: var(--background-bg-2);
-    color: var(--accent-color);
-    font-size: 15px;
-    font-weight: 500;
-}
+    .settingsCard {
+        border: 1px solid var(--border-color);
+        border-radius: 18px;
+        background: var(--element-bg);
+        padding: 24px;
+        min-width: 0;
 
-.settingsCard {
-    border: 1px solid var(--border-color);
-    border-radius: 18px;
-    background: var(--element-bg);
-    padding: 24px;
-    min-width: 0;
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+    }
 
-    form {
+    .cardHeader {
         display: flex;
         flex-direction: column;
-        gap: 18px;
-    }
-}
+        gap: 4px;
 
-.cardHeader {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+        h2 {
+            margin: 0;
+            font-family: Gabarito, leaguespartan, sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
 
-    h2 {
-        margin: 0;
-        font-family: Gabarito, leaguespartan, sans-serif;
-        font-size: 24px;
-        font-weight: 600;
-        color: var(--text-color);
-    }
-
-    p {
-        margin: 0;
-        color: var(--text-color-secondary);
-        font-size: 14px;
-    }
-}
-
-.field {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    span {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--text-color-secondary);
+        p {
+            margin: 0;
+            color: var(--text-color-secondary);
+            font-size: 14px;
+        }
     }
 
-    input,
-    select {
-        width: 100%;
-        min-height: 42px;
+    .timerInfo {
+        padding: 16px;
         border: 1px solid var(--border-color);
-        border-radius: 8px;
-        outline: 0;
+        border-radius: 12px;
         background: var(--background-bg-2);
-        color: var(--text-color);
-        padding: 0 12px;
-        font-size: 16px;
+        color: var(--accent-color);
+        font-size: 15px;
+        font-weight: 600;
 
-        &:focus {
-            border-color: var(--accent-line);
+        p {
+            margin: 0 0 8px;
+            color: var(--text-color);
+            font-size: 14px;
+            font-weight: 600;
         }
     }
-}
 
-.buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 8px;
+    .timerInfoEnabled {
+        border-color: color-mix(in srgb, var(--accent-color) 45%, transparent);
+        background: color-mix(in srgb, var(--accent-color) 10%, transparent);
+    }
 
-    button {
-        min-height: 42px;
-        border-radius: 8px;
-        font-weight: 700;
-        transition: border-color .16s ease, background .16s ease, color .16s ease;
+    .timerInfoDisabled {
+        border-color: color-mix(in srgb, var(--error-color) 45%, transparent);
+        background: color-mix(in srgb, var(--error-color) 10%, transparent);
+        color: var(--error-color);
+    }
 
-        &:disabled {
-            cursor: wait;
-            opacity: .7;
+    .countdown {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+
+        span {
+            color: var(--text-color-secondary);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        strong {
+            color: var(--accent-color);
+            font-family: Gabarito, leaguespartan, sans-serif;
+            font-size: 30px;
+            line-height: 1;
+            font-weight: 700;
+            letter-spacing: .5px;
         }
     }
-}
 
-.saveButton {
-    border: 1px solid var(--accent-line);
-    background: var(--accent-color);
-    color: black;
-}
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
 
-.cancelButton {
-    border: 1px solid color-mix(in srgb, var(--text-color-secondary) 40%, transparent);
-    background: color-mix(in srgb, var(--element-bg) 72%, transparent);
-    color: var(--text-color-secondary);
+        span {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-color-secondary);
+        }
 
-    &:hover {
-        border-color: var(--text-color-secondary);
-        color: var(--text-color);
+        input,
+        select {
+            width: 100%;
+            min-height: 42px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            outline: 0;
+            background: var(--background-bg-2);
+            color: var(--text-color);
+            padding: 0 12px;
+            font-size: 16px;
+
+            &:focus {
+                border-color: var(--accent-line);
+            }
+        }
+    }
+
+    .buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 8px;
+
+        button {
+            min-height: 42px;
+            border-radius: 8px;
+            font-weight: 700;
+            transition: border-color .16s ease, background .16s ease, color .16s ease;
+
+            &:disabled {
+                cursor: wait;
+                opacity: .7;
+            }
+        }
+    }
+
+    .saveButton {
+        border: 1px solid var(--accent-line);
+        background: var(--accent-color);
+        color: black;
+    }
+
+    .cancelButton {
+        border: 1px solid color-mix(in srgb, var(--text-color-secondary) 40%, transparent);
+        background: color-mix(in srgb, var(--element-bg) 72%, transparent);
+        color: var(--text-color-secondary);
+
+        &:hover {
+            border-color: var(--text-color-secondary);
+            color: var(--text-color);
+        }
     }
 }
 

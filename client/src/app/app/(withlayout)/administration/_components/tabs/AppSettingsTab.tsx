@@ -53,22 +53,13 @@ export function AppSettingsTab() {
 
                     <If condition={settings.reservationsStatus === "UseTimer"}>
                         <div className={style.timerInfo}>
-                            <If
-                                condition={!settings.appSettings.reservationsEnabledRightNow}
-                                fallback={
-                                    <CountdownTimer
-                                        serverNow={settings.appSettings.serverNow}
-                                        target={settings.appSettings.reservationsEnabledTo}
-                                        prefix="Rezervace se zavřou za "
-                                        finishedText="Rezervace jsou podle časovače zavřené."
-                                    />
-                                }
-                            >
-                                <CountdownTimer
+                            <If condition={settings.reservationsStatus === "UseTimer"}>
+                                <ReservationTimerInfo
                                     serverNow={settings.appSettings.serverNow}
-                                    target={settings.appSettings.reservationsEnabledFrom}
-                                    prefix="Rezervace se povolí za "
-                                    finishedText="Rezervace jsou podle časovače povolené."
+                                    from={settings.appSettings.reservationsEnabledFrom}
+                                    to={settings.appSettings.reservationsEnabledTo}
+                                    reservationsEnabledRightNow={settings.appSettings.reservationsEnabledRightNow}
+                                    onFinished={() => settings.mutate()}
                                 />
                             </If>
                         </div>
@@ -131,6 +122,78 @@ export function AppSettingsTab() {
                 </form>
             </div>
         </section>
+    );
+}
+
+function ReservationTimerInfo({
+    serverNow,
+        from,
+        to,
+        reservationsEnabledRightNow,
+        onFinished,
+}: {
+    serverNow: Date;
+    from: Date;
+    to: Date;
+    reservationsEnabledRightNow: boolean;
+    onFinished: () => void;
+}) {
+    const serverNowMs = serverNow.getTime();
+    const fromMs = from.getTime();
+    const toMs = to.getTime();
+
+    if (!Number.isFinite(serverNowMs) || !Number.isFinite(fromMs) || !Number.isFinite(toMs)) {
+        return (
+            <div className={style.timerInfo}>
+                Časovač se nepodařilo načíst.
+            </div>
+        );
+    }
+
+    if (serverNowMs < fromMs) {
+        return (
+            <div className={style.timerInfo}>
+                <CountdownTimer
+                    serverNow={serverNow}
+                    target={from}
+                    prefix="Rezervace se povolí za"
+                    finishedText="Aktualizuji stav rezervací..."
+                    onFinished={onFinished}
+                    className={style.countdown}
+                />
+            </div>
+        );
+    }
+
+    if (reservationsEnabledRightNow && serverNowMs <= toMs) {
+        return (
+            <div className={`${style.timerInfo} ${style.timerInfoEnabled}`}>
+                <p>Rezervace jsou právě povolené.</p>
+
+                <CountdownTimer
+                    serverNow={serverNow}
+                    target={to}
+                    prefix="Zavřou se za"
+                    finishedText="Aktualizuji stav rezervací..."
+                    onFinished={onFinished}
+                    className={style.countdown}
+                />
+            </div>
+        );
+    }
+
+    if (serverNowMs > toMs) {
+        return (
+            <div className={`${style.timerInfo} ${style.timerInfoDisabled}`}>
+                Časovač už skončil. Rezervace jsou zavřené.
+            </div>
+        );
+    }
+
+    return (
+        <div className={`${style.timerInfo} ${style.timerInfoDisabled}`}>
+            Rezervace jsou podle časovače zavřené.
+        </div>
     );
 }
 

@@ -11,7 +11,8 @@ namespace server.Controllers;
 [ApiController]
 [Route("api/v1/reservations")]
 public sealed class ReservationsControllerV1(
-	ReservationCacheService reservationCache
+	ReservationCacheService reservationCache,
+	IAppSettingsService appSettings
 ) : Controller {
 
 	#if !DEBUG
@@ -26,14 +27,26 @@ public sealed class ReservationsControllerV1(
 		return new JsonResult(reservations);
 	}
 	#endif
-
+	
 	[HttpGet("computers-and-rooms"), HttpGet("rooms-and-computers")]
-	public async Task<IActionResult> GetComputersAndRooms() {
+	public async Task<IActionResult> GetComputersAndRooms()
+	{
 		return new JsonResult(await reservationCache.GetRoomsAndComputersAsync());
 	}
 
 	[HttpGet("status")]
-	public async Task<IActionResult> Status() {
-		return new JsonResult(await reservationCache.GetStatusAsync());
+	public async Task<IActionResult> Status(CancellationToken ct)
+	{
+		var reservationsEnabled = await appSettings.AreReservationsEnabledRightNowAsync(ct);
+		var reservationsStatus = await appSettings.GetReservationsStatusAsync(ct);
+
+		return new JsonResult(new
+		{
+			reservationsEnabled,
+			reservationsStatus = reservationsStatus.ToString(),
+			message = reservationsEnabled
+				? "Rezervace jsou otevřené."
+				: "Rezervace jsou momentálně uzavřené."
+		});
 	}
 }

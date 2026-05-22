@@ -14,7 +14,7 @@ public sealed class AppSettingsControllerV1(
 ) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<AppSettingsDto>> Get(CancellationToken ct)
+    public async Task<ActionResult<AppSettingsItemDto>> Get(CancellationToken ct)
     {
         var acc = await auth.ReAuthFromContextOrNullAsync(ct);
 
@@ -28,15 +28,26 @@ public sealed class AppSettingsControllerV1(
         }
 
         var reservationsStatus = await settings.GetReservationsStatusAsync(ct);
+        var reservationsEnabledRightNow = await settings.SyncReservationsEnabledRightNowAsync(ct);
+        var reservationsEnabledFrom = DateTime.SpecifyKind(
+            await settings.GetReservationsEnabledFromAsync(ct),
+            DateTimeKind.Utc
+        );
 
-        return Ok(new AppSettingsDto
+        var reservationsEnabledTo = DateTime.SpecifyKind(
+            await settings.GetReservationsEnabledToAsync(ct),
+            DateTimeKind.Utc
+        );
+        
+        
+        return Ok(new AppSettingsItemDto
         {
             ChatEnabled = await settings.GetChatEnabledAsync(ct),
-            ServerNow = DateTime.Now,
-            ReservationsEnabledFrom = await settings.GetReservationsEnabledFromAsync(ct),
-            ReservationsEnabledTo = await settings.GetReservationsEnabledToAsync(ct),
+            ServerNow = DateTime.UtcNow,
+            ReservationsEnabledFrom = reservationsEnabledFrom,
+            ReservationsEnabledTo = reservationsEnabledTo,
             ReservationsStatus = reservationsStatus.ToString(),
-            ReservationsEnabledRightNow = await settings.AreReservationsEnabledRightNowAsync(ct)
+            ReservationsEnabledRightNow = reservationsEnabledRightNow
         });
     }
 
