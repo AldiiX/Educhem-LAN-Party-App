@@ -91,7 +91,7 @@ export default function({ children, appVersion }: { children: ReactNode, appVers
         router.refresh();
     };
 
-    return <div className={style.layout}>
+    return <div className={style.layout} data-app-layout-shell>
         <div className={style.panel}>
             <Link href="/" className={style.logo}>
                 <div></div>

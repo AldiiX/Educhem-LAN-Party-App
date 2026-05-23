@@ -71,7 +71,6 @@
         transition: transform .16s ease, color .16s ease, background .16s ease, border-color .16s ease;
 
         &:hover {
-            transform: translateY(-1px);
             color: var(--text-color);
             border-color: var(--accent-line);
         }

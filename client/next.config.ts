@@ -1,29 +1,6 @@
 import { createHash } from "crypto";
 import type { NextConfig } from "next";
-
-type WebpackRule = {
-    oneOf?: WebpackRule[];
-    rules?: WebpackRule[];
-    use?: WebpackUse;
-};
-
-type WebpackUse =
-    | WebpackLoader
-    | WebpackLoader[]
-    | ((...args: unknown[]) => WebpackLoader | WebpackLoader[]);
-
-type WebpackLoader = {
-    loader?: string;
-    options?: {
-        modules?: {
-            getLocalIdent?: (
-                context: { resourcePath: string },
-                localIdentName: string,
-                localName: string,
-            ) => string;
-        };
-    };
-};
+import { trapRedirectSources, type WebpackRule } from "./next.config.types";
 
 function getHashedCssModuleClass(context: { resourcePath: string }, _localIdentName: string, localName: string) {
     const hash = createHash("sha256")
@@ -59,6 +36,7 @@ function applyProductionCssModuleHashing(rule: WebpackRule) {
 
 const nextConfig: NextConfig = {
     output: "standalone",
+
     webpack(config, { dev }) {
         if (!dev) {
             for (const rule of config.module.rules as WebpackRule[]) {
@@ -68,9 +46,15 @@ const nextConfig: NextConfig = {
 
         return config;
     },
-    // set reverse proxy for api calls
+
+    // set reverse proxy for api calls - pouze v devu
     async rewrites() {
         return [
+            ...trapRedirectSources.map((source) => ({
+                source,
+                destination: "/__nice-try",
+            })),
+
             {
                 source: '/api/:path*',
                 destination: 'http://localhost:8080/api/:path*' // Proxy to Backend

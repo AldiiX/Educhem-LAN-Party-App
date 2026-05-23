@@ -47,7 +47,7 @@ export default function() {
 
                 <form className={style["login-container"]} onSubmit={event => {
                     event.preventDefault();
-                    submitLogin();
+                    submitLogin().then();
                 }}>
                     <div>
                         <p>E-mail</p>
