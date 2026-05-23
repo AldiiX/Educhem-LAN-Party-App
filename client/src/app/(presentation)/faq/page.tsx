@@ -27,7 +27,11 @@ const faqItems = [
     },
     {
         question: 'Mohu přijít a odejít kdykoliv?',
-        answer: 'Ano, můžete přijít/odejít kdykoliv během akce. Odchod ale musíte dát vědět někomu z učitelů, ideálně napsat na školní Discord.'
+        answer: 'Ano, můžete přijít/odejít kdykoliv během akce. Odchod ale musíte dát vědět někomu z učitelů a zapsat ho v aplikaci v sekci Docházka včetně důvodu. Po návratu je potřeba zapsat příchod.'
+    },
+    {
+        question: 'Musím zapisovat příchody a odchody?',
+        answer: 'Ano. Každý účastník je povinen zapisovat své příchody a odchody v aplikaci, aby organizátoři věděli, kdo je aktuálně na akci a kdo je pryč.'
     },
     {
         question: 'Mohu si přinést vlastní PC/setup?',

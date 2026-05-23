@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 	public DbSet<RoomReservation> RoomReservations { get; set; }
 
 	public DbSet<ProblemReport> ProblemReports { get; set; }
+	public DbSet<AttendanceEntry> AttendanceEntries { get; set; }
 
 
 

@@ -68,4 +68,22 @@ public static class EntityFrameworkIncludes {
 			.OrderByDescending(pr => pr.CreatedAtUtc)
 			.AsSplitQuery();
 	}
+
+	public static IQueryable<AttendanceEntry> AttendanceEntriesEf(this AppDbContext db) {
+		return db.AttendanceEntries
+			.Include(ae => ae.Account)
+				.ThenInclude(a => a.AccountAchievements)
+					.ThenInclude(aa => aa.Achievement)
+			.Include(ae => ae.Account)
+				.ThenInclude(a => a.AccountBadges)
+					.ThenInclude(ab => ab.Badge)
+			.Include(ae => ae.CreatedBy)
+				.ThenInclude(a => a.AccountAchievements)
+					.ThenInclude(aa => aa.Achievement)
+			.Include(ae => ae.CreatedBy)
+				.ThenInclude(a => a.AccountBadges)
+					.ThenInclude(ab => ab.Badge)
+			.OrderByDescending(ae => ae.CreatedAtUtc)
+			.AsSplitQuery();
+	}
 }

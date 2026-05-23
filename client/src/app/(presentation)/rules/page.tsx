@@ -24,7 +24,11 @@ const categories: RuleCategory[] = [
             },
             {
                 title: 'Odcházení z budovy',
-                content: 'Odcházení během akce z budovy školy je možné, ale učitel musí být informován.'
+                content: 'Odcházení během akce z budovy školy je možné, ale učitel musí být informován. Účastník je povinen zapsat svůj odchod i následný příchod v aplikaci v sekci Docházka.'
+            },
+            {
+                title: 'Evidence příchodů a odchodů',
+                content: 'Každý účastník je povinen v aplikaci zapisovat příchody a odchody z akce včetně důvodu odchodu, aby organizátoři měli aktuální přehled o tom, kdo se nachází na akci.'
             },
             {
                 title: 'Technická zařízení',
