@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16.2.6-black?style=for-the-badge&logo=nextdotjs" />
-  <img alt="React" src="https://img.shields.io/badge/React-19.2.6-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=nextdotjs" />
+  <img alt="React" src="https://img.shields.io/badge/React-19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
   <img alt=".NET" src="https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" />
   <img alt="SignalR" src="https://img.shields.io/badge/SignalR-realtime-512BD4?style=for-the-badge" />
@@ -29,6 +29,7 @@
 - [Rezervace](#rezervace)
 - [Realtime a cache](#realtime-a-cache)
 - [Technologie](#technologie)
+- [Screenshoty z aplikace](#screenshoty-z-aplikace)
 - [Struktura projektu](#struktura-projektu)
 - [Instalace a spuštění dev verze](#instalace-a-spuštění-dev-verze)
 - [Konfigurace prostředí](#konfigurace-prostředí)
@@ -130,8 +131,8 @@ Rezervace jsou postavené na kombinaci SignalR, PostgreSQL a aplikační cache:
 
 ### Frontend
 
-- [Next.js 16.2.6](https://nextjs.org/) s App Routerem a standalone buildem
-- [React 19.2.6](https://react.dev/)
+- [Next.js 16](https://nextjs.org/) s App Routerem a standalone buildem
+- [React 19](https://react.dev/)
 - [TypeScript 6](https://www.typescriptlang.org/)
 - [@microsoft/signalr](https://www.npmjs.com/package/@microsoft/signalr) pro realtime rezervace
 - [SWR](https://swr.vercel.app/) pro klientský data fetching
@@ -158,6 +159,35 @@ Rezervace jsou postavené na kombinaci SignalR, PostgreSQL a aplikační cache:
 - Node.js 24 build stage
 - PostgreSQL
 - Redis
+
+## Screenshoty z aplikace
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="https://cloud02.emsio.cz/public/img/edulp/1.png" alt="Hlavní stránka" width="100%" />
+      <br />
+      <sub>Hlavní stránka</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="https://cloud02.emsio.cz/public/img/edulp/2.png" alt="Dashboard aplikace" width="100%" />
+      <br />
+      <sub>Dashboard aplikace</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="https://cloud02.emsio.cz/public/img/edulp/3.png" alt="Realtime rezervace" width="100%" />
+      <br />
+      <sub>Realtime rezervace</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="https://cloud02.emsio.cz/public/img/edulp/4.png" alt="Administrace účtů" width="100%" />
+      <br />
+      <sub>Administrace účtů</sub>
+    </td>
+  </tr>
+</table>
 
 ## Struktura projektu
 
@@ -433,4 +463,4 @@ Doporučené předpony commitu:
   Vytvořili Stanislav Škudrna, Serhii Yavorskyi pro Střední školu EDUCHEM, a.s. v roce 2026.
 </p>
 
-> Původní projekt byl vytvořen v roce 2024: https://github.com/aldiix/edUCHEM-LAN-Party-Web
+> Původní projekt byl vytvořen v roce 2024: https://github.com/aldiix/EDUCHEM-LAN-Party-Web
