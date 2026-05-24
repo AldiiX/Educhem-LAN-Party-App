@@ -11,34 +11,6 @@ import {accountTypeLabel, genderLabel} from "@/lib/enumLabels";
 export default function({ account }: { account: Account }) {
     const [profile, setProfile] = useState(account);
 
-    useEffect(() => {
-        let active = true;
-
-        async function refreshProfile() {
-            try {
-                const response = await fetch(`/api/v1/profile/${account.id}`, {cache: "no-cache"});
-                if(!response.ok) return;
-                const json = await response.json();
-                const parsed = AccountSchema.safeParse(json);
-                if(active && parsed.success) setProfile(parsed.data);
-            } catch {
-                // Ignore refresh failures
-            }
-        }
-
-        const source = new EventSource(`/api/v1/profile/${account.id}/events`);
-        const onUpdate = () => refreshProfile();
-        source.addEventListener("update", onUpdate);
-
-        refreshProfile();
-
-        return () => {
-            active = false;
-            source.removeEventListener("update", onUpdate);
-            source.close();
-        };
-    }, [account.id]);
-
     const achievements = (profile.achievements ?? []).filter((entry) => !entry.isHidden);
     const badges = (profile.badges ?? []).filter((entry) => entry.isTakenOut).slice(0, 3);
 
