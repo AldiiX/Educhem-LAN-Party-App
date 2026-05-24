@@ -1,17 +1,17 @@
-﻿import {useCallback, useEffect, useState} from "react";
+import {useState} from "react";
+import useSWR from "swr";
+import {fetcher} from "@/lib/swr";
+import {LogEntry, LogEntrySchema} from "@/schemas/LogEntrySchema";
 
-type LogEntry = {
-    id: number | string;
-    type: string;
-    exactType: string;
-    message: string;
-    date: string;
+const logsFetcher = async (url: string) => {
+    const response = await fetcher<unknown>(url);
+
+    return LogEntrySchema.array().parse(response ?? []);
 };
 
 export function useLogsQuery() {
-    const [logs, setLogs] = useState<LogEntry[] | null>(null);
-
-    const [logsError, setLogsError] = useState(false);
+    const {data, error, isLoading, mutate} = useSWR<LogEntry[]>("/api/v1/adm/logs", logsFetcher);
+    const logs = data ?? [];
 
     const [searchTerm, setSearchTerm] = useState("");
 
@@ -26,34 +26,13 @@ export function useLogsQuery() {
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
 
-    const refreshLogs = useCallback(async () => {
-        setLogsError(false);
-
-        try {
-            const response = await fetch("/api/v1/adm/logs", {
-                cache: "no-cache",
-            });
-
-            if(!response.ok) {
-                setLogsError(true);
-                return;
-            }
-
-            const json = await response.json();
-
-            setLogs(Array.isArray(json) ? json : []);
-        } catch {
-            setLogsError(true);
-        }
-    }, []);
-
-    useEffect(() => {
-        refreshLogs();
-    }, [refreshLogs]);
+    const refreshLogs = async () => await mutate() ?? [];
 
     return {
         logs,
-        logsError,
+        logsError: error,
+        logsLoading: isLoading,
+        mutateLogs: mutate,
 
         refreshLogs,
 

@@ -51,6 +51,28 @@ const nextConfig: NextConfig = {
         return config;
     },
 
+    async redirects() {
+        return [
+            {
+                source: "/app/reservation",
+                destination: "/app/reservations",
+                permanent: true,
+            },
+
+            {
+                source: "/app/rezervace",
+                destination: "/app/reservations",
+                permanent: true,
+            },
+
+            {
+                source: '/app/admin',
+                destination: '/app/administration',
+                permanent: true,
+            },
+        ]
+    },
+
     // set reverse proxy for api calls - pouze v devu
     async rewrites() {
         return [

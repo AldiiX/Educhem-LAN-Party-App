@@ -1,52 +1,45 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
-
-type LogEntry = {
-    id: number | string;
-    type: string;
-    exactType: string;
-    message: string;
-    date: string;
-};
+import {Dispatch, SetStateAction, useCallback, useMemo} from "react";
+import {LogEntry} from "@/schemas/LogEntrySchema";
 
 type UseLogsFiltersProps = {
-    logs: LogEntry[] | null;
+    logs: LogEntry[];
     searchTerm: string;
-    setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+    setSearchTerm: Dispatch<SetStateAction<string>>;
     selectedLogTypes: Set<string>;
-    setSelectedLogTypes: React.Dispatch<React.SetStateAction<Set<string>>>;
+    setSelectedLogTypes: Dispatch<SetStateAction<Set<string>>>;
     selectedExactTypes: Set<string>;
-    setSelectedExactTypes: React.Dispatch<React.SetStateAction<Set<string>>>;
+    setSelectedExactTypes: Dispatch<SetStateAction<Set<string>>>;
     dateFrom: string;
-    setDateFrom: React.Dispatch<React.SetStateAction<string>>;
+    setDateFrom: Dispatch<SetStateAction<string>>;
     dateTo: string;
-    setDateTo: React.Dispatch<React.SetStateAction<string>>;
+    setDateTo: Dispatch<SetStateAction<string>>;
 };
 
 export function useLogsFilters({
-       logs,
-       searchTerm,
-       setSearchTerm,
-       selectedLogTypes,
-       setSelectedLogTypes,
-       selectedExactTypes,
-       setSelectedExactTypes,
-       dateFrom,
-       setDateFrom,
-       dateTo,
-       setDateTo,
-   }: UseLogsFiltersProps){
-    
+   logs,
+   searchTerm,
+   setSearchTerm,
+   selectedLogTypes,
+   setSelectedLogTypes,
+   selectedExactTypes,
+   setSelectedExactTypes,
+   dateFrom,
+   setDateFrom,
+   dateTo,
+   setDateTo,
+}: UseLogsFiltersProps){
+
     const uniqueExactTypes = useMemo(() => (
-        Array.from(new Set((logs ?? []).map(log => log.exactType))).sort()
+        Array.from(new Set(logs.map(log => log.exactType))).sort()
     ), [logs]);
 
     const uniqueLogTypes = useMemo(() => (
-        Array.from(new Set((logs ?? []).map(log => log.type))).sort()
+        Array.from(new Set(logs.map(log => log.type))).sort()
     ), [logs]);
 
     const logTypeCounts = useMemo(() => {
         const counts = new Map<string, number>();
-        (logs ?? []).forEach(log => {
+        logs.forEach(log => {
             counts.set(log.type, (counts.get(log.type) ?? 0) + 1);
         });
         return counts;
@@ -54,7 +47,7 @@ export function useLogsFilters({
 
     const exactTypeCounts = useMemo(() => {
         const counts = new Map<string, number>();
-        (logs ?? []).forEach(log => {
+        logs.forEach(log => {
             counts.set(log.exactType, (counts.get(log.exactType) ?? 0) + 1);
         });
         return counts;
@@ -67,7 +60,7 @@ export function useLogsFilters({
             else next.add(type);
             return next;
         });
-    }, []);
+    }, [setSelectedLogTypes]);
 
     const toggleExactType = useCallback((type: string) => {
         setSelectedExactTypes(prev => {
@@ -76,7 +69,7 @@ export function useLogsFilters({
             else next.add(type);
             return next;
         });
-    }, []);
+    }, [setSelectedExactTypes]);
 
     const clearFilters = useCallback(() => {
         setSelectedLogTypes(new Set());
@@ -84,9 +77,9 @@ export function useLogsFilters({
         setDateFrom("");
         setDateTo("");
         setSearchTerm("");
-    }, []);
+    }, [setDateFrom, setDateTo, setSearchTerm, setSelectedExactTypes, setSelectedLogTypes]);
 
-    const filteredLogs = useMemo(() => (logs ?? []).filter((log) => {
+    const filteredLogs = useMemo(() => logs.filter((log) => {
         if(selectedLogTypes.size > 0 && !selectedLogTypes.has(String(log.type))) {
             return false;
         }
@@ -95,12 +88,13 @@ export function useLogsFilters({
             return false;
         }
 
-        const logDate = new Date(log.date);
-        if(dateFrom && logDate < new Date(dateFrom)) {
-            return false;
-        }
-        if(dateTo && logDate > new Date(dateTo)) {
-            return false;
+        if(log.date) {
+            if(dateFrom && log.date < new Date(dateFrom)) {
+                return false;
+            }
+            if(dateTo && log.date > new Date(dateTo)) {
+                return false;
+            }
         }
 
         if(searchTerm && !log.message.toLowerCase().includes(searchTerm.toLowerCase())) {

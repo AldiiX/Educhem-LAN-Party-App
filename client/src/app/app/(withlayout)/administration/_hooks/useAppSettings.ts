@@ -42,15 +42,19 @@ export function useAppSettings() {
             return;
         }
 
-        const now = Date.now();
+        const serverNow = appSettings.serverNow.getTime();
         const from = appSettings.reservationsEnabledFrom.getTime();
         const to = appSettings.reservationsEnabledTo.getTime();
 
+        if (!Number.isFinite(serverNow) || !Number.isFinite(from) || !Number.isFinite(to)) {
+            return;
+        }
+
         let target: number | null = null;
 
-        if (now < from) {
+        if (serverNow < from) {
             target = from;
-        } else if (now < to) {
+        } else if (serverNow < to) {
             target = to;
         }
 
@@ -58,7 +62,7 @@ export function useAppSettings() {
             return;
         }
 
-        const diff = target - now;
+        const diff = target - serverNow;
         const maxTimeout = 2147483647;
 
         if (diff <= 0 || diff > maxTimeout) {

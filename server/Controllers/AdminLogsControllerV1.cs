@@ -2,13 +2,14 @@
 using Microsoft.EntityFrameworkCore;
 using server.Data;
 using server.Data.Entities;
+using server.Dto.Mappers;
 using server.Services;
 
 namespace server.Controllers;
 
 [ApiController]
 [Route("api/v1/adm")]
-public sealed class AdmLogsControllerV1(
+public sealed class AdminLogsControllerV1(
     IAuthService auth,
     AppDbContext db
 ) : Controller
@@ -22,13 +23,7 @@ public sealed class AdmLogsControllerV1(
         var logs = await db.LogEntries
             .AsNoTracking()
             .OrderByDescending(l => l.Date)
-            .Select(l => new {
-                id = l.Id,
-                type = l.Type.ToString(),
-                exactType = l.ExactType,
-                message = l.Message,
-                date = l.Date
-            })
+            .Select(l => l.ToDto())
             .ToListAsync(ct);
 
         return Ok(logs);

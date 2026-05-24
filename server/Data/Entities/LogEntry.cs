@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using server.Data.Attributes;
 
 namespace server.Data.Entities;
@@ -23,8 +24,8 @@ public class LogEntry : AuditableEntity<int>
     public DateTime? Date { get; set; }
 }
 
-public enum LogType
-{
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum LogType {
     Info,
     Warn,
     Error,

@@ -26,10 +26,6 @@ export function LogsTab() {
         </>;
     }
 
-    if(logsAdministration.logs === null) {
-        return <p>Načítání logů...</p>;
-    }
-
     return <>
         <LogsToolbar
             totalCount={logsAdministration.logs.length}

@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useState} from "react";
+import {useServerCountdown} from "@/hooks/useServerCountdown";
 
 type CountdownTimerProps = {
     serverNow: Date;
@@ -12,62 +13,35 @@ type CountdownTimerProps = {
 };
 
 export function CountdownTimer({
-                                   serverNow,
-                                   target,
-                                   prefix = "",
-                                   finishedText = "Čas vypršel",
-                                   onFinished,
-                                   className,
-                               }: CountdownTimerProps) {
-    const serverOffset = useMemo(() => {
-        return serverNow.getTime() - Date.now();
-    }, [serverNow]);
-
-    const [now, setNow] = useState(() => Date.now() + serverOffset);
+    serverNow,
+    target,
+    prefix = "",
+    finishedText = "Čas vypršel",
+    onFinished,
+    className,
+}: CountdownTimerProps) {
     const [finishedCalled, setFinishedCalled] = useState(false);
+    const countdown = useServerCountdown(serverNow, target);
 
     useEffect(() => {
-        const interval = window.setInterval(() => {
-            setNow(Date.now() + serverOffset);
-        }, 1000);
-
-        return () => window.clearInterval(interval);
-    }, [serverOffset]);
-
-    const targetMs = target.getTime();
-    const diffMs = targetMs - now;
-
-    useEffect(() => {
-        if (diffMs <= 0 && !finishedCalled) {
+        if (countdown.isFinished && !finishedCalled) {
             setFinishedCalled(true);
             onFinished?.();
         }
-    }, [diffMs, finishedCalled, onFinished]);
+    }, [countdown.isFinished, finishedCalled, onFinished]);
 
-    if (!Number.isFinite(serverOffset) || !Number.isFinite(targetMs)) {
+    if (!countdown.isValid) {
         return <span>Časovač se nepodařilo načíst.</span>;
     }
 
-    if (diffMs <= 0) {
+    if (countdown.isFinished) {
         return <span>{finishedText}</span>;
     }
-
-    const totalSeconds = Math.floor(diffMs / 1000);
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
 
     return (
         <div className={className}>
             <span>{prefix}</span>
-
-            <strong>
-                {days > 0 && `${days}d `}
-                {hours.toString().padStart(2, "0")}:
-                {minutes.toString().padStart(2, "0")}:
-                {seconds.toString().padStart(2, "0")}
-            </strong>
+            <strong>{countdown.formatted}</strong>
         </div>
     );
 }

@@ -3,15 +3,15 @@
 namespace server.Dto.Mappers;
 
 public static class LogEntryMapper {
-    extension(LogEntry log) {
-        public LogEntryDto ToDto() {
-            return new LogEntryDto {
-                Id = log.Id,
-                CreatedAtUtc = log.CreatedAtUtc,
-                UpdatedAtUtc = log.UpdatedAtUtc,
-                Date = log.Date,
-                Message = log.Message
-            };
-        }
+    public static LogEntryDto ToDto(this LogEntry log) {
+        return new LogEntryDto {
+            Id = log.Id,
+            CreatedAtUtc = log.CreatedAtUtc,
+            UpdatedAtUtc = log.UpdatedAtUtc,
+            Date = log.Date,
+            Message = log.Message,
+            Type = log.Type,
+            ExactType = log.ExactType,
+        };
     }
 }

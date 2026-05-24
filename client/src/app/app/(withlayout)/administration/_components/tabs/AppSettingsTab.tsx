@@ -21,13 +21,14 @@ export function AppSettingsTab() {
     }
 
     if (settings.isLoading || !settings.appSettings) {
-        return <p>Načítám nastavení...</p>;
+        return null;
     }
 
     return (
         <section className={style.appsettingsTab}>
             <div className={style.settingsCard}>
                 <form
+                    key={`reservations-${settings.appSettings.reservationsStatus}-${settings.appSettings.reservationsEnabledFrom.toISOString()}-${settings.appSettings.reservationsEnabledTo.toISOString()}`}
                     onSubmit={settings.submitReservations}
                     onReset={() => settings.setReservationsStatus(settings.appSettings!.reservationsStatus)}
                 >
@@ -96,7 +97,10 @@ export function AppSettingsTab() {
             </div>
 
             <div className={style.settingsCard}>
-                <form onSubmit={settings.submitChat}>
+                <form
+                    key={`chat-${String(settings.appSettings.chatEnabled)}`}
+                    onSubmit={settings.submitChat}
+                >
                     <div className={style.cardHeader}>
                         <h2>Nastavení chatu</h2>
                         <p>Zapnutí nebo vypnutí chatu.</p>

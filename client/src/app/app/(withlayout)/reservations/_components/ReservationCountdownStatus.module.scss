@@ -1,0 +1,42 @@
+﻿.reservationStatus {
+    min-width: 210px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+
+    p {
+        margin: 0 0 6px;
+        color: var(--text-color-darker);
+        font-size: 16px;
+        line-height: 1.1;
+    }
+
+    strong {
+        display: block;
+        font-family: Gabarito, leaguespartan, sans-serif;
+        font-size: 32px;
+        font-weight: 700;
+        line-height: 1;
+        color: var(--text-color);
+    }
+
+    &:is(.open) {
+    }
+
+    &:is(.closed) {
+
+        strong {
+        }
+    }
+}
+
+@media (max-width: 700px) {
+    .reservationStatus {
+        min-width: min(210px, 70vw);
+        padding: 12px;
+
+        strong {
+            font-size: 22px;
+        }
+    }
+}

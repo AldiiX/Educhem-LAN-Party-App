@@ -13,11 +13,11 @@ export default function AdministrationClient() {
     const [activeTab, setActiveTab] = useState<"users" | "reservations" | "forum" | "logs" | "settings" | "achievements">("users");
     const tabs = [
         { key: "users", label: "Uživatelé" },
-        { key: "reservations", label: "Rezervace" },
-        { key: "forum", label: "Forum příspěvky" },
+        // { key: "reservations", label: "Rezervace" },
+        // { key: "forum", label: "Forum příspěvky" },
         { key: "logs", label: "Bezpečnostní logy" },
         { key: "settings", label: "Nastavení aplikace" },
-        { key: "achievements", label: "Správa ocenění" },
+        // { key: "achievements", label: "Správa ocenění" },
     ] as const;
 
     return <main className={style.administration}>

@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using server.Data.Entities;
-using server.Dto;
 using server.Dto.Requests;
+using server.Dto.Responses;
 using server.Services;
 
 namespace server.Controllers;
@@ -14,7 +14,7 @@ public sealed class AppSettingsControllerV1(
 ) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<AppSettingsItemDto>> Get(CancellationToken ct)
+    public async Task<ActionResult> Get(CancellationToken ct)
     {
         var acc = await auth.ReAuthFromContextOrNullAsync(ct);
 
@@ -40,8 +40,7 @@ public sealed class AppSettingsControllerV1(
         );
         
         
-        return Ok(new AppSettingsItemDto
-        {
+        return Ok(new AppSettingsResponse {
             ChatEnabled = await settings.GetChatEnabledAsync(ct),
             ServerNow = DateTime.UtcNow,
             ReservationsEnabledFrom = reservationsEnabledFrom,

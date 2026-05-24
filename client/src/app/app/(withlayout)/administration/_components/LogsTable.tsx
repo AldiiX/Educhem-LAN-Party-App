@@ -1,12 +1,5 @@
-﻿import style from "./LogsTable.module.scss";
-
-type LogEntry = {
-    id: number | string;
-    type: string;
-    exactType: string;
-    message: string;
-    date: string;
-};
+import style from "./LogsTable.module.scss";
+import {LogEntry} from "@/schemas/LogEntrySchema";
 
 type LogsTableProps = {
     logs: LogEntry[];
@@ -30,11 +23,10 @@ export function LogsTable({logs}: LogsTableProps) {
                     <td className={style.logType}>{log.type}</td>
                     <td>{log.exactType}</td>
                     <td>{log.message}</td>
-                    <td>{new Date(log.date).toLocaleString("cs-CZ")}</td>
+                    <td>{log.date ? log.date.toLocaleString("cs-CZ") : "-"}</td>
                 </tr>
             ))}
             </tbody>
         </table>
     </section>
 }
-

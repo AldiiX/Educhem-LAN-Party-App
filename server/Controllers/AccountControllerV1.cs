@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -504,11 +505,10 @@ public sealed class AccountControllerV1(
 	}
 
 	private static string GenerateRandomPassword(int length = 24) {
-		const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ěščřž!@*";
-		var random = new Random();
+		const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@*";
 		var passwordBuilder = new StringBuilder(length);
 		for (var i = 0; i < length; i++) {
-			var randomIndex = random.Next(chars.Length);
+			var randomIndex = RandomNumberGenerator.GetInt32(chars.Length);
 			passwordBuilder.Append(chars[randomIndex]);
 		}
 		return passwordBuilder.ToString();

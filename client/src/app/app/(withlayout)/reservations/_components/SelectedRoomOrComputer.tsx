@@ -57,7 +57,7 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
 
 
         // computer rezervace
-        if(isComputerReservation && typeof reservation?.profile !== "string" && account && reservation?.profile.id === account?.id) {
+        if(reservationsEnabled && isComputerReservation && typeof reservation?.profile !== "string" && account && reservation?.profile.id === account?.id) {
             showDeleteReservationButton = true;
         }
 
@@ -66,7 +66,7 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
         }
 
         // room rezervace
-        else if(isRoomReservation && account && roomReservations?.some(r => typeof r.profile !== "string" && r.profile.id === account.id)) {
+        else if(reservationsEnabled && isRoomReservation && account && roomReservations?.some(r => typeof r.profile !== "string" && r.profile.id === account.id)) {
             showDeleteReservationButton = true;
         }
 
@@ -144,10 +144,11 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
                     </Case>
                 </Switch>
 
-                <If condition={!reservationsEnabled && !showDeleteReservationButton}>
-                    <div style={{ width: "100%", height: 1, backgroundColor: "var(--border-color)"}}></div>
-                    <p>Rezervace jsou momentálně uzavřené.</p>
-                </If>
+                {/*<If condition={!reservationsEnabled}>*/}
+                {/*    <div style={{ width: "100%", height: 1, backgroundColor: "var(--border-color)"}}></div>*/}
+                {/*    <p>Rezervace jsou momentálně uzavřené.</p>*/}
+                {/*</If>*/}
+
                 <If condition={showReserveButton || showDeleteReservationButton}>
                     <div style={{ width: "100%", height: 1, backgroundColor: "var(--border-color)"}}></div>
                     <If condition={showReserveButton}>
@@ -173,7 +174,21 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
                     </If>
 
                     <If condition={showDeleteReservationButton}>
-                        <Button type={"secondary"} icon={"/icons/cancel.svg"} text="Zrušit rezervaci" loading={isReservationMutationPending} disabled={isReservationMutationPending} onClick={() => unbook() } />
+                        <Button
+                            type={"secondary"}
+                            icon={"/icons/cancel.svg"}
+                            text="Zrušit rezervaci"
+                            loading={isReservationMutationPending}
+                            disabled={isReservationMutationPending || !reservationsEnabled}
+                            onClick={() => {
+                                if (!reservationsEnabled) {
+                                    toast.error("Rezervace jsou momentálně zablokované.");
+                                    return;
+                                }
+
+                                unbook();
+                            }}
+                        />
                     </If>
                 </If>
             </div>
