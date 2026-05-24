@@ -13,11 +13,12 @@ import {hasRoleAtLeast} from "@/lib/roles";
 
 
 
-export default function({ children, appVersion }: { children: ReactNode, appVersion: string }) {
+export default function({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const { account: loggedAccount, setAccount } = useAuth();
     const {toggleTheme} = useWebTheme();
+    const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0";
 
     const navItems = useMemo(() => [
         { href: "/app", label: "Home", icon: "/icons/home.svg", exact: true },

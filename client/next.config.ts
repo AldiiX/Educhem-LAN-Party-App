@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import type { NextConfig } from "next";
+import packageJson from "./package.json";
 import { trapRedirectSources, type WebpackRule } from "./next.config.types";
 
 function getHashedCssModuleClass(context: { resourcePath: string }, _localIdentName: string, localName: string) {
@@ -36,6 +37,9 @@ function applyProductionCssModuleHashing(rule: WebpackRule) {
 
 const nextConfig: NextConfig = {
     output: "standalone",
+    env: {
+        NEXT_PUBLIC_APP_VERSION: packageJson.version,
+    },
 
     webpack(config, { dev }) {
         if (!dev) {
