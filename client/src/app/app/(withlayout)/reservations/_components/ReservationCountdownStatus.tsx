@@ -4,6 +4,7 @@ import {ReservationStatus} from "@/schemas/ReservationStatusSchema";
 import style from "./ReservationCountdownStatus.module.scss";
 import {useEffect, useMemo, useState} from "react";
 import {formatCountdownDuration} from "@/hooks/useServerCountdown";
+import {toTimestamp} from "@/app/app/(withlayout)/reservations/_hooks/time";
 
 
 
@@ -16,7 +17,7 @@ export function ReservationCountdownStatus({
     reservationsEnabled: boolean;
     className?: string;
 }) {
-    const serverOffset = useMemo(() => status.serverNow.getTime() - Date.now(), [status.serverNow]);
+    const serverOffset = useMemo(() => toTimestamp(status.serverNow) - Date.now(), [status.serverNow]);
     const [now, setNow] = useState(() => Date.now() + serverOffset);
 
     useEffect(() => {
@@ -29,8 +30,8 @@ export function ReservationCountdownStatus({
         return () => window.clearInterval(interval);
     }, [serverOffset]);
 
-    const fromMs = status.reservationsEnabledFrom.getTime();
-    const toMs = status.reservationsEnabledTo.getTime();
+    const fromMs = toTimestamp(status.reservationsEnabledFrom);
+    const toMs = toTimestamp(status.reservationsEnabledTo);
     const timerUsable = Number.isFinite(serverOffset) && Number.isFinite(fromMs) && Number.isFinite(toMs);
 
     const timerState = useMemo(() => {

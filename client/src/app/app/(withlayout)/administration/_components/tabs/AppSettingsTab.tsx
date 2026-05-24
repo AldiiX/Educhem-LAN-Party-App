@@ -125,6 +125,24 @@ export function AppSettingsTab() {
                     </div>
                 </form>
             </div>
+
+            <div className={style.settingsCard}>
+                <div className={style.cachePanel}>
+                    <div className={style.cardHeader}>
+                        <h2>Cache aplikace</h2>
+                        <p>Vyprázdnění všech dat uložených v aplikační cache.</p>
+                    </div>
+
+                    <button
+                        type="button"
+                        className={style.dangerButton}
+                        disabled={settings.clearingCache}
+                        onClick={settings.clearAppCache}
+                    >
+                        {settings.clearingCache ? "Mažu cache..." : "Smazat cache"}
+                    </button>
+                </div>
+            </div>
         </section>
     );
 }

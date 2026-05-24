@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import style from "@/app/app/(withlayout)/reservations/client.module.scss";
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useMemo, useState} from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import If from "@/components/util/If";
 import Link from "next/link";
@@ -11,7 +11,6 @@ import MovableMap from "@/components/MovableMap";
 import {ITHub} from "@/components/reservation_areas/ITHub";
 import {SpiralUpper} from "@/components/reservation_areas/SpiralUpper";
 import CapacityChart from "@/components/CapacityChart";
-import {useRememberState} from "@/hooks/useRememberState";
 import {useRoomsAndComputers} from "@/app/app/(withlayout)/reservations/_hooks/useRoomsAndComputers";
 import {useReservationsDisplay} from "@/app/app/(withlayout)/reservations/_hooks/useReservationsDisplay";
 import Switch, {Case} from "@/components/util/Switch";
@@ -19,7 +18,9 @@ import SelectedRoomOrComputer from "@/app/app/(withlayout)/reservations/_compone
 import {ProfileHoverCard} from "@/components/ProfileHoverCard";
 import {useReservationStatus} from "@/app/app/(withlayout)/reservations/_hooks/useReservationStatus";
 import {ReservationCountdownStatus} from "@/app/app/(withlayout)/reservations/_components/ReservationCountdownStatus";
-import {ReservationStatus} from "@/schemas/ReservationStatusSchema";
+import {useLiveReservationsEnabled} from "@/app/app/(withlayout)/reservations/_hooks/useLiveReservationsEnabled";
+import {useRememberedCollapseState} from "@/app/app/(withlayout)/reservations/_hooks/useRememberedCollapseState";
+import {useReservationStats} from "@/app/app/(withlayout)/reservations/_hooks/useReservationStats";
 
 export const maps = [
     { id: "ithub", name: "IT Hub (Spodní patro)"},
@@ -30,98 +31,6 @@ type ClientProps = {
     initialRightPanelCollapsed?: boolean;
     initialLegendCollapsed?: boolean;
 };
-
-function useRememberedCollapseState(initialValue: boolean, key: string) {
-    const [isCollapsed, setIsCollapsed] = useRememberState(key, initialValue);
-
-    const toggle = useCallback(() => {
-        setIsCollapsed(currentValue => !currentValue);
-    }, [setIsCollapsed]);
-
-    return [isCollapsed, toggle] as const;
-}
-
-function useLiveReservationsEnabled(
-    status: ReservationStatus | null,
-    onBoundaryReached: () => void,
-) {
-    const serverOffset = useMemo(() => (
-        status ? status.serverNow.getTime() - Date.now() : 0
-    ), [status]);
-    const [now, setNow] = useState(() => Date.now() + serverOffset);
-
-    useEffect(() => {
-        if (!status) {
-            return;
-        }
-
-        setNow(Date.now() + serverOffset);
-
-        const interval = window.setInterval(() => {
-            setNow(Date.now() + serverOffset);
-        }, 1000);
-
-        return () => window.clearInterval(interval);
-    }, [serverOffset, status]);
-
-    useEffect(() => {
-        if (!status || status.reservationsStatus !== "UseTimer") {
-            return;
-        }
-
-        const serverNow = status.serverNow.getTime();
-        const from = status.reservationsEnabledFrom.getTime();
-        const to = status.reservationsEnabledTo.getTime();
-
-        if (!Number.isFinite(serverNow) || !Number.isFinite(from) || !Number.isFinite(to)) {
-            return;
-        }
-
-        const target = serverNow < from
-            ? from
-            : serverNow < to
-                ? to
-                : null;
-
-        if (target === null) {
-            return;
-        }
-
-        const diff = target - serverNow;
-        const maxTimeout = 2147483647;
-
-        if (diff <= 0 || diff > maxTimeout) {
-            return;
-        }
-
-        const timeout = window.setTimeout(onBoundaryReached, diff + 500);
-
-        return () => window.clearTimeout(timeout);
-    }, [onBoundaryReached, status]);
-
-    return useMemo(() => {
-        if (!status) {
-            return false;
-        }
-
-        if (status.reservationsStatus === "Open") {
-            return true;
-        }
-
-        if (status.reservationsStatus === "Closed") {
-            return false;
-        }
-
-        const from = status.reservationsEnabledFrom.getTime();
-        const to = status.reservationsEnabledTo.getTime();
-
-        if (!Number.isFinite(now) || !Number.isFinite(from) || !Number.isFinite(to)) {
-            return status.reservationsEnabled;
-        }
-
-        return now >= from && now <= to;
-    }, [now, status]);
-}
 
 export default function Client({
     initialRightPanelCollapsed = false,
@@ -149,8 +58,7 @@ export default function Client({
     }, [isDisconnected, isReconnecting])
     const reservationDisplay = useReservationsDisplay(rooms, computers, reservations);
     const {account} = useAuth();
-    const reservedCount = reservations?.filter(reservation => reservation.computer !== null || reservation.room !== null).length ?? 0;
-    const filledCapacityPercentage = Math.min(100, Math.round((reservedCount / Math.max(maxCapacity, 1)) * 100));
+    const reservationStats = useReservationStats(reservations, computersCapacity, roomsCapacity, maxCapacity);
     
     return <>
         <h1 className={style.title}>Rezervace</h1>
@@ -182,7 +90,7 @@ export default function Client({
                     resetKey={selectedTab}
                     topLeft={
                         <div className={style.mapTopLeft}>
-                            <CapacityChart percentage={!isConnectionLost ? filledCapacityPercentage : 0} />
+                            <CapacityChart percentage={!isConnectionLost ? reservationStats.filledCapacityPercentage : 0} />
                         </div>
                     }
                     bottomLeft={
@@ -285,15 +193,15 @@ export default function Client({
                         <h2>Statistiky</h2>
                         <p>
                             Počet rezervovaných PC:
-                            <span>{reservations?.filter(r => r.computer !== null).length }/{computersCapacity}</span>
+                            <span>{reservationStats.reservedComputers}/{reservationStats.computersCapacity}</span>
                         </p>
                         <p>
                             Počet rezervovaných míst:
-                            <span>{reservations?.filter(r => r.room !== null).length }/{roomsCapacity}</span>
+                            <span>{reservationStats.reservedRooms}/{reservationStats.roomsCapacity}</span>
                         </p>
                         <p>
                             Celkem rezervací:
-                            <span>{(reservations?.filter(r => r.computer !== null).length ?? 0) + (reservations?.filter(r => r.room !== null).length ?? 0) }/{maxCapacity}</span>
+                            <span>{reservationStats.reservedCount}/{reservationStats.maxCapacity}</span>
                         </p>
                     </div>
 

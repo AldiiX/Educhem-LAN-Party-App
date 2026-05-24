@@ -22,42 +22,25 @@ export function useRoomsAndComputers() {
     const rooms = data?.rooms ?? [];
     const computers = data?.computers ?? [];
 
-    const maxCapacity = useMemo(() => {
-        let c = 0;
-        if(computers.length === 0 || rooms.length === 0) return c;
+    const capacities = useMemo(() => {
+        const roomsCapacity = rooms.reduce((capacity, room) => capacity + room.capacity, 0);
+        const computersCapacity = computers.length;
 
-        computers.forEach(_ => {c++});
-        rooms.forEach(room => {
-            c = c + room.capacity;
-        });
-
-        return c;
-    }, [rooms,computers])
-
-    const roomsCapacity = useMemo(() => {
-        let c = 0;
-        if(rooms.length === 0) return c;
-
-        rooms.forEach(room => {
-            c = c + room.capacity;
-        });
-
-        return c;
-    }, [rooms])
-
-    const computersCapacity = useMemo(() => {
-        if(computers.length === 0) return 0;
-        return computers.length;
-    }, [computers])
+        return {
+            roomsCapacity,
+            computersCapacity,
+            maxCapacity: roomsCapacity + computersCapacity,
+        };
+    }, [rooms, computers]);
 
     const refreshRoomsAndComputers = async () => await mutate();
 
     return {
         computers,
         rooms,
-        maxCapacity,
-        roomsCapacity,
-        computersCapacity,
+        maxCapacity: capacities.maxCapacity,
+        roomsCapacity: capacities.roomsCapacity,
+        computersCapacity: capacities.computersCapacity,
         racFetchError: error,
         racFetchLoading: isLoading,
         refreshRoomsAndComputers,

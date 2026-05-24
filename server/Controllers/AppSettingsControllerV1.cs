@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using server.Data.Entities;
 using server.Dto.Requests;
 using server.Dto.Responses;
@@ -10,7 +10,8 @@ namespace server.Controllers;
 [Route("api/v1/appsettings")]
 public sealed class AppSettingsControllerV1(
     IAuthService auth,
-    IAppSettingsService settings
+    IAppSettingsService settings,
+    AppCacheService cache
 ) : ControllerBase
 {
     [HttpGet]
@@ -18,7 +19,7 @@ public sealed class AppSettingsControllerV1(
     {
         var acc = await auth.ReAuthFromContextOrNullAsync(ct);
 
-        if (acc == null || acc.AccountType < AccountType.SuperAdmin)
+        if (acc == null || acc.AccountType < AccountType.Admin)
         {
             return Unauthorized(new
             {
@@ -38,9 +39,9 @@ public sealed class AppSettingsControllerV1(
             await settings.GetReservationsEnabledToAsync(ct),
             DateTimeKind.Utc
         );
-        
-        
-        return Ok(new AppSettingsResponse {
+
+        return Ok(new AppSettingsResponse
+        {
             ChatEnabled = await settings.GetChatEnabledAsync(ct),
             ServerNow = DateTime.UtcNow,
             ReservationsEnabledFrom = reservationsEnabledFrom,
@@ -57,7 +58,7 @@ public sealed class AppSettingsControllerV1(
     {
         var acc = await auth.ReAuthFromContextOrNullAsync(ct);
 
-        if (acc == null || acc.AccountType < AccountType.SuperAdmin)
+        if (acc == null || acc.AccountType < AccountType.Admin)
         {
             return Unauthorized(new
             {
@@ -97,6 +98,25 @@ public sealed class AppSettingsControllerV1(
         {
             await settings.SetReservationsEnabledToAsync(request.ReservationsEnabledTo.Value, ct);
         }
+
+        return NoContent();
+    }
+
+    [HttpPost("cache/clear")]
+    public async Task<IActionResult> ClearCache(CancellationToken ct)
+    {
+        var acc = await auth.ReAuthFromContextOrNullAsync(ct);
+
+        if (acc == null || acc.AccountType < AccountType.Admin)
+        {
+            return Unauthorized(new
+            {
+                success = false,
+                message = "Nelze smazat cache aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva."
+            });
+        }
+
+        cache.Clear();
 
         return NoContent();
     }

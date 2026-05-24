@@ -28,6 +28,7 @@ export function useAppSettings() {
 
     const [reservationsStatus, setReservationsStatus] = useState<ReservationStatusType>("Closed");
     const [saving, setSaving] = useState(false);
+    const [clearingCache, setClearingCache] = useState(false);
 
     useEffect(() => {
         if (!appSettings) {
@@ -136,15 +137,35 @@ export function useAppSettings() {
         await mutate();
     }
 
+    async function clearAppCache() {
+        setClearingCache(true);
+
+        const res = await fetch("/api/v1/appsettings/cache/clear", {
+            method: "POST",
+        });
+
+        setClearingCache(false);
+
+        if (!res.ok) {
+            toast.error("Cache aplikace se nepodařilo smazat.");
+            return;
+        }
+
+        toast.success("Cache aplikace byla smazána.");
+        await mutate();
+    }
+
     return {
         appSettings,
         error,
         isLoading,
         saving,
+        clearingCache,
         reservationsStatus,
         setReservationsStatus,
         submitReservations,
         submitChat,
+        clearAppCache,
         mutate,
     };
 }

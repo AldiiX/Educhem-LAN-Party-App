@@ -18,6 +18,12 @@
         }
     }
 
+    .cachePanel {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
     .cardHeader {
         display: flex;
         flex-direction: column;
@@ -149,6 +155,26 @@
         &:hover {
             border-color: var(--text-color-secondary);
             color: var(--text-color);
+        }
+    }
+
+    .dangerButton {
+        min-height: 42px;
+        border: 1px solid color-mix(in srgb, var(--error-color) 65%, transparent);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--error-color) 14%, transparent);
+        color: var(--error-color);
+        font-weight: 700;
+        transition: border-color .16s ease, background .16s ease, color .16s ease;
+
+        &:hover:not(:disabled) {
+            border-color: var(--error-color);
+            background: color-mix(in srgb, var(--error-color) 22%, transparent);
+        }
+
+        &:disabled {
+            cursor: wait;
+            opacity: .7;
         }
     }
 }

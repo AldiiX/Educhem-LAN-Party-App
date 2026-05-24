@@ -96,6 +96,7 @@ public static class Program {
         builder.Services.AddHttpClient();
         builder.Services.AddMemoryCache(); // pro pripad, ze bych chtel nekdy skalovat (asi ne) je lepsi vyuzit redis pokud mam multiistance app coz pro lanku asi mit stejne nikdy nebudu
 
+        builder.Services.AddSingleton<AppCacheService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<ReservationCacheService>();
         builder.Services.AddScoped<IDbLoggerService, DbLoggerService>();
