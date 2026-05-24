@@ -1,6 +1,9 @@
-﻿"use client"
+﻿import style from "./not-found.module.scss"
+import { Metadata } from "next";
 
-import style from "./not-found.module.scss"
+export const metadata: Metadata = {
+    title: "404 - Stránka nenalezena"
+}
 
 export default function NotFound() {
     return (

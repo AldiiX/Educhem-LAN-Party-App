@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import style from "@/app/app/(withlayout)/reservations/client.module.scss";
-import {useCallback, useState, useEffect, useMemo} from "react";
+import {useCallback, useMemo, useState} from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import If from "@/components/util/If";
 import Link from "next/link";
@@ -11,12 +11,16 @@ import MovableMap from "@/components/MovableMap";
 import {ITHub} from "@/components/reservation_areas/ITHub";
 import {SpiralUpper} from "@/components/reservation_areas/SpiralUpper";
 import CapacityChart from "@/components/CapacityChart";
-import {useRememberState} from "@/hooks/useRememberState";
 import {useRoomsAndComputers} from "@/app/app/(withlayout)/reservations/_hooks/useRoomsAndComputers";
 import {useReservationsDisplay} from "@/app/app/(withlayout)/reservations/_hooks/useReservationsDisplay";
 import Switch, {Case} from "@/components/util/Switch";
 import SelectedRoomOrComputer from "@/app/app/(withlayout)/reservations/_components/SelectedRoomOrComputer";
 import {ProfileHoverCard} from "@/components/ProfileHoverCard";
+import {useReservationStatus} from "@/app/app/(withlayout)/reservations/_hooks/useReservationStatus";
+import {ReservationCountdownStatus} from "@/app/app/(withlayout)/reservations/_components/ReservationCountdownStatus";
+import {useLiveReservationsEnabled} from "@/app/app/(withlayout)/reservations/_hooks/useLiveReservationsEnabled";
+import {useRememberedCollapseState} from "@/app/app/(withlayout)/reservations/_hooks/useRememberedCollapseState";
+import {useReservationStats} from "@/app/app/(withlayout)/reservations/_hooks/useReservationStats";
 
 export const maps = [
     { id: "ithub", name: "IT Hub (Spodní patro)"},
@@ -27,16 +31,6 @@ type ClientProps = {
     initialRightPanelCollapsed?: boolean;
     initialLegendCollapsed?: boolean;
 };
-
-function useRememberedCollapseState(initialValue: boolean, key: string) {
-    const [isCollapsed, setIsCollapsed] = useRememberState(key, initialValue);
-
-    const toggle = useCallback(() => {
-        setIsCollapsed(currentValue => !currentValue);
-    }, [setIsCollapsed]);
-
-    return [isCollapsed, toggle] as const;
-}
 
 export default function Client({
     initialRightPanelCollapsed = false,
@@ -54,14 +48,18 @@ export default function Client({
 
     const { reservations, connectedIds, isConnected, isDisconnected, isConnecting, isReconnecting, reserve, unbook, isReservationMutationPending } = useReservationsHub();
     const { roomsCapacity, maxCapacity, computersCapacity, rooms, computers } = useRoomsAndComputers();
+    const {reservationStatus, mutateReservationStatus} = useReservationStatus();
+    const refreshReservationStatus = useCallback(() => {
+        void mutateReservationStatus();
+    }, [mutateReservationStatus]);
+    const reservationsEnabled = useLiveReservationsEnabled(reservationStatus, refreshReservationStatus);
     const isConnectionLost = useMemo(() =>{
         return isReconnecting || isDisconnected;
     }, [isDisconnected, isReconnecting])
     const reservationDisplay = useReservationsDisplay(rooms, computers, reservations);
     const {account} = useAuth();
-    const reservedCount = reservations?.filter(reservation => reservation.computer !== null || reservation.room !== null).length ?? 0;
-    const filledCapacityPercentage = Math.min(100, Math.round((reservedCount / Math.max(maxCapacity, 1)) * 100));
-
+    const reservationStats = useReservationStats(reservations, computersCapacity, roomsCapacity, maxCapacity);
+    
     return <>
         <h1 className={style.title}>Rezervace</h1>
         <div className={style.tabs}>
@@ -74,6 +72,14 @@ export default function Client({
 
         <div className={style.flex}>
             <div className={style.left}>
+                <If condition={reservationStatus !== null}>
+                    <ReservationCountdownStatus
+                        status={reservationStatus!}
+                        reservationsEnabled={reservationsEnabled}
+                        className={style.reservationStatus}
+                    />
+                </If>
+
                 <MovableMap
                     className={style.map}
                     width={2560}
@@ -83,7 +89,9 @@ export default function Client({
                     maxScale={1.35}
                     resetKey={selectedTab}
                     topLeft={
-                        <CapacityChart percentage={!isConnectionLost ? filledCapacityPercentage : 0} />
+                        <div className={style.mapTopLeft}>
+                            <CapacityChart percentage={!isConnectionLost ? reservationStats.filledCapacityPercentage : 0} />
+                        </div>
                     }
                     bottomLeft={
                         <div className={`${style.legend} ${isLegendCollapsed ? style.collapsed : ""}`}>
@@ -152,7 +160,7 @@ export default function Client({
                     }
                 </MovableMap>
 
-                <SelectedRoomOrComputer reservations={reservations} reserve={reserve} unbook={unbook} isReservationMutationPending={isReservationMutationPending} />
+                <SelectedRoomOrComputer reservations={reservations} reserve={reserve} unbook={unbook} isReservationMutationPending={isReservationMutationPending} reservationsEnabled={reservationsEnabled}/>
             </div>
 
             <aside className={`${style.right} ${isRightPanelCollapsed ? style.collapsed : ""}`}>
@@ -167,24 +175,33 @@ export default function Client({
                 </button>
 
                 <div className={style.rightContent} aria-hidden={isRightPanelCollapsed}>
-                    <If as="div" condition={account?.enableReservations === false} className={`${style.block} ${style.block0}`}>
-                        <h2>Tvůj účet nemá povolené rezervace!</h2>
-                        <p>Důvodem může být to, že nemáš zaplacený vstup. Pokud si myslíš, že se jedná o chybu, kontaktuj administrátora.</p>
-                    </If>
+                    <Switch>
+                        <Case when={account?.enableReservations === false} as="div" className={`${style.block} ${style.block0}`}>
+                            <h2>Tvůj účet nemá povolené rezervace!</h2>
+                            <p>Důvodem může být to, že nemáš zaplacený vstup. Pokud si myslíš, že se jedná o chybu, kontaktuj administrátora.</p>
+                        </Case>
+
+                        <Case when={reservationStatus !== null && !reservationsEnabled} as="div" className={`${style.block} ${style.block0}`}>
+                            <h2>Rezervace jsou uzavřené</h2>
+                            <p>Momentálně není možné vytvářet nové rezervace.</p>
+                        </Case>
+                    </Switch>
+
+
 
                     <div className={`${style.block} ${style.block1}`}>
                         <h2>Statistiky</h2>
                         <p>
                             Počet rezervovaných PC:
-                            <span>{reservations?.filter(r => r.computer !== null).length }/{computersCapacity}</span>
+                            <span>{reservationStats.reservedComputers}/{reservationStats.computersCapacity}</span>
                         </p>
                         <p>
                             Počet rezervovaných míst:
-                            <span>{reservations?.filter(r => r.room !== null).length }/{roomsCapacity}</span>
+                            <span>{reservationStats.reservedRooms}/{reservationStats.roomsCapacity}</span>
                         </p>
                         <p>
                             Celkem rezervací:
-                            <span>{(reservations?.filter(r => r.computer !== null).length ?? 0) + (reservations?.filter(r => r.room !== null).length ?? 0) }/{maxCapacity}</span>
+                            <span>{reservationStats.reservedCount}/{reservationStats.maxCapacity}</span>
                         </p>
                     </div>
 

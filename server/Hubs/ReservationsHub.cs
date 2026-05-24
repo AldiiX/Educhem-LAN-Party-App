@@ -16,7 +16,9 @@ public sealed class ReservationsHub(
 	IAuthService auth,
 	AppDbContext db,
 	ReservationCacheService reservationCache,
-	IHubContext<ReservationsHub> hubContext
+	IHubContext<ReservationsHub> hubContext,
+	IDbLoggerService dbLogger,
+	IAppSettingsService appSettings
 ) : Hub {
 	public static readonly ConcurrentDictionary<string, byte> ConnectedIds = [];
 	private static readonly object ConnectedStatusLock = new();
@@ -41,9 +43,15 @@ public sealed class ReservationsHub(
 	}
 
 	public async Task Reserve(ReserveRequest request) {
-		var account = await auth.ReAuthAsync();
+		var ct = Context.ConnectionAborted;
+		var account = await auth.ReAuthAsync(ct);
 		if (account == null) {
 			await SendError("Nejste přihlášený.");
+			return;
+		}
+		
+		if (!await appSettings.AreReservationsEnabledRightNowAsync(ct)) {
+			await SendError("Rezervace jsou momentálně uzavřené.");
 			return;
 		}
 
@@ -59,16 +67,17 @@ public sealed class ReservationsHub(
 
 		try {
 			// serializable, at se dva rychly lidi nenacpou na stejny misto naraz
-			await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+			await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
 
-			var accountEntity = await db.Accounts.FirstAsync(a => a.Id == account.Id);
-			var existingReservation = await db.ReservationsEf().FirstOrDefaultAsync(r => r.AccountId == account.Id);
+			var accountEntity = await db.Accounts.FirstAsync(a => a.Id == account.Id, ct);
+			var existingReservation = await db.ReservationsEf().FirstOrDefaultAsync(r => r.AccountId == account.Id, ct);
 			Reservation? previousReservation = existingReservation;
 			Reservation? reservation = null;
+			string? reservedTarget = null;
 
 			switch (request.Type) {
 				case "computer": {
-					var computer = await db.ComputersEf().FirstOrDefaultAsync(c => c.Id == request.Id);
+					var computer = await db.ComputersEf().FirstOrDefaultAsync(c => c.Id == request.Id, ct);
 					if (computer == null) {
 						await SendError("Počítač neexistuje nebo není dostupný.");
 						return;
@@ -80,7 +89,7 @@ public sealed class ReservationsHub(
 					}
 
 					var reservationExists = await db.ComputerReservations
-						.AnyAsync(r => r.Computer.Id == request.Id && r.AccountId != account.Id);
+						.AnyAsync(r => r.Computer.Id == request.Id && r.AccountId != account.Id, ct);
 
 					if (reservationExists) {
 						await SendError("Toto místo je již rezervované.");
@@ -97,18 +106,19 @@ public sealed class ReservationsHub(
 						Note = null,
 					};
 					db.Reservations.Add(reservation);
+					reservedTarget = computer.Id;
 					break;
 				}
 
 				case "room": {
-					var room = await db.RoomsEf().FirstOrDefaultAsync(r => r.Id == request.Id);
+					var room = await db.RoomsEf().FirstOrDefaultAsync(r => r.Id == request.Id, ct);
 					if (room == null) {
 						await SendError("Místnost neexistuje nebo není dostupná.");
 						return;
 					}
 
 					var reservationCount = await db.RoomReservations
-						.CountAsync(r => r.Room.Id == request.Id && r.AccountId != account.Id);
+						.CountAsync(r => r.Room.Id == request.Id && r.AccountId != account.Id, ct);
 
 					if (reservationCount >= room.Capacity) {
 						await SendError("Toto místo je již rezervované.");
@@ -125,14 +135,23 @@ public sealed class ReservationsHub(
 						Note = null,
 					};
 					db.Reservations.Add(reservation);
+					reservedTarget = room.Id;
 					break;
 				}
 			}
 
-			await db.SaveChangesAsync();
-			await transaction.CommitAsync();
+
+			await db.SaveChangesAsync(ct);
+			await transaction.CommitAsync(ct);
 			// cache drzime stejne jako klienty - jen delta update, zadnej full reload po kazdy zmene
 			await reservationCache.ApplyReservationChangeAsync(previousReservation, reservation);
+
+			if (reservation != null && !string.IsNullOrWhiteSpace(reservedTarget)) {
+				await dbLogger.LogInfoAsync(
+					$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "rezervoval", "rezervovala")} {reservedTarget}.",
+					"reservation", ct
+					);
+			}
 
 			await BroadcastReservationsChanged("booked", "Rezervace byla upravena.", previousReservation, reservation);
 		} catch (DbUpdateException ex) when (IsConcurrentReservationWrite(ex)) {
@@ -146,21 +165,33 @@ public sealed class ReservationsHub(
 	}
 
 	public async Task Unbook() {
-		var account = await auth.ReAuthAsync();
+		var ct = Context.ConnectionAborted;
+		var account = await auth.ReAuthAsync(ct);
 		if (account == null) {
 			await SendError("Nejste přihlášený.");
 			return;
 		}
 
-		var existingReservation = await db.ReservationsEf().FirstOrDefaultAsync(r => r.AccountId == account.Id);
+		if (!await appSettings.AreReservationsEnabledRightNowAsync(ct)) {
+			await SendError("Rezervace jsou momentálně uzavřené.");
+			return;
+		}
+
+		var existingReservation = await db.ReservationsEf().FirstOrDefaultAsync(r => r.AccountId == account.Id, ct);
 		if (existingReservation == null) {
 			await SendError("Nemáte žádnou rezervaci.");
 			return;
 		}
 
 		db.Reservations.Remove(existingReservation);
-		await db.SaveChangesAsync();
+		await db.SaveChangesAsync(ct);
 		await reservationCache.ApplyReservationChangeAsync(existingReservation, null);
+
+		await dbLogger.LogInfoAsync(
+			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "zrušil", "zrušila")} rezervaci.",
+			"reservation"
+		);
+
 		await BroadcastReservationsChanged("unbooked", "Rezervace byla smazána.", existingReservation, null);
 	}
 
@@ -237,5 +268,17 @@ public sealed class ReservationsHub(
 		return exception is PostgresException {
 			SqlState: PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.UniqueViolation
 		} || exception.InnerException is not null && IsConcurrentReservationWrite(exception.InnerException);
+	}
+
+	private static string FormatAccount(Account account) {
+		return $"{account.FirstName} {account.LastName} ({account.Email})";
+	}
+
+	private static string UserNoun(Account account) {
+		return account.Gender == Gender.Female ? "Uživatelka" : "Uživatel";
+	}
+
+	private static string PastVerb(Account account, string masculine, string feminine) {
+		return account.Gender == Gender.Female ? feminine : masculine;
 	}
 }

@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +29,8 @@ public sealed class AccountControllerV1(
 	IServiceProvider serviceProvider,
 	IDataProtectionProvider dataProtectionProvider,
 	IDistributedCache distributedCache,
-	ReservationCacheService reservationCache
+	ReservationCacheService reservationCache,
+	IDbLoggerService dbLogger
 ) : Controller {
 
 	private readonly IDataProtector passwordResetProtector = dataProtectionProvider.CreateProtector("account-password-reset");
@@ -154,6 +156,12 @@ public sealed class AccountControllerV1(
 			);
 		}
 
+		await dbLogger.LogInfoAsync(
+			$"{UserNoun(created)} {FormatAccount(created)} {PastVerb(created, "byl vytvořen", "byla vytvořena")} {UserInstrumental(acc)} {FormatAccount(acc)}.",
+			"user-create",
+			ct
+		);
+
 		return Ok(new AccountMutationResponse(created.ToDto(), emailSent));
 	}
 
@@ -169,6 +177,7 @@ public sealed class AccountControllerV1(
 		if(!CanManageAccount(acc, account))
 			return Forbid();
 
+		var previousEnableReservations = account.EnableReservations;
 		var requestedAccountType = request.AccountType ?? account.AccountType;
 		if(!CanManageRole(acc, requestedAccountType))
 			return Forbid();
@@ -219,6 +228,22 @@ public sealed class AccountControllerV1(
 			);
 		}
 
+		await dbLogger.LogInfoAsync(
+			$"{UserNoun(updated)} {FormatAccount(updated)} {PastVerb(updated, "byl upraven", "byla upravena")} {UserInstrumental(acc)} {FormatAccount(acc)}.",
+			"user-edit",
+			ct
+		);
+
+		// var previousEnableReservations = account.EnableReservations;
+		if(request.EnableReservations.HasValue && previousEnableReservations != updated.EnableReservations) {
+			var stateMessage = updated.EnableReservations
+				? $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "změnil", "změnila")} stav {ParticipantGenitive(updated)} {FormatAccount(updated)} na možnost rezervace."
+				: $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "změnil", "změnila")} stav {ParticipantGenitive(updated)} {FormatAccount(updated)} na zákaz rezervace.";
+				
+
+			await dbLogger.LogInfoAsync(stateMessage, "user-edit", ct);
+		}
+
 		return Ok(new AccountMutationResponse(updated.ToDto(), emailSent));
 	}
 
@@ -237,6 +262,13 @@ public sealed class AccountControllerV1(
 		db.Accounts.Remove(account);
 		await db.SaveChangesAsync(ct);
 		reservationCache.InvalidateReservations();
+
+		await dbLogger.LogInfoAsync(
+			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "byl smazán", "byla smazána")} {UserInstrumental(acc)} {FormatAccount(acc)}.",
+			"user-delete",
+			ct
+		);
+
 		return NoContent();
 	}
 
@@ -256,6 +288,12 @@ public sealed class AccountControllerV1(
 		account.PasswordHash = AuthService.HashPassword(password);
 		await db.SaveChangesAsync(ct);
 		reservationCache.InvalidateReservations();
+
+		await dbLogger.LogInfoAsync(
+			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "měl", "měla")} resetované heslo {UserInstrumental(acc)} {FormatAccount(acc)}.",
+			"user-reset-password",
+			ct
+		);
 
 		var emailSent = await SendCredentialsEmailAsync(
 			account,
@@ -333,6 +371,13 @@ public sealed class AccountControllerV1(
 
 		account.PasswordHash = AuthService.HashPassword(request.NewPassword);
 		await db.SaveChangesAsync(ct);
+
+		await dbLogger.LogInfoAsync(
+			$"{UserNoun(account)} {FormatAccount(account)} si {PastVerb(account, "změnil", "změnila")} heslo.",
+			"user-change-own-password",
+			ct
+		);
+
 		await auth.LogoutAsync(ct);
 
 		return NoContent();
@@ -360,6 +405,20 @@ public sealed class AccountControllerV1(
 			account.Gender
 		);
 
+		if(emailSent) {
+			await dbLogger.LogInfoAsync(
+				$"{UserNoun(account)} {FormatAccount(account)} si {PastVerb(account, "vyžádal", "vyžádala")} reset hesla; resetovací email byl odeslán.",
+				"user-password-reset-request",
+				ct
+			);
+		} else {
+			await dbLogger.LogWarnAsync(
+				$"{UserNoun(account)} {FormatAccount(account)} si {PastVerb(account, "vyžádal", "vyžádala")} reset hesla, ale resetovací email se nepodařilo odeslat.",
+				"user-password-reset-email-failed",
+				ct
+			);
+		}
+
 		return Ok(new PasswordResetResponse(emailSent));
 	}
 
@@ -380,6 +439,12 @@ public sealed class AccountControllerV1(
 
 		account.PasswordHash = AuthService.HashPassword(request.NewPassword);
 		await db.SaveChangesAsync(ct);
+
+		await dbLogger.LogInfoAsync(
+			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "dokončil", "dokončila")} reset hesla přes resetovací odkaz.",
+			"user-password-reset-confirm",
+			ct
+		);
 
 		return NoContent();
 	}
@@ -467,11 +532,10 @@ public sealed class AccountControllerV1(
 	}
 
 	private static string GenerateRandomPassword(int length = 24) {
-		const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ěščřž!@*";
-		var random = new Random();
+		const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@*";
 		var passwordBuilder = new StringBuilder(length);
 		for (var i = 0; i < length; i++) {
-			var randomIndex = random.Next(chars.Length);
+			var randomIndex = RandomNumberGenerator.GetInt32(chars.Length);
 			passwordBuilder.Append(chars[randomIndex]);
 		}
 		return passwordBuilder.ToString();
@@ -551,5 +615,25 @@ public sealed class AccountControllerV1(
 
 		var request = HttpContext.Request;
 		return $"{request.Scheme}://{request.Host}{pathAndQuery}";
+	}
+
+	private static string FormatAccount(Account account) {
+		return $"{account.FirstName} {account.LastName} ({account.Email})";
+	}
+
+	private static string UserNoun(Account account) {
+		return account.Gender == Gender.Female ? "Uživatelka" : "Uživatel";
+	}
+
+	private static string UserInstrumental(Account account) {
+		return account.Gender == Gender.Female ? "uživatelkou" : "uživatelem";
+	}
+
+	private static string ParticipantGenitive(Account account) {
+		return account.Gender == Gender.Female ? "účastnice" : "účastníka";
+	}
+
+	private static string PastVerb(Account account, string masculine, string feminine) {
+		return account.Gender == Gender.Female ? feminine : masculine;
 	}
 }

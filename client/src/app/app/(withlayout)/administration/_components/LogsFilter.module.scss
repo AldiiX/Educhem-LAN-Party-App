@@ -1,0 +1,120 @@
+.logsFilters {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+    margin-top: 22px;
+    padding: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--element-bg);
+    align-items: start;
+
+    .logsFilterGroup {
+        grid-column: span 4;
+        min-width: 0;
+
+        > p {
+            color: var(--accent-color);
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1;
+            margin-bottom: 10px;
+            white-space: nowrap;
+        }
+    }
+
+    .logsCheckboxes,
+    .logsDateFilters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .logsCheckbox {
+        position: relative;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--background-bg-2);
+        color: var(--text-color-secondary);
+        padding: 0 10px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: transform .16s ease, color .16s ease, background .16s ease, border-color .16s ease;
+
+        input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        span {
+            white-space: nowrap;
+        }
+
+        small {
+            min-width: 20px;
+            height: 20px;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .07);
+            color: var(--text-color-darker);
+            font-size: 12px;
+        }
+
+        &:hover {
+            transform: translateY(-1px);
+            color: var(--text-color);
+            border-color: var(--accent-line);
+        }
+
+        &.activeLogChip {
+            background: var(--accent-soft);
+            border-color: var(--accent-line);
+            color: var(--accent-color);
+        }
+    }
+
+    .logsDateField {
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--background-bg-2);
+        color: var(--text-color-secondary);
+        padding: 0 10px;
+        font-size: 14px;
+        white-space: nowrap;
+
+        input {
+            border: 0;
+            background: transparent;
+            color: var(--text-color);
+            min-width: 140px;
+        }
+    }
+}
+
+@media (max-width: 1200px) {
+    .logsFilters {
+        .logsFilterGroup {
+            grid-column: span 6;
+        }
+    }
+}
+
+@media (max-width: 900px) {
+    .logsFilters {
+        .logsFilterGroup {
+            grid-column: 1 / -1;
+        }
+    }
+}

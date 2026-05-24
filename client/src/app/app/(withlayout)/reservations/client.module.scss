@@ -46,6 +46,22 @@
         padding: 0;
         overflow: hidden;
 
+        .reservationStatus {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1;
+            text-align: center;
+        }
+
+        .mapTopLeft {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            pointer-events: none;
+        }
+
         .map {
             min-height: 100%;
 
@@ -184,6 +200,7 @@
             color: var(--text-color-secondary);
             border: 1px solid var(--border-color);
             font-size: 16px;
+            backdrop-filter: blur(12px);
 
             &:is(.connected) {
                 opacity: 0;
@@ -532,6 +549,10 @@
             height: 65dvh;
             flex: unset;
             max-height: none;
+
+            .mapTopLeft {
+                flex-direction: column;
+            }
 
             .legend {
                 min-width: 226px;

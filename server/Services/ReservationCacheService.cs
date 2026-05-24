@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using server.Data;
 using server.Data.Entities;
 using server.Dto;
@@ -10,7 +9,7 @@ namespace server.Services;
 
 public sealed class ReservationCacheService(
 	AppDbContext db,
-	IMemoryCache cache
+	AppCacheService cache
 ) {
 	private const string AuthenticatedReservationsKey = "reservations:authenticated";
 	private const string AnonymousReservationsKey = "reservations:anonymous";

@@ -20,11 +20,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 	public DbSet<Reservation> Reservations { get; set; }
 	public DbSet<ComputerReservation> ComputerReservations { get; set; }
 	public DbSet<RoomReservation> RoomReservations { get; set; }
-
 	public DbSet<ProblemReport> ProblemReports { get; set; }
 	public DbSet<AttendanceEntry> AttendanceEntries { get; set; }
 
-
+	public DbSet<LogEntry> LogEntries { get; set; }
+	
+	public DbSet<AppSettingsItem> AppSettings { get; set; }
 
 	public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
 		var nowUtc = DateTime.UtcNow;
