@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import {ReactNode} from "react";
+import {ReactNode, useEffect, useMemo} from "react";
 import style from "./layoutclient.module.scss";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -10,15 +10,48 @@ import {Button} from "@/components/Button";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {useWebTheme} from "@/app/_providers/WebThemeProvider";
 import {hasRoleAtLeast} from "@/lib/roles";
-import { useEffect } from "react";
 
 
 
-export default function({ children, appVersion }: { children: ReactNode, appVersion: string }) {
+export default function({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const { account: loggedAccount, setAccount } = useAuth();
     const {toggleTheme} = useWebTheme();
+    const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0";
+
+    const navItems = useMemo(() => [
+        { href: "/app", label: "Home", icon: "/icons/home.svg", exact: true },
+        { href: "/app/announcements", label: "Oznámení", icon: "/icons/bell.svg" },
+        { href: "/app/map", label: "Mapa", icon: "/icons/map.svg" },
+        { href: "/app/reservations", label: "Rezervace", icon: "/icons/calc.svg" },
+        ...(loggedAccount !== null ? [{ href: "/app/attendance", label: "Docházka", icon: "/icons/user_in_building.svg" }] : []),
+        // ...(loggedAccount !== null ? [{ href: "/app/chat", label: "Chat", icon: "/icons/chat.svg" }] : []),
+        { href: "/app/tournaments", label: "Turnaje", icon: "/icons/trophy_star.svg" },
+        ...(loggedAccount !== null ? [{ href: "/app/problem", label: "Nahlásit problém", icon: "/icons/warn2.svg" }] : []),
+        ...(hasRoleAtLeast(loggedAccount, "TeacherOrg") ? [{ href: "/app/administration", label: "Administrace", icon: "/icons/user_with_shield.svg" }] : []),
+        ...(loggedAccount !== null ? [{ href: "/app/account", label: "Můj účet", icon: "/icons/account.svg", pushBottom: true }] : []),
+        ...(loggedAccount !== null ? [{ href: "/app/profile", label: "Veřejný profil", icon: "/icons/account_outline.svg", avatar: true }] : []),
+    ], [loggedAccount]);
+
+    const isActive = (href: string, exact?: boolean) => {
+        if (href === "/app/profile") {
+            return pathname === "/app/profile" || pathname === `/app/profile/${loggedAccount?.id}`;
+        }
+
+        if (exact) {
+            return pathname === href;
+        }
+
+        return pathname === href || pathname.startsWith(`${href}/`);
+    };
+
+    const closeMobileMenu = () => {
+        const menuToggle = document.getElementById("app-mobile-menu-toggle") as HTMLInputElement | null;
+        if (menuToggle) {
+            menuToggle.checked = false;
+        }
+    };
 
     useEffect(() => {
         const styleId = "minecraft-easter-egg-style";
@@ -60,7 +93,7 @@ export default function({ children, appVersion }: { children: ReactNode, appVers
         router.refresh();
     };
 
-    return <div className={style.layout}>
+    return <div className={style.layout} data-app-layout-shell>
         <div className={style.panel}>
             <Link href="/" className={style.logo}>
                 <div></div>
@@ -68,63 +101,21 @@ export default function({ children, appVersion }: { children: ReactNode, appVers
             </Link>
 
             <nav>
-                <Link href="/app" className={pathname === "/app" ? style.active : ""}>
-                    <div className={style.icon} style={{ maskImage: 'url(/icons/home.svg)' }}></div>
-                    <p>Home</p>
-                </Link>
-
-                <Link href="/app/announcements" className={pathname === "/app/announcements" ? style.active : ""}>
-                    <div className={style.icon} style={{ maskImage: 'url(/icons/bell.svg)' }}></div>
-                    <p>Oznámení</p>
-                </Link>
-
-                <Link href="/app/map" className={pathname === "/app/map" ? style.active : ""}>
-                    <div className={style.icon} style={{ maskImage: 'url(/icons/map.svg)' }}></div>
-                    <p>Mapa</p>
-                </Link>
-
-                <Link href="/app/reservations" className={pathname === "/app/reservations" ? style.active : ""}>
-                    <div className={style.icon} style={{ maskImage: 'url(/icons/calc.svg)' }}></div>
-                    <p>Rezervace</p>
-                </Link>
-
-                <If condition={loggedAccount !== null}>
-                    <Link href="/app/chat" className={pathname === "/app/chat" ? style.active : ""}>
-                        <div className={style.icon} style={{ maskImage: 'url(/icons/chat.svg)' }}></div>
-                        <p>Chat</p>
+                {navItems.map((item) => (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        className={isActive(item.href, item.exact) ? style.active : ""}
+                        style={item.pushBottom ? { marginTop: "auto" } : undefined}
+                    >
+                        {item.avatar ? (
+                            <Avatar name={loggedAccount?.fullName ?? ""} size="24px" className={style.avatar} src={loggedAccount?.avatarUrl} />
+                        ) : (
+                            <div className={style.icon} style={{ maskImage: `url(${item.icon})` }}></div>
+                        )}
+                        <p>{item.label}</p>
                     </Link>
-                </If>
-
-                <Link href="/app/tournaments" className={pathname === "/app/tournaments" ? style.active : ""}>
-                    <div className={style.icon} style={{ maskImage: 'url(/icons/trophy_star.svg)' }}></div>
-                    <p>Turnaje</p>
-                </Link>
-
-                <Link href="/app/problem" className={pathname === "/app/problem" ? style.active : ""}>
-                    <div className={style.icon} style={{ maskImage: 'url(/icons/warn2.svg)' }}></div>
-                    <p>Nahlásit problém</p>
-                </Link>
-
-                <If condition={hasRoleAtLeast(loggedAccount, "TeacherOrg")}>
-                    <Link href="/app/administration" className={pathname === "/app/administration" ? style.active : ""}>
-                        <div className={style.icon} style={{ maskImage: 'url(/icons/user_with_shield.svg)' }}></div>
-                        <p>Administrace</p>
-                    </Link>
-                </If>
-
-                <If condition={loggedAccount !== null}>
-                    <Link href="/app/account" className={pathname === "/app/account" ? style.active : ""} style={{ marginTop: "auto" }}>
-                        <div className={style.icon} style={{ maskImage: 'url(/icons/account.svg)' }}></div>
-                        <p>Můj účet</p>
-                    </Link>
-                </If>
-
-                <If condition={loggedAccount !== null}>
-                    <Link href="/app/profile" className={pathname === "/app/profile" || pathname === `/app/profile/${loggedAccount?.id}` ? style.active : ""}>
-                        <Avatar name={loggedAccount?.fullName ?? ""} size="24px" className={style.avatar} src={loggedAccount?.avatarUrl} />
-                        <p>Veřejný profil</p>
-                    </Link>
-                </If>
+                ))}
             </nav>
 
             <footer>
@@ -184,6 +175,81 @@ export default function({ children, appVersion }: { children: ReactNode, appVers
             </div>
 
             {children}
+        </div>
+
+        <input id="app-mobile-menu-toggle" type="checkbox" className={style.mobileMenuToggle} aria-hidden="true" />
+
+        <div className={style.mobileTabs} aria-label="Mobilní navigace">
+            <Link href="/app" aria-label="Domů" className={isActive("/app", true) ? style.active : ""}>
+                <span className={style.icon} style={{ maskImage: "url(/icons/home.svg)" }}></span>
+            </Link>
+
+            <Link href="/app/reservations" aria-label="Rezervace" className={isActive("/app/reservations") ? style.active : ""}>
+                <span className={style.icon} style={{ maskImage: "url(/icons/calc.svg)" }}></span>
+            </Link>
+
+            <label htmlFor="app-mobile-menu-toggle" aria-label="Otevřít menu" className={style.menuButton}>
+                <span className={style.icon} style={{ maskImage: "url(/icons/menu.svg)" }}></span>
+            </label>
+
+            <Link href="/app/map" aria-label="Mapa" className={isActive("/app/map") ? style.active : ""}>
+                <span className={style.icon} style={{ maskImage: "url(/icons/map.svg)" }}></span>
+            </Link>
+
+            <If condition={loggedAccount !== null} fallback={
+                <Link href="/app/login" aria-label="Přihlášení" className={isActive("/app/login") ? style.active : ""}>
+                    <span className={style.icon} style={{ maskImage: "url(/icons/login.svg)" }}></span>
+                </Link>
+            }>
+                <Link href="/app/account" aria-label="Můj účet" className={isActive("/app/account") ? style.active : ""}>
+                    <Avatar name={loggedAccount?.fullName ?? ""} size="22px" className={style.mobileAvatar} src={loggedAccount?.avatarUrl} />
+                </Link>
+            </If>
+        </div>
+
+        <div className={style.mobileMenu}>
+            <div className={style.menuHeader}>
+                <Link href="/" className={style.logo} onClick={closeMobileMenu}>
+                    <div></div>
+                    <p>EDUCHEM<br/>LAN Party</p>
+                </Link>
+            </div>
+
+            <nav>
+                {navItems.map((item) => (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        className={isActive(item.href, item.exact) ? style.active : ""}
+                        onClick={closeMobileMenu}
+                    >
+                        {item.avatar ? (
+                            <Avatar name={loggedAccount?.fullName ?? ""} size="28px" className={style.avatar} src={loggedAccount?.avatarUrl} />
+                        ) : (
+                            <span className={style.icon} style={{ maskImage: `url(${item.icon})` }}></span>
+                        )}
+                        <span>{item.label}</span>
+                    </Link>
+                ))}
+            </nav>
+
+            <div className={style.menuActions}>
+                <button type="button" onClick={toggleTheme}>
+                    <span className={style.icon} style={{ maskImage: "url(/icons/theme.svg)" }}></span>
+                    <span>Změnit theme</span>
+                </button>
+
+                <If condition={loggedAccount !== null}>
+                    <button type="button" onClick={logout}>
+                        <span className={style.icon} style={{ maskImage: "url(/icons/logout.svg)" }}></span>
+                        <span>Odhlásit se</span>
+                    </button>
+                </If>
+            </div>
+
+            <label htmlFor="app-mobile-menu-toggle" aria-label="Zavřít menu" className={style.menuClose}>
+                <span className={style.icon} style={{ maskImage: "url(/icons/close.svg)" }}></span>
+            </label>
         </div>
     </div>
 }

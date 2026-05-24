@@ -529,7 +529,9 @@
         flex-direction: column;
 
         .left {
-            min-height: 420px;
+            height: 65dvh;
+            flex: unset;
+            max-height: none;
 
             .legend {
                 min-width: 226px;

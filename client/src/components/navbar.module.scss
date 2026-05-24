@@ -1,3 +1,17 @@
+.headerBackdrop {
+    position: fixed;
+    z-index: 39;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: var(--header-height);
+    border-bottom: 1px solid var(--border-color);
+    background: color-mix(in srgb, var(--background-bg) 58%, transparent);
+    -webkit-backdrop-filter: blur(34px) saturate(1.35);
+    backdrop-filter: blur(34px) saturate(1.35);
+    pointer-events: none;
+}
+
 .header {
     position: fixed;
     z-index: 40;
@@ -9,9 +23,6 @@
     justify-content: space-between;
     height: var(--header-height);
     padding: 0 max(20px, calc((100vw - var(--container-width)) / 2));
-    border-bottom: 1px solid var(--border-color);
-    background: color-mix(in srgb, var(--background-bg) 82%, transparent);
-    backdrop-filter: blur(18px);
 
     .logo {
         display: inline-flex;
@@ -145,7 +156,9 @@
     padding: 10px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
-    background: var(--element-bg);
+    background: color-mix(in srgb, var(--element-bg) 72%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    backdrop-filter: blur(18px) saturate(1.2);
     box-shadow: 0 18px 44px var(--shadow-color);
 
     &:is(.mobileMenuOpen) {

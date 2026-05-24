@@ -3,6 +3,8 @@
     width: 100vw;
     height: 100vh;
     position: relative;
+    overflow: hidden;
+    overscroll-behavior: none;
 
     .panel {
         min-width: 312px;
@@ -168,6 +170,8 @@
         flex: 1;
         padding: 48px;
         overflow: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
 
         .loginShell {
             position: absolute;
@@ -292,6 +296,362 @@
                     mask-repeat: no-repeat;
                     mask-size: contain;
                     transition: background .2s ease;
+                }
+            }
+        }
+    }
+
+    .mobileTabs {
+        display: none;
+    }
+
+    .mobileMenuToggle {
+        position: fixed;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .mobileMenu {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        padding: 48px 28px max(28px, env(safe-area-inset-bottom));
+        background: var(--element-bg);
+        border-radius: 28px 28px 0 0;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(100%);
+        transition: transform .38s cubic-bezier(.22, 1, .36, 1), opacity .24s ease, visibility .38s ease;
+        pointer-events: none;
+        overscroll-behavior: contain;
+        touch-action: pan-y;
+
+        .menuHeader {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            .logo {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 18px;
+                width: fit-content;
+                text-decoration: none;
+
+                >div {
+                    width: 78px;
+                    height: 78px;
+                    mask-image: url("../../../../public/images/logo.svg");
+                    mask-repeat: no-repeat;
+                    mask-position: center center;
+                    mask-size: contain;
+                    background-color: var(--accent-color);
+                }
+
+                p {
+                    color: var(--accent-color);
+                    line-height: 32px;
+                    font-size: 32px;
+                    font-weight: bold;
+                }
+            }
+        }
+
+        .icon {
+            width: 22px;
+            height: 22px;
+            flex: 0 0 22px;
+            background: currentColor;
+            mask-position: center;
+            mask-repeat: no-repeat;
+            mask-size: contain;
+        }
+
+        >nav {
+            display: grid;
+            gap: 8px;
+            margin-top: 72px;
+            overflow: auto;
+            padding-bottom: 28px;
+
+            >a {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                min-height: 52px;
+                padding: 12px 30px;
+                border-radius: 999px;
+                color: var(--text-color);
+                text-decoration: none;
+                transition: background .2s ease, color .2s ease;
+
+                &:is(.active) {
+                    color: var(--accent-color);
+                    background: var(--accent-soft);
+                    pointer-events: none;
+                }
+
+                >span {
+                    font-size: 18px;
+                    line-height: 1.1;
+                }
+            }
+        }
+
+        .menuActions {
+            display: grid;
+            gap: 10px;
+            margin-top: auto;
+            padding-top: 24px;
+
+            >button {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                min-height: 50px;
+                padding: 12px 30px;
+                border-radius: 999px;
+                color: var(--text-color);
+                text-align: left;
+                transition: background .2s ease, color .2s ease;
+
+                &:hover {
+                    color: var(--accent-color);
+                    background: var(--accent-soft);
+                }
+
+                >span:not(.icon) {
+                    font-size: 18px;
+                    line-height: 1.1;
+                }
+            }
+        }
+
+        .menuClose {
+            display: grid;
+            place-items: center;
+            width: 52px;
+            height: 52px;
+            margin-top: 18px;
+            margin-right: auto;
+            margin-left: auto;
+            color: var(--text-color);
+        }
+    }
+}
+
+@media (max-width: 920px) {
+    .layout {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        max-width: 100dvw;
+        min-height: 100dvh;
+        height: 100dvh;
+        touch-action: none;
+
+        .panel {
+            display: none;
+        }
+
+        .content {
+            width: 100%;
+            height: 100%;
+            padding: 28px 20px 112px;
+            touch-action: pan-y;
+
+            .bannerWallpaper {
+                width: 100%;
+                height: 160px;
+                border-radius: 0;
+
+                &::before {
+                    background:
+                            linear-gradient(180deg, color-mix(in srgb, var(--background-bg) 14%, transparent) 0%, color-mix(in srgb, var(--background-bg) 58%, transparent) 62%, var(--background-bg) 100%),
+                            linear-gradient(0deg, rgba(0, 0, 0, .18), rgba(0, 0, 0, .18));
+                }
+
+                &::after {
+                    inset: auto 0 -22px 0;
+                    height: 96px;
+                    background: linear-gradient(180deg, transparent 0%, var(--background-bg) 82%);
+                    filter: blur(12px);
+                }
+            }
+
+            .loginShell {
+                position: relative;
+                top: auto;
+                right: auto;
+                display: flex;
+                justify-content: flex-end;
+                padding-bottom: 28px;
+
+                .login {
+                    h2 {
+                        max-width: min(48vw, 260px);
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                }
+
+                .accountPopover {
+                    right: 0;
+                }
+            }
+        }
+
+        .mobileTabs {
+            position: fixed;
+            left: 50%;
+            bottom: max(14px, env(safe-area-inset-bottom));
+            z-index: 15;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            align-items: center;
+            width: calc(100% - 28px);
+            max-width: 430px;
+            min-height: 66px;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 28px;
+            background: color-mix(in srgb, var(--element-bg) 94%, transparent);
+            box-shadow: 0 18px 42px var(--shadow-color);
+            transform: translateX(-50%);
+            backdrop-filter: blur(18px);
+            touch-action: manipulation;
+
+            >a,
+            >label {
+                display: grid;
+                place-items: center;
+                width: 100%;
+                height: 50px;
+                border-radius: 22px;
+                color: var(--text-color);
+                transition: background .2s ease, color .2s ease, transform .2s ease;
+
+                &:is(.active) {
+                    color: var(--accent-color);
+                    background: var(--accent-soft);
+                }
+            }
+
+            .menuButton {
+                /*4color: var(--accent-color);
+                background: var(--accent-soft);*/
+            }
+
+            .icon {
+                width: 24px;
+                height: 24px;
+                background: currentColor;
+                mask-position: center;
+                mask-repeat: no-repeat;
+                mask-size: contain;
+            }
+
+            .mobileAvatar {
+                outline: 2px solid transparent;
+                transition: outline-color .2s ease;
+            }
+
+            >a:is(.active) {
+                .mobileAvatar {
+                    outline-color: var(--accent-color);
+                }
+            }
+        }
+
+        .mobileMenuToggle:checked ~ .mobileMenu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            transition: transform .42s cubic-bezier(.22, 1, .36, 1), opacity .24s ease;
+            pointer-events: auto;
+        }
+
+        .mobileMenu {
+            width: 100%;
+            height: 100dvh;
+            max-width: 100dvw;
+        }
+    }
+}
+
+@media (max-width: 520px) {
+    .layout {
+        .content {
+            padding: 22px 16px 104px;
+
+            .loginShell {
+                .login {
+                    gap: 10px;
+
+                    h2 {
+                        max-width: 42vw;
+                        font-size: 17px;
+                    }
+
+                    p {
+                        font-size: 14px;
+                    }
+                }
+
+                .accountPopover {
+                    width: min(248px, calc(100vw - 32px));
+                }
+            }
+        }
+
+        .mobileMenu {
+            padding: 42px 18px max(18px, env(safe-area-inset-bottom));
+
+            .menuHeader {
+                .logo {
+                    gap: 14px;
+
+                    >div {
+                        width: 62px;
+                        height: 62px;
+                    }
+
+                    p {
+                        line-height: 26px;
+                        font-size: 26px;
+                    }
+                }
+            }
+
+            >nav {
+                margin-top: 56px;
+
+                >a {
+                    min-height: 50px;
+                    padding: 12px 22px;
+
+                    >span {
+                        font-size: 17px;
+                    }
+                }
+            }
+
+            .menuActions {
+                padding-top: 18px;
+
+                >button {
+                    min-height: 50px;
+                    padding: 12px 22px;
+
+                    >span:not(.icon) {
+                        font-size: 17px;
+                    }
                 }
             }
         }

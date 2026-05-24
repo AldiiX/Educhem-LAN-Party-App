@@ -1,4 +1,4 @@
-import "./Area.module.scss";
+import "./Area.scss";
 
 type ReservationAreaProps = {
     onHoverReservation?: (target: EventTarget | null) => void;

@@ -12,4 +12,7 @@
     <Folder Include="src\app\app\(withlayout)\profile\_components\" />
     <Folder Include="src\layouts\" />
   </ItemGroup>
+  <ItemGroup>
+    <Script Include="next.config.types.ts" />
+  </ItemGroup>
 </Project>

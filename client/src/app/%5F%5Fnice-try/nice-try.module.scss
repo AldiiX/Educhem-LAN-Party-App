@@ -1,0 +1,36 @@
+.page {
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: var(--background-bg);
+}
+
+.card {
+    display: grid;
+    gap: 18px;
+    justify-items: center;
+    text-align: center;
+
+    p {
+        color: var(--text-color);
+        font-size: clamp(24px, 6vw, 42px);
+        font-weight: 800;
+        line-height: 1.1;
+    }
+}
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-color);
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    transition: color .2s ease;
+
+    &:hover {
+        color: var(--accent-color-darker);
+    }
+}

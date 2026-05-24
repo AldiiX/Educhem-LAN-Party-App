@@ -1,4 +1,4 @@
-:global(.map-reservation-area-main) {
+.map-reservation-area-main {
     position: absolute;
     top: 0;
     left: 0;
@@ -15,42 +15,42 @@
         }
     }
 
-    :global(.pc) {
+    .pc {
         z-index: 3;
         fill: transparent;
         pointer-events: none;
 
-        &:is(:global(.unavailable)) {
+        &:is(.unavailable) {
             fill: var(--pc-unavailable, #c84343);
             pointer-events: all;
         }
 
-        &:is(:global(.taken-by-you)) {
+        &:is(.taken-by-you) {
             fill: var(--pc-taken-by-you, var(--accent-color));
             pointer-events: all;
         }
 
-        &:is(:global(.available)) {
+        &:is(.available) {
             fill: var(--pc-available, #4caf6b);
             pointer-events: all;
         }
     }
 
-    :global(.room) {
+    .room {
         fill: transparent;
         pointer-events: none;
 
-        &:is(:global(.unavailable)) {
+        &:is(.unavailable) {
             fill: var(--pc-unavailable, #c84343);
             pointer-events: all;
         }
 
-        &:is(:global(.taken-by-you)) {
+        &:is(.taken-by-you) {
             fill: var(--pc-taken-by-you, var(--accent-color));
             pointer-events: all;
         }
 
-        &:is(:global(.available)) {
+        &:is(.available) {
             fill: var(--room-available, #4aa3ff);
             pointer-events: all;
         }
@@ -68,15 +68,15 @@
         stroke: none;
     }
 
-    :global(.table) {
+    .table {
         fill: var(--table-color, #252525);
     }
 
-    :global(.text) {
+    .text {
         fill: var(--text-color);
     }
 
-    :global(.lighttext) {
+    .lighttext {
         fill: var(--shapes-color, #333);
     }
 

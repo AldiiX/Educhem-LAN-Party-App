@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Docker build and run" type="ShConfigurationType">
-    <option name="SCRIPT_TEXT" value="docker build . -t aspnext ; docker run -p 80:80 -t aspnext" />
+    <option name="SCRIPT_TEXT" value="docker build . -t edulp ; docker run -p 80:80 -t edulp" />
     <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
     <option name="SCRIPT_PATH" value="" />
     <option name="SCRIPT_OPTIONS" value="" />

@@ -14,6 +14,7 @@ export function Header() {
 
     return (
         <>
+            <div className={styles.headerBackdrop} aria-hidden="true"/>
             <header className={styles.header}>
                 <Link href="/" className={styles.logo}>
                     <span className={styles.logoMark} aria-hidden="true"/>

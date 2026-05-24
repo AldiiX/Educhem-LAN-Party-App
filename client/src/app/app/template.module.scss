@@ -1,0 +1,30 @@
+.pageTransition {
+    position: relative;
+    min-height: 100dvh;
+    animation: pageEnter 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pageTransition:has([data-app-layout-shell]) {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+}
+
+@keyframes pageEnter {
+    from {
+        opacity: 0;
+        filter: blur(6px);
+    }
+
+    to {
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pageTransition {
+        animation: none;
+        filter: none;
+    }
+}

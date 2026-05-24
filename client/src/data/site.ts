@@ -42,7 +42,7 @@ export const siteConfig = {
     },
     repository: {
         label: 'GitHub',
-        href: 'https://github.com/educhem/EDUCHEM-LAN-Party-Home',
+        href: 'https://github.com/AldiiX/Educhem-LAN-Party-App',
     },
     navLinks: [
         {href: '/', label: 'Home'},
