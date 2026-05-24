@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import type { NextConfig } from "next";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 import packageJson from "./package.json";
 import { trapRedirectSources, type WebpackRule } from "./next.config.types";
 
@@ -34,6 +35,9 @@ function applyProductionCssModuleHashing(rule: WebpackRule) {
         loader.options.modules.getLocalIdent = getHashedCssModuleClass;
     }
 }
+
+
+
 
 const nextConfig: NextConfig = {
     output: "standalone",
@@ -96,4 +100,16 @@ const nextConfig: NextConfig = {
     //reactStrictMode: false, // pouze pro dev test
 };
 
-export default nextConfig;
+
+
+
+// exportovani nextconfigu -> pokud se jedna o dev, tak se pouzije kubikovo inspector
+export default async function config(phase: string) {
+    if (phase !== PHASE_DEVELOPMENT_SERVER) {
+        return nextConfig;
+    }
+
+    const Inspector = (await import("interactive-react-inspector")).default;
+
+    return Inspector.next(nextConfig);
+}
