@@ -8,7 +8,7 @@ import {LogsToolbar} from "../LogsToolbar";
 import {LogsFilters} from "../LogsFilters";
 import {LogsTable} from "../LogsTable";
 
-import {isSuperAdmin} from "@/lib/roles";
+import {hasRoleAtLeast} from "@/lib/roles";
 
 export function LogsTab() {
     const logsAdministration = useLogsAdministration();
@@ -42,7 +42,7 @@ export function LogsTab() {
             }
         />
 
-        {isSuperAdmin(logsAdministration.account) && (
+        {hasRoleAtLeast(logsAdministration.account, "Admin") && (
             <LogsFilters
                 logTypes={logsAdministration.uniqueLogTypes}
                 exactTypes={logsAdministration.uniqueExactTypes}

@@ -148,7 +148,7 @@ public sealed class ReservationsHub(
 
 			if (reservation != null && !string.IsNullOrWhiteSpace(reservedTarget)) {
 				await dbLogger.LogInfoAsync(
-					$"Uživatel {FormatAccount(account)} rezervoval {reservedTarget}.",
+					$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "rezervoval", "rezervovala")} {reservedTarget}.",
 					"reservation", ct
 					);
 			}
@@ -188,7 +188,7 @@ public sealed class ReservationsHub(
 		await reservationCache.ApplyReservationChangeAsync(existingReservation, null);
 
 		await dbLogger.LogInfoAsync(
-			$"Uživatel {FormatAccount(account)} zrušil rezervaci.",
+			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "zrušil", "zrušila")} rezervaci.",
 			"reservation"
 		);
 
@@ -272,5 +272,13 @@ public sealed class ReservationsHub(
 
 	private static string FormatAccount(Account account) {
 		return $"{account.FirstName} {account.LastName} ({account.Email})";
+	}
+
+	private static string UserNoun(Account account) {
+		return account.Gender == Gender.Female ? "Uživatelka" : "Uživatel";
+	}
+
+	private static string PastVerb(Account account, string masculine, string feminine) {
+		return account.Gender == Gender.Female ? feminine : masculine;
 	}
 }

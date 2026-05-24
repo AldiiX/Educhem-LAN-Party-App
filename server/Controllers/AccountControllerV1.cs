@@ -157,7 +157,7 @@ public sealed class AccountControllerV1(
 		}
 
 		await dbLogger.LogInfoAsync(
-			$"Uživatel {FormatAccount(created)} byl vytvořen uživatelem {FormatAccount(acc)}.",
+			$"{UserNoun(created)} {FormatAccount(created)} {PastVerb(created, "byl vytvořen", "byla vytvořena")} {UserInstrumental(acc)} {FormatAccount(acc)}.",
 			"user-create",
 			ct
 		);
@@ -229,7 +229,7 @@ public sealed class AccountControllerV1(
 		}
 
 		await dbLogger.LogInfoAsync(
-			$"Uživatel {FormatAccount(updated)} byl upraven uživatelem {FormatAccount(acc)}.",
+			$"{UserNoun(updated)} {FormatAccount(updated)} {PastVerb(updated, "byl upraven", "byla upravena")} {UserInstrumental(acc)} {FormatAccount(acc)}.",
 			"user-edit",
 			ct
 		);
@@ -237,8 +237,8 @@ public sealed class AccountControllerV1(
 		// var previousEnableReservations = account.EnableReservations;
 		if(request.EnableReservations.HasValue && previousEnableReservations != updated.EnableReservations) {
 			var stateMessage = updated.EnableReservations
-				? $"Uživatel {FormatAccount(acc)} změnil stav žáka {FormatAccount(updated)} na možnost rezervace."
-				: $"Uživatel {FormatAccount(acc)} změnil stav žáka {FormatAccount(updated)} na zákaz rezervace.";
+				? $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "změnil", "změnila")} stav {ParticipantGenitive(updated)} {FormatAccount(updated)} na možnost rezervace."
+				: $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "změnil", "změnila")} stav {ParticipantGenitive(updated)} {FormatAccount(updated)} na zákaz rezervace.";
 				
 
 			await dbLogger.LogInfoAsync(stateMessage, "user-edit", ct);
@@ -264,7 +264,7 @@ public sealed class AccountControllerV1(
 		reservationCache.InvalidateReservations();
 
 		await dbLogger.LogInfoAsync(
-			$"Uživatel {FormatAccount(account)} byl smazán uživatelem {FormatAccount(acc)}.",
+			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "byl smazán", "byla smazána")} {UserInstrumental(acc)} {FormatAccount(acc)}.",
 			"user-delete",
 			ct
 		);
@@ -290,7 +290,7 @@ public sealed class AccountControllerV1(
 		reservationCache.InvalidateReservations();
 
 		await dbLogger.LogInfoAsync(
-			$"Uživatel {FormatAccount(account)} měl resetované heslo uživatelem {FormatAccount(acc)}.",
+			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "měl", "měla")} resetované heslo {UserInstrumental(acc)} {FormatAccount(acc)}.",
 			"user-reset-password",
 			ct
 		);
@@ -371,6 +371,13 @@ public sealed class AccountControllerV1(
 
 		account.PasswordHash = AuthService.HashPassword(request.NewPassword);
 		await db.SaveChangesAsync(ct);
+
+		await dbLogger.LogInfoAsync(
+			$"{UserNoun(account)} {FormatAccount(account)} si {PastVerb(account, "změnil", "změnila")} heslo.",
+			"user-change-own-password",
+			ct
+		);
+
 		await auth.LogoutAsync(ct);
 
 		return NoContent();
@@ -398,6 +405,20 @@ public sealed class AccountControllerV1(
 			account.Gender
 		);
 
+		if(emailSent) {
+			await dbLogger.LogInfoAsync(
+				$"{UserNoun(account)} {FormatAccount(account)} si {PastVerb(account, "vyžádal", "vyžádala")} reset hesla; resetovací email byl odeslán.",
+				"user-password-reset-request",
+				ct
+			);
+		} else {
+			await dbLogger.LogWarnAsync(
+				$"{UserNoun(account)} {FormatAccount(account)} si {PastVerb(account, "vyžádal", "vyžádala")} reset hesla, ale resetovací email se nepodařilo odeslat.",
+				"user-password-reset-email-failed",
+				ct
+			);
+		}
+
 		return Ok(new PasswordResetResponse(emailSent));
 	}
 
@@ -418,6 +439,12 @@ public sealed class AccountControllerV1(
 
 		account.PasswordHash = AuthService.HashPassword(request.NewPassword);
 		await db.SaveChangesAsync(ct);
+
+		await dbLogger.LogInfoAsync(
+			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "dokončil", "dokončila")} reset hesla přes resetovací odkaz.",
+			"user-password-reset-confirm",
+			ct
+		);
 
 		return NoContent();
 	}
@@ -592,5 +619,21 @@ public sealed class AccountControllerV1(
 
 	private static string FormatAccount(Account account) {
 		return $"{account.FirstName} {account.LastName} ({account.Email})";
+	}
+
+	private static string UserNoun(Account account) {
+		return account.Gender == Gender.Female ? "Uživatelka" : "Uživatel";
+	}
+
+	private static string UserInstrumental(Account account) {
+		return account.Gender == Gender.Female ? "uživatelkou" : "uživatelem";
+	}
+
+	private static string ParticipantGenitive(Account account) {
+		return account.Gender == Gender.Female ? "účastnice" : "účastníka";
+	}
+
+	private static string PastVerb(Account account, string masculine, string feminine) {
+		return account.Gender == Gender.Female ? feminine : masculine;
 	}
 }

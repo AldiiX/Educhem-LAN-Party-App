@@ -8,15 +8,27 @@ import {ForumPostsTab} from "./_components/tabs/ForumPostsTab";
 import {LogsTab} from "./_components/tabs/LogsTab";
 import {AppSettingsTab} from "./_components/tabs/AppSettingsTab";
 import {AchievementsTab} from "./_components/tabs/AchievementsTab";
+import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {hasRoleAtLeast} from "@/lib/roles";
+
+type AdministrationTabKey = "users" | "reservations" | "forum" | "logs" | "settings" | "achievements";
+type AdministrationTab = {
+    key: AdministrationTabKey;
+    label: string;
+};
 
 export default function AdministrationClient() {
-    const [activeTab, setActiveTab] = useState<"users" | "reservations" | "forum" | "logs" | "settings" | "achievements">("users");
-    const tabs = [
+    const {account} = useAuth();
+    const canManageApp = hasRoleAtLeast(account, "Admin");
+    const [activeTab, setActiveTab] = useState<AdministrationTabKey>("users");
+    const tabs: AdministrationTab[] = [
         { key: "users", label: "Uživatelé" },
         // { key: "reservations", label: "Rezervace" },
         // { key: "forum", label: "Forum příspěvky" },
-        { key: "logs", label: "Bezpečnostní logy" },
-        { key: "settings", label: "Nastavení aplikace" },
+        ...(canManageApp ? [
+            { key: "logs", label: "Bezpečnostní logy" },
+            { key: "settings", label: "Nastavení aplikace" },
+        ] satisfies AdministrationTab[] : []),
         // { key: "achievements", label: "Správa ocenění" },
     ] as const;
 

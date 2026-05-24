@@ -11,7 +11,8 @@ namespace server.Controllers;
 public sealed class AppSettingsControllerV1(
     IAuthService auth,
     IAppSettingsService settings,
-    AppCacheService cache
+    AppCacheService cache,
+    IDbLoggerService dbLogger
 ) : ControllerBase
 {
     [HttpGet]
@@ -67,9 +68,13 @@ public sealed class AppSettingsControllerV1(
             });
         }
 
+        var changes = new List<string>();
+
         if (request.ChatEnabled.HasValue)
         {
+            var previousValue = await settings.GetChatEnabledAsync(ct);
             await settings.SetChatEnabledAsync(request.ChatEnabled.Value, ct);
+            AddChange(changes, "ChatEnabled", previousValue, request.ChatEnabled.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(request.ReservationsStatus))
@@ -86,17 +91,32 @@ public sealed class AppSettingsControllerV1(
                 });
             }
 
+            var previousValue = await settings.GetReservationsStatusAsync(ct);
             await settings.SetReservationsStatusAsync(status, ct);
+            AddChange(changes, "ReservationsStatus", previousValue, status);
         }
 
         if (request.ReservationsEnabledFrom.HasValue)
         {
+            var previousValue = await settings.GetReservationsEnabledFromAsync(ct);
             await settings.SetReservationsEnabledFromAsync(request.ReservationsEnabledFrom.Value, ct);
+            AddChange(changes, "ReservationsEnabledFrom", previousValue, request.ReservationsEnabledFrom.Value);
         }
 
         if (request.ReservationsEnabledTo.HasValue)
         {
+            var previousValue = await settings.GetReservationsEnabledToAsync(ct);
             await settings.SetReservationsEnabledToAsync(request.ReservationsEnabledTo.Value, ct);
+            AddChange(changes, "ReservationsEnabledTo", previousValue, request.ReservationsEnabledTo.Value);
+        }
+
+        if (changes.Count > 0)
+        {
+            await dbLogger.LogInfoAsync(
+                $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "upravil", "upravila")} nastavení aplikace: {string.Join("; ", changes)}.",
+                "app-settings-edit",
+                ct
+            );
         }
 
         return NoContent();
@@ -118,6 +138,50 @@ public sealed class AppSettingsControllerV1(
 
         cache.Clear();
 
+        await dbLogger.LogWarnAsync(
+            $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "vyčistil", "vyčistila")} aplikační cache.",
+            "app-cache-clear",
+            ct
+        );
+
         return NoContent();
+    }
+
+    private static void AddChange<T>(ICollection<string> changes, string name, T previousValue, T nextValue)
+    {
+        var previous = FormatValue(previousValue);
+        var next = FormatValue(nextValue);
+
+        if (previous == next)
+        {
+            return;
+        }
+
+        changes.Add($"{name}: {previous} -> {next}");
+    }
+
+    private static string FormatValue<T>(T value)
+    {
+        return value switch
+        {
+            DateTime date => date.ToUniversalTime().ToString("O"),
+            null => "(null)",
+            _ => value.ToString() ?? "(null)"
+        };
+    }
+
+    private static string FormatAccount(Account account)
+    {
+        return $"{account.FirstName} {account.LastName} ({account.Email})";
+    }
+
+    private static string UserNoun(Account account)
+    {
+        return account.Gender == Gender.Female ? "Uživatelka" : "Uživatel";
+    }
+
+    private static string PastVerb(Account account, string masculine, string feminine)
+    {
+        return account.Gender == Gender.Female ? feminine : masculine;
     }
 }

@@ -6,7 +6,7 @@
 
 <p align="center">
   Moderní webová aplikace pro organizaci školních EDUCHEM LAN party akcí.
-  Řeší prezentační web, účty účastníků, administraci, profily, realtime rezervace míst a provozní statistiky.
+  Řeší prezentační web, účty účastníků, administraci, profily, realtime rezervace míst, docházku a provozní statistiky.
 </p>
 
 <p align="center">
@@ -28,6 +28,7 @@
 - [Funkcionality](#funkcionality)
 - [Rezervace](#rezervace)
 - [Realtime a cache](#realtime-a-cache)
+- [Administrace, nastavení a docházka](#administrace-nastavení-a-docházka)
 - [Technologie](#technologie)
 - [Screenshoty z aplikace](#screenshoty-z-aplikace)
 - [Struktura projektu](#struktura-projektu)
@@ -43,7 +44,7 @@
 
 **EDUCHEM LAN Party App** je full-stack aplikace pro přípravu a správu LAN party událostí na škole EDUCHEM. Projekt spojuje veřejnou prezentační část pro účastníky s přihlášenou aplikací pro studenty, organizátory a administrátory.
 
-Veřejný web ukazuje informace o aktuální akci, historii, pravidla, harmonogram, FAQ a vstup do rezervací. Přihlášená část řeší dashboard, správu účtu, profily, administraci účastníků a samotné rezervace počítačů nebo místností. Backend poskytuje REST API, SignalR hub pro realtime rezervace, session přihlašování, PostgreSQL databázi, Redis sessions a HTML emaily renderované přes Razor šablony.
+Veřejný web ukazuje informace o aktuální akci, historii, pravidla, harmonogram, FAQ a vstup do rezervací. Přihlášená část řeší dashboard, správu účtu, profily, administraci účastníků, bezpečnostní logy, nastavení aplikace, docházku účastníků a samotné rezervace počítačů nebo místností. Backend poskytuje REST API, SignalR hub pro realtime rezervace, session přihlašování, PostgreSQL databázi, Redis sessions, aplikační cache a HTML emaily renderované přes Razor šablony.
 
 ## Aktuální vývojáři
 
@@ -83,7 +84,10 @@ Veřejný web ukazuje informace o aktuální akci, historii, pravidla, harmonogr
 - **Prezentační web události**: hlavní stránka, informace, historie, pravidla, harmonogram, FAQ a veřejný vstup do rezervací.
 - **Uživatelské účty**: session přihlášení, odhlášení, změna hesla, reset hesla přes email a přihlašovací link.
 - **Profily účastníků**: vlastní profil, veřejné profily podle UUID, avatar, banner, třída, škola a role.
-- **Administrace účtů**: vytváření, úprava, mazání, reset hesla, odeslání přihlašovacích údajů a filtrování účtů.
+- **Administrace účtů**: vytváření, úprava, mazání, reset hesla, impersonace, odeslání přihlašovacích údajů a filtrování účtů.
+- **Bezpečnostní logy**: databázové logování důležitých akcí, filtrování a administrátorský přehled v aplikaci.
+- **Nastavení aplikace**: administrace globálních voleb, zapnutí chatu, otevření/uzavření rezervací, rezervační časovač a vyčištění aplikační cache.
+- **Docházka**: check-in/check-out účastníků, důvod odchodu, přehled aktuálně přítomných a možnost zápisu za jiného účastníka pro organizátory.
 - **Role a oprávnění**: `Student`, `Teacher`, `TeacherOrg`, `Admin` a `SuperAdmin`.
 - **Rezervace míst**: realtime mapa počítačů a místností s možností rezervovat, změnit nebo zrušit vlastní rezervaci.
 - **Dashboard a statistiky**: přehled účtů, aktivních uživatelů, povolených rezervací, staffu, tříd a kapacity.
@@ -100,6 +104,8 @@ Rezervační část je nyní plnohodnotná součást aplikace a běží na adres
 - **Jedna rezervace na účet**: nová rezervace automaticky nahrazuje předchozí rezervaci stejného účtu.
 - **Zrušení rezervace**: uživatel může vlastní rezervaci zrušit přes SignalR metodu `Unbook`.
 - **Oprávnění přes účet**: rezervovat mohou jen účty s `EnableReservations = true`.
+- **Globální stav rezervací**: administrace umí rezervace vynutit otevřené, zavřené nebo řídit podle časovače `UseTimer`.
+- **Rezervační odpočet**: UI používá serverový čas a ukazuje začátek/konec rezervačního okna podle nastavení aplikace.
 - **Učitelská místa**: počítače označené jako `IsTeachersComputer` jsou dostupné pouze pro účty s rolí alespoň `Teacher`.
 - **Kapacity místností**: místnost lze obsadit jen do hodnoty `Room.Capacity`.
 - **Ochrana proti souběhu**: zápis rezervace běží v serializable transakci a řeší kolize při rychlém souběžném kliknutí.
@@ -120,12 +126,23 @@ Rezervace jsou postavené na kombinaci SignalR, PostgreSQL a aplikační cache:
 - **Client-side delta merge**: frontend změnu slepí do aktuálního seznamu lokálně přes `useReservationsHub`.
 - **Connection status throttling**: počet připojených klientů se broadcastuje maximálně jednou za sekundu.
 - **Memory cache pro rezervace**: `ReservationCacheService` drží zvlášť cache pro přihlášené a anonymní snapshoty.
+- **Sdílená aplikační cache**: `AppCacheService` sjednocuje práci s `IMemoryCache` a umožňuje administrátorské kompletní vyčištění cache.
 - **Cache pro mapová data**: místnosti a počítače se načítají přes cache klíč `reservations:rooms-and-computers`.
 - **Krátká status cache**: souhrnný status rezervací se cachuje na 30 sekund.
 - **Anti-stampede zámky**: cache používá `SemaphoreSlim`, aby se při prázdné cache nespustilo více stejných DB dotazů najednou.
 - **Redis**: používá se pro ASP.NET session cache a Data Protection keys, aby byly session a cookies stabilní i při restartu aplikace.
 - **Nginx cache headers**: statické Next.js assety z `/_next/static/` mají dlouhou immutable cache.
 - **Build cache**: Docker build používá cache mounty pro npm i NuGet balíčky.
+
+## Administrace, nastavení a docházka
+
+Administrace na `/app/administration` je rozdělená do záložek:
+
+- **Uživatelé**: správa účtů, filtrování podle role, pohlaví, třídy, školy a povolených rezervací, reset hesla a impersonace dostupná podle role.
+- **Bezpečnostní logy**: přehled databázových logů z `administration.Logs`; endpoint je dostupný pro role `Admin` a `SuperAdmin`.
+- **Nastavení aplikace**: stav rezervací `Closed`, `Open` nebo `UseTimer`, časové okno rezervací, přepínač chatu a tlačítko pro vyčištění memory cache; dostupné pro role `Admin` a `SuperAdmin`.
+
+Docházka běží na `/app/attendance` a zapisuje záznamy do schématu `attendance`. Přihlášený uživatel zapisuje vlastní příchod/odchod, u odchodu musí vyplnit důvod. Role od `TeacherOrg` výš může zapisovat docházku za spravovatelné účty a stránka průběžně ukazuje počty přítomných, nepřítomných a celkový seznam účastníků s povolenými rezervacemi.
 
 ## Technologie
 
@@ -139,6 +156,7 @@ Rezervace jsou postavené na kombinaci SignalR, PostgreSQL a aplikační cache:
 - [Zustand](https://zustand-demo.pmnd.rs/) pro lokální stav výběru rezervace
 - [Sass](https://sass-lang.com/) pro globální i modulové styly
 - `react-hot-toast` pro klientské hlášky
+- produkční hashování CSS module tříd přes custom `next.config.ts`
 
 ### Backend
 
@@ -150,6 +168,7 @@ Rezervace jsou postavené na kombinaci SignalR, PostgreSQL a aplikační cache:
 - IMemoryCache pro rychlé rezervační snapshoty
 - MailKit pro SMTP emaily
 - BCrypt pro hashování hesel
+- Czech vocative data pro oslovení uživatelů
 - Razor view rendering pro HTML emailové šablony
 
 ### Infrastruktura
@@ -197,6 +216,8 @@ Rezervace jsou postavené na kombinaci SignalR, PostgreSQL a aplikační cache:
 |   |-- public/                              # obrázky, ikony, fonty, PDF
 |   |-- src/app/                             # App Router routy
 |   |-- src/app/app/(withlayout)/reservations # přihlášené rezervace
+|   |-- src/app/app/(withlayout)/attendance  # evidence příchodů a odchodů
+|   |-- src/app/app/(withlayout)/administration # uživatelé, logy a nastavení
 |   |-- src/components/reservation_areas/    # mapové oblasti pro rezervace
 |   |-- src/hooks/useSignalRHub.ts           # obecný SignalR hook
 |   |-- src/schemas/                         # Zod schémata API odpovědí
@@ -207,6 +228,8 @@ Rezervace jsou postavené na kombinaci SignalR, PostgreSQL a aplikační cache:
 |   |-- Dto/                                 # datové modely API
 |   |-- Hubs/ReservationsHub.cs              # realtime rezervace
 |   |-- Migrations/                          # EF Core migrace
+|   |-- Services/AppSettingsService.cs       # globální nastavení aplikace
+|   |-- Services/DbLoggerService.cs          # databázové bezpečnostní logy
 |   |-- Services/ReservationCacheService.cs  # cache rezervačních dat
 |   |-- Views/Emails/                        # HTML emailové šablony
 |   `-- server.csproj
@@ -233,7 +256,7 @@ cd Educhem-LAN-Party-App
 - `dotnet-ef` pro práci s migracemi:
 
 ```bash
-dotnet tool install --global dotnet-ef
+dotnet tool restore
 ```
 
 ### 3. Instalace frontend závislostí
@@ -329,6 +352,8 @@ Backend načítá proměnné z `server/.env` přes `dotenv.net`.
 | `SMTP_EMAIL_USERNAME` | Odesílací email a SMTP login |
 | `SMTP_EMAIL_PASSWORD` | SMTP heslo |
 
+Nastavení jako `ChatEnabled`, `ReservationsStatus`, `ReservationsEnabledFrom`, `ReservationsEnabledTo` a `ReservationsEnabledRightNow` se ukládají do databázové tabulky `administration.AppSettings` a při startu aplikace se seedují výchozí hodnoty.
+
 ## Databáze a migrace
 
 Projekt používá EF Core migrace v `server/Migrations`.
@@ -354,6 +379,9 @@ Aktuální model obsahuje hlavně:
 - `Computers` v databázovém schématu `reservations`.
 - `Rooms` v databázovém schématu `reservations`.
 - `Reservations` jako společný základ pro `ComputerReservation` a `RoomReservation`.
+- `AttendanceEntries` ve schématu `attendance` pro příchody a odchody účastníků.
+- `Logs` ve schématu `administration` pro bezpečnostní a provozní logy.
+- `AppSettings` ve schématu `administration` pro globální nastavení aplikace.
 - Unikátní index na `Reservation.AccountId`, takže jeden účet může mít jen jednu aktivní rezervaci.
 - PostgreSQL enumy `AccountGender` a `AccountType`.
 
@@ -398,11 +426,18 @@ docker run --name educhem-lan-party-app -p 80:80 educhem-lan-party-app
 
 - `http://localhost:3547/app/login` - přihlášení
 - `http://localhost:3547/app` - dashboard
+- `http://localhost:3547/app/announcements` - oznámení
+- `http://localhost:3547/app/map` - mapa rezervací bez hlavního rezervačního panelu
 - `http://localhost:3547/app/account` - nastavení účtu
 - `http://localhost:3547/app/profile` - vlastní profil
+- `http://localhost:3547/app/profile/{uuid}` - veřejný profil účastníka
 - `http://localhost:3547/app/reservations` - realtime rezervace míst
+- `http://localhost:3547/app/attendance` - docházka účastníků
+- `http://localhost:3547/app/tournaments` - turnaje
+- `http://localhost:3547/app/problem` - nahlášení problému
 - `http://localhost:3547/app/administration` - administrace účtů
 - `http://localhost:3547/app/reset-password` - reset hesla
+- `http://localhost:3547/app/system-disabled` - systémová stránka pro vypnutou aplikaci
 
 ## API a SignalR
 
@@ -411,15 +446,36 @@ docker run --name educhem-lan-party-app -p 80:80 educhem-lan-party-app
 - `GET /api/v1/account` - aktuálně přihlášený účet
 - `GET /api/v1/account/dashboard` - dashboard statistiky
 - `GET /api/v1/account/all` - seznam účtů pro organizátory
+- `POST /api/v1/account` - vytvoření účtu
+- `PUT /api/v1/account/{id}` - úprava účtu
+- `DELETE /api/v1/account/{id}` - smazání účtu
+- `POST /api/v1/account/{id}/reset-password` - reset hesla účtu administrátorem
+- `POST /api/v1/account/{id}/impersonate` - přihlášení jako jiný účet podle oprávnění
 - `POST /api/v1/account/login` - přihlášení
+- `GET /api/v1/account/login-link` - přihlášení přes link z emailu
+- `PUT /api/v1/account/me` - úprava vlastního účtu
+- `POST /api/v1/account/me/password` - změna vlastního hesla
 - `POST /api/v1/account/logout` - odhlášení
 - `POST /api/v1/account/forgot-password` - odeslání reset odkazu
 - `POST /api/v1/account/reset-password` - potvrzení resetu hesla
+- `PUT /api/v1/account/me/achievements/{id}` - nastavení hlavního achievementu
+- `PUT /api/v1/account/me/badges/{id}` - nastavení hlavního badge
 - `GET /api/v1/profile` - profil aktuálního uživatele
 - `GET /api/v1/profile/{uuid}` - veřejný profil podle UUID
 - `GET /api/v1/reservations/rooms-and-computers` - místnosti a počítače pro mapu
+- `GET /api/v1/reservations/computers-and-rooms` - alias pro mapová data
 - `GET /api/v1/reservations/status` - souhrnný stav kapacity a povolených rezervací
 - `GET /api/v1/reservations` - seznam rezervací pouze v debug buildu; v produkci rezervace probíhají přes socket
+- `GET /api/v1/attendance` - přehled docházky přihlášeného uživatele nebo organizátora
+- `POST /api/v1/attendance` - zápis příchodu/odchodu
+- `GET /api/v1/adm/logs` - bezpečnostní logy pro `Admin` a `SuperAdmin`
+- `GET /api/v1/appsettings` - nastavení aplikace pro `Admin` a `SuperAdmin`
+- `PUT /api/v1/appsettings` - úprava nastavení aplikace pro `Admin` a `SuperAdmin`
+- `POST /api/v1/appsettings/cache/clear` - vyčištění memory cache pro `Admin` a `SuperAdmin`
+- `GET /api/v1/problem-reports` - seznam hlášení problémů
+- `POST /api/v1/problem-reports` - vytvoření hlášení problému
+- `PUT /api/v1/problem-reports/{id}/status` - změna stavu hlášení
+- `DELETE /api/v1/problem-reports/{id}` - smazání hlášení
 
 ### SignalR hub
 

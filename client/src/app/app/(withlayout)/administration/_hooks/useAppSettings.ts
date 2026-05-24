@@ -8,7 +8,7 @@ import {
 } from "@/schemas/AppSettingsSchema";
 
 const fetcher = async (url: string) => {
-    const res = await fetch(url);
+    const res = await fetch(url, {credentials: "include"});
 
     if (!res.ok) {
         throw new Error("Failed to load app settings");
@@ -91,6 +91,7 @@ export function useAppSettings() {
 
         const res = await fetch("/api/v1/appsettings", {
             method: "PUT",
+            credentials: "include",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 reservationsStatus: status,
@@ -120,6 +121,7 @@ export function useAppSettings() {
 
         const res = await fetch("/api/v1/appsettings", {
             method: "PUT",
+            credentials: "include",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 chatEnabled: formData.get("chatEnabled") === "true",
@@ -142,6 +144,7 @@ export function useAppSettings() {
 
         const res = await fetch("/api/v1/appsettings/cache/clear", {
             method: "POST",
+            credentials: "include",
         });
 
         setClearingCache(false);
