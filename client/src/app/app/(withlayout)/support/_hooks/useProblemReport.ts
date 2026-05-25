@@ -2,6 +2,8 @@
 
 import {useMemo, useState, type FormEvent} from "react";
 import useSWR from "swr";
+import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {isSuperAdmin} from "@/lib/roles";
 import {fetcher} from "@/lib/swr";
 import type {Account} from "@/schemas/AccountSchema";
 
@@ -133,6 +135,7 @@ const availabilityFetcher = async (url: string) => {
 };
 
 export function useProblemReport() {
+    const {account} = useAuth();
     const {data, error, isLoading, mutate} = useSWR<ProblemReportItem[]>("/api/v1/problem-reports", reportsFetcher);
     const {data: availability, mutate: mutateAvailability} = useSWR("/api/v1/problem-reports/availability", availabilityFetcher);
     const [form, setForm] = useState<ProblemReportForm>(initialForm);
@@ -145,6 +148,8 @@ export function useProblemReport() {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<ProblemReportStatus | "all">("all");
     const [priorityFilter, setPriorityFilter] = useState<ProblemReportPriority | "all">("all");
+    const canBypassAvailabilityLock = isSuperAdmin(account);
+    const reportsEnabled = availability?.enabled !== false || canBypassAvailabilityLock;
 
     const canSubmit = useMemo(() => {
         return form.title.trim().length > 0 && form.description.trim().length > 0;
@@ -188,7 +193,7 @@ export function useProblemReport() {
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if(!canSubmit || isSubmitting || availability?.enabled === false) return;
+        if(!canSubmit || isSubmitting || !reportsEnabled) return;
 
         setIsSubmitting(true);
         setSubmitError(null);
@@ -201,18 +206,17 @@ export function useProblemReport() {
                 body: JSON.stringify(form),
             });
 
-            if(response.status === 423) {
-                throw new Error("Hlášení problémů je momentálně uzamčené.");
+            if(!response.ok) {
+                const text = await response.text();
+                throw new Error(text || "Hlášení se nepodařilo odeslat.");
             }
-
-            if(!response.ok) throw new Error("Problem report request failed.");
 
             setForm(initialForm);
             setWasSubmitted(true);
             setIsCreateModalOpen(false);
             await mutate();
-        } catch {
-            setSubmitError("Hlášení se nepodařilo odeslat.");
+        } catch (err) {
+            setSubmitError(err instanceof Error ? err.message : "Hlášení se nepodařilo odeslat.");
         } finally {
             setIsSubmitting(false);
         }
@@ -276,7 +280,7 @@ export function useProblemReport() {
     };
 
     const openCreateModal = () => {
-        if(availability?.enabled === false) return;
+        if(!reportsEnabled) return;
         setWasSubmitted(false);
         setSubmitError(null);
         setIsCreateModalOpen(true);
@@ -294,7 +298,9 @@ export function useProblemReport() {
         filteredReports,
         reportsError: error,
         isLoadingReports: isLoading,
-        reportsEnabled: availability?.enabled ?? true,
+        reportsEnabled,
+        reportsLocked: availability?.enabled === false,
+        canBypassAvailabilityLock,
         canSubmit,
         wasSubmitted,
         submitError,

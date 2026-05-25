@@ -15,9 +15,11 @@ public sealed class AttendanceControllerV1(
 	IAuthService auth,
 	AppDbContext db,
 	IAppSettingsService appSettings,
-	AppCacheService cache
+	AppCacheService cache,
+	IDbLoggerService dbLogger
 ) : Controller {
 	private const string AttendanceOverviewCacheKey = "attendance:overview";
+	private static readonly TimeSpan CreateCooldown = TimeSpan.FromMinutes(2);
 
 	[HttpGet]
 	public async Task<IActionResult> GetAttendance(CancellationToken ct = default) {
@@ -71,8 +73,8 @@ public sealed class AttendanceControllerV1(
 	public async Task<IActionResult> CreateAttendanceEntry([FromBody] CreateAttendanceEntryRequest request, CancellationToken ct = default) {
 		var acc = await auth.ReAuthAsync(ct);
 		if(acc == null) return new UnauthorizedResult();
-		if(!await appSettings.GetAttendanceEnabledAsync(ct)) {
-			return StatusCode(StatusCodes.Status423Locked, "Dochazka je momentalne uzamcena.");
+		if(!HasRoleAtLeast(acc, AccountType.SuperAdmin) && !await appSettings.GetAttendanceEnabledAsync(ct)) {
+			return StatusCode(StatusCodes.Status423Locked, "Docházka je momentálně uzamčena.");
 		}
 
 		var targetAccountId = request.AccountId ?? acc.Id;
@@ -85,7 +87,7 @@ public sealed class AttendanceControllerV1(
 		var targetAccount = await db.AccountsEf().FirstOrDefaultAsync(a => a.Id == targetAccountId, ct);
 		if(targetAccount == null) return NotFound();
 		if(!targetAccount.EnableReservations) {
-			return BadRequest("Ucet nema povolenou ucast na akci.");
+			return BadRequest("Účet nemá povolenou účast na akci.");
 		}
 
 		if(!isSelfEntry && !CanManageAccount(acc, targetAccount)) {
@@ -97,6 +99,14 @@ public sealed class AttendanceControllerV1(
 			.Where(e => e.AccountId == targetAccount.Id)
 			.OrderByDescending(e => e.CreatedAtUtc)
 			.FirstOrDefaultAsync(ct);
+		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg) && latestEntry is not null) {
+			var retryAfter = CreateCooldown - (DateTime.UtcNow - latestEntry.CreatedAtUtc);
+			if(retryAfter > TimeSpan.Zero) {
+				await dbLogger.LogWarnAsync($"Attendance cooldown hit by account {acc.Id} for target account {targetAccount.Id}; retry after {Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds))}s", "attendance-cooldown", ct);
+				return Cooldown(retryAfter, "Další záznam docházky můžeš zapsat za {0} s.");
+			}
+		}
+
 		var expectedType = latestEntry?.Type == AttendanceEntryType.CheckIn
 			? AttendanceEntryType.CheckOut
 			: AttendanceEntryType.CheckIn;
@@ -215,6 +225,12 @@ public sealed class AttendanceControllerV1(
 
 	private static string? NormalizeOptional(string? value) {
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+	}
+
+	private IActionResult Cooldown(TimeSpan retryAfter, string messageFormat) {
+		var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
+		Response.Headers["Retry-After"] = seconds.ToString();
+		return StatusCode(StatusCodes.Status429TooManyRequests, string.Format(messageFormat, seconds));
 	}
 
 	public sealed record CreateAttendanceEntryRequest(

@@ -14,8 +14,10 @@ namespace server.Controllers;
 public sealed class ProblemReportsControllerV1(
 	IAuthService auth,
 	AppDbContext db,
-	IAppSettingsService appSettings
+	IAppSettingsService appSettings,
+	IDbLoggerService dbLogger
 ) : Controller {
+	private static readonly TimeSpan CreateCooldown = TimeSpan.FromMinutes(30);
 
 	[HttpGet]
 	public async Task<IActionResult> GetProblemReports(CancellationToken ct = default) {
@@ -48,8 +50,8 @@ public sealed class ProblemReportsControllerV1(
 	public async Task<IActionResult> CreateProblemReport([FromBody] CreateProblemReportRequest request, CancellationToken ct = default) {
 		var acc = await auth.ReAuthAsync(ct);
 		if(acc == null) return new UnauthorizedResult();
-		if(!await appSettings.GetProblemReportsEnabledAsync(ct)) {
-			return StatusCode(StatusCodes.Status423Locked, "Hlaseni problemu je momentalne uzamcene.");
+		if(!HasRoleAtLeast(acc, AccountType.SuperAdmin) && !await appSettings.GetProblemReportsEnabledAsync(ct)) {
+			return StatusCode(StatusCodes.Status423Locked, "Hlášení problémů je momentálně vypnuté.");
 		}
 
 		if(string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Description))
@@ -60,6 +62,23 @@ public sealed class ProblemReportsControllerV1(
 
 		var reporter = await db.Accounts.FirstOrDefaultAsync(a => a.Id == acc.Id, ct);
 		if(reporter == null) return new UnauthorizedResult();
+
+		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg)) {
+			var nowUtc = DateTime.UtcNow;
+			var latestReportCreatedAtUtc = await db.ProblemReports
+				.AsNoTracking()
+				.Where(r => r.ReporterId == acc.Id)
+				.OrderByDescending(r => r.CreatedAtUtc)
+				.Select(r => (DateTime?)r.CreatedAtUtc)
+				.FirstOrDefaultAsync(ct);
+			if(latestReportCreatedAtUtc is not null) {
+				var retryAfter = CreateCooldown - (nowUtc - latestReportCreatedAtUtc.Value);
+				if(retryAfter > TimeSpan.Zero) {
+					await dbLogger.LogWarnAsync($"Problem report cooldown hit by account {acc.Id}; retry after {Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds))}s", "problem-report-cooldown", ct);
+					return Cooldown(retryAfter, "Další hlášení můžeš vytvořit za {0} sekund.");
+				}
+			}
+		}
 
 		var report = new ProblemReport {
 			Id = Guid.Empty,
@@ -142,6 +161,12 @@ public sealed class ProblemReportsControllerV1(
 
 	private static string? NormalizeOptional(string? value) {
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+	}
+
+	private IActionResult Cooldown(TimeSpan retryAfter, string messageFormat) {
+		var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
+		Response.Headers["Retry-After"] = seconds.ToString();
+		return StatusCode(StatusCodes.Status429TooManyRequests, string.Format(messageFormat, seconds));
 	}
 
 	public sealed record CreateProblemReportRequest(

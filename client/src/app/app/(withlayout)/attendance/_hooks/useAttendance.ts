@@ -2,7 +2,7 @@ import {FormEvent, useMemo, useState} from "react";
 import useSWR from "swr";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {fetcher} from "@/lib/swr";
-import {hasRoleAtLeast} from "@/lib/roles";
+import {hasRoleAtLeast, isSuperAdmin} from "@/lib/roles";
 import {
     AttendanceEntryType,
     AttendanceDeltaSchema,
@@ -38,6 +38,8 @@ export function useAttendance() {
     const [search, setSearch] = useState("");
 
     const canManageAttendance = hasRoleAtLeast(account, "TeacherOrg");
+    const canBypassAvailabilityLock = isSuperAdmin(account);
+    const attendanceEnabled = data?.attendanceEnabled !== false || canBypassAvailabilityLock;
     const selectedParticipant = useMemo(() => {
         if(!data || !account) return null;
         const id = canManageAttendance && selectedAccountId ? selectedAccountId : account.id;
@@ -61,7 +63,7 @@ export function useAttendance() {
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if(isSubmitting || data?.attendanceEnabled === false) return;
+        if(isSubmitting || !attendanceEnabled) return;
 
         setIsSubmitting(true);
         setSubmitError(null);
@@ -125,6 +127,9 @@ export function useAttendance() {
         error,
         isLoading,
         canManageAttendance,
+        attendanceEnabled,
+        attendanceLocked: data?.attendanceEnabled === false,
+        canBypassAvailabilityLock,
         selectedAccountId,
         selectedParticipant,
         reason,

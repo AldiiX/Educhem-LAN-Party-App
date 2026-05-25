@@ -13,10 +13,39 @@ const platforms = [
 ];
 
 const genderOptions = [
-    {value: "Male", label: "Muž"},
-    {value: "Female", label: "Žena"},
-    {value: "Other", label: "Ostatní"},
-    {value: "", label: "Neurčeno"},
+    {value: "Male", label: "Muž", disabled: false},
+    {value: "Female", label: "Žena" , disabled: false},
+    {value: "Other", label: "Ostatní", disabled: false},
+
+    {value: "Other", label: "Tank", disabled: true},
+    {value: "Other", label: "Helikoptéra", disabled: true},
+    {value: "Other", label: "Sanitka Mercedes", disabled: true},
+    {value: "Other", label: "Tatarka", disabled: true},
+    {value: "Other", label: "Drak", disabled: true},
+    {value: "Other", label: "Čajová konvice", disabled: true},
+    {value: "Other", label: "Kabel RJ45", disabled: true},
+    {value: "Other", label: "Labubu", disabled: true},
+    {value: "Other", label: "Kobliha", disabled: true},
+    {value: "Other", label: "Vesmírný pirát", disabled: true},
+    {value: "Other", label: "Černá díra", disabled: true},
+    {value: "Other", label: "Anténa 5G", disabled: true},
+    {value: "Other", label: "Duhový paprsek", disabled: true},
+    {value: "Other", label: "Houba shiitake", disabled: true},
+    {value: "Other", label: "Štrúdl", disabled: true},
+    {value: "Other", label: "Kávovar", disabled: true},
+    {value: "Other", label: "VHS Kazeta", disabled: true},
+    {value: "Other", label: "Pouliční lampa", disabled: true},
+    {value: "Other", label: "Solární panel", disabled: true},
+    {value: "Other", label: "Mechový koberec", disabled: true},
+    {value: "Other", label: "Víkendový batoh", disabled: true},
+    {value: "Other", label: "Origami jeřáb", disabled: true},
+    {value: "Other", label: "Kapka rosy", disabled: true},
+    {value: "Other", label: "Vzducholoď", disabled: true},
+    {value: "Other", label: "Schrödingerova kočka", disabled: true},
+    {value: "Other", label: "USB-C oboustranné", disabled: true},
+    {value: "Other", label: "Toaletní voda", disabled: true},
+
+    {value: "", label: "Neurčeno", disabled: false},
 ];
 
 export function AccountSettings({state}: {state: AccountPageState}) {
@@ -87,7 +116,7 @@ export function AccountSettings({state}: {state: AccountPageState}) {
                 <label>
                     <span>Pohlaví</span>
                     <select value={profileDraft.gender} onChange={event => setProfileDraft({...profileDraft, gender: event.target.value as typeof profileDraft.gender})}>
-                        {genderOptions.map(option => <option key={option.label} value={option.value}>{option.label}</option>)}
+                        {genderOptions.map(option => <option key={option.label} value={option.value} disabled={option.disabled}>{option.label}</option>)}
                     </select>
                 </label>
                 <p className={styles.currentGender}>Aktuálně: {genderLabel(account.gender)}</p>

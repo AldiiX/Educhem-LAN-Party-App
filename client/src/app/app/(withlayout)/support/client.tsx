@@ -27,7 +27,7 @@ export default function SupportClient() {
             </button>
         </section>
 
-        {!report.reportsEnabled && <p className={style.success}>Hlášení problémů je momentálně uzamčené.</p>}
+        {report.reportsLocked && !report.canBypassAvailabilityLock && <p className={style.success}>Hlášení problémů je momentálně uzamčené.</p>}
 
         {report.wasSubmitted && <p className={style.success}>Hlášení bylo odesláno.</p>}
 

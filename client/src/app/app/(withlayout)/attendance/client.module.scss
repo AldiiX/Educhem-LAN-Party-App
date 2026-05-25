@@ -154,7 +154,7 @@
         border-radius: 8px;
         background: var(--accent-color);
         color: var(--accent-color-text);
-        font-weight: 700;
+        font-weight: 600;
         transition: background .2s ease, opacity .2s ease;
 
         span {
@@ -209,6 +209,7 @@
     strong {
         display: block;
         line-height: 1.1;
+        font-weight: 600;
     }
 
     p {
@@ -258,6 +259,10 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    strong {
+        font-weight: 600;
     }
 
     small {
@@ -357,6 +362,10 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    strong {
+        font-weight: 600;
     }
 
     small {
