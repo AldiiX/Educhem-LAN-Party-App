@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {usePathname} from "next/navigation";
 import {FocusEvent as ReactFocusEvent, MouseEvent as ReactMouseEvent, ReactNode, useEffect, useRef, useState, useSyncExternalStore} from "react";
 import {createPortal} from "react-dom";
 import {Account} from "@/schemas/AccountSchema";
@@ -70,6 +71,16 @@ function clearProfileHoverTimers() {
     if(closeAnimationTimer) clearTimeout(closeAnimationTimer);
     closeTimer = null;
     closeAnimationTimer = null;
+}
+
+export function closeProfileHoverImmediate() {
+    clearProfileHoverTimers();
+
+    if(!activeProfileHover && !profileHoverClosing) return;
+
+    activeProfileHover = null;
+    profileHoverClosing = false;
+    emitProfileHoverChange();
 }
 
 function openProfileHover(next: ActiveProfileHover) {
@@ -164,10 +175,15 @@ function ProfileHoverCardOverlay() {
     const [position, setPosition] = useState<PopupPosition | null>(null);
     const snapshot = useSyncExternalStore(subscribeProfileHover, getProfileHoverSnapshot, getProfileHoverSnapshot);
     const active = snapshot.active;
+    const pathname = usePathname();
 
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    useEffect(() => {
+        closeProfileHoverImmediate();
+    }, [pathname]);
 
     useEffect(() => {
         if(!active) return;
