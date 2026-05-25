@@ -137,15 +137,15 @@ public sealed class AppSettingsControllerV1(
             });
         }
 
-        cache.Clear();
+        var result = cache.Clear();
 
         await dbLogger.LogWarnAsync(
-            $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "vyčistil", "vyčistila")} aplikační cache.",
+            $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "vyčistil", "vyčistila")} aplikační cache ({result.RemovedKeys} klíčů).",
             "app-cache-clear",
             ct
         );
 
-        return NoContent();
+        return Ok(result);
     }
 
     private static void AddChange<T>(ICollection<string> changes, string name, T previousValue, T nextValue)

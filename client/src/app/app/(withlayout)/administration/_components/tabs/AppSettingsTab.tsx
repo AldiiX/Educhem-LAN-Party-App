@@ -141,6 +141,22 @@ export function AppSettingsTab() {
                     >
                         {settings.clearingCache ? "Mažu cache..." : "Smazat cache"}
                     </button>
+
+                    <If condition={settings.lastCacheClear !== null}>
+                        <div className={style.cacheStats}>
+                            <span>Odstraněné klíče: {settings.lastCacheClear?.removedKeys ?? 0}</span>
+                            <span>
+                                Sledované klíče: {settings.lastCacheClear?.trackedKeysBefore ?? 0}
+                                {" -> "}
+                                {settings.lastCacheClear?.trackedKeysAfter ?? 0}
+                            </span>
+                            <span>
+                                Managed paměť .NET: {formatBytes(settings.lastCacheClear?.managedMemoryBeforeBytes ?? 0)}
+                                {" -> "}
+                                {formatBytes(settings.lastCacheClear?.managedMemoryAfterBytes ?? 0)}
+                            </span>
+                        </div>
+                    </If>
                 </div>
             </div>
         </section>
@@ -223,4 +239,21 @@ function toDatetimeLocal(value: Date) {
     const pad = (n: number) => n.toString().padStart(2, "0");
 
     return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`;
+}
+
+function formatBytes(bytes: number) {
+    if (!Number.isFinite(bytes) || bytes <= 0) {
+        return "0 B";
+    }
+
+    const units = ["B", "KB", "MB", "GB"];
+    let value = bytes;
+    let unit = 0;
+
+    while (value >= 1024 && unit < units.length - 1) {
+        value /= 1024;
+        unit += 1;
+    }
+
+    return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
 }

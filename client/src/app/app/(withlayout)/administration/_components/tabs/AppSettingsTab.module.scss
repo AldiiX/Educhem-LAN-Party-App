@@ -177,6 +177,22 @@
             opacity: .7;
         }
     }
+
+    .cacheStats {
+        display: grid;
+        gap: 8px;
+        padding: 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--background-bg-2);
+        color: var(--text-color-secondary);
+        font-size: 14px;
+        line-height: 1.35;
+
+        span {
+            overflow-wrap: anywhere;
+        }
+    }
 }
 
 @media (max-width: 760px) {

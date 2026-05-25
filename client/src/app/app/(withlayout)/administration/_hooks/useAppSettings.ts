@@ -17,6 +17,14 @@ const fetcher = async (url: string) => {
     return await res.json() as AppSettingsResponse;
 };
 
+export type CacheClearResult = {
+    removedKeys: number;
+    trackedKeysBefore: number;
+    trackedKeysAfter: number;
+    managedMemoryBeforeBytes: number;
+    managedMemoryAfterBytes: number;
+};
+
 export function useAppSettings() {
     const {data, error, isLoading, mutate} = useSWR("/api/v1/appsettings", fetcher, {
         revalidateOnFocus: false,
@@ -29,6 +37,7 @@ export function useAppSettings() {
     const [reservationsStatus, setReservationsStatus] = useState<ReservationStatusType>("Closed");
     const [saving, setSaving] = useState(false);
     const [clearingCache, setClearingCache] = useState(false);
+    const [lastCacheClear, setLastCacheClear] = useState<CacheClearResult | null>(null);
 
     useEffect(() => {
         if (!appSettings) {
@@ -142,20 +151,26 @@ export function useAppSettings() {
     async function clearAppCache() {
         setClearingCache(true);
 
-        const res = await fetch("/api/v1/appsettings/cache/clear", {
-            method: "POST",
-            credentials: "include",
-        });
+        try {
+            const res = await fetch("/api/v1/appsettings/cache/clear", {
+                method: "POST",
+                credentials: "include",
+            });
 
-        setClearingCache(false);
+            if (!res.ok) {
+                toast.error("Cache aplikace se nepodařilo smazat.");
+                return;
+            }
 
-        if (!res.ok) {
+            const result = await res.json() as CacheClearResult;
+            setLastCacheClear(result);
+            toast.success(`Cache aplikace byla smazána (${result.removedKeys} klíčů).`);
+            await mutate();
+        } catch {
             toast.error("Cache aplikace se nepodařilo smazat.");
-            return;
+        } finally {
+            setClearingCache(false);
         }
-
-        toast.success("Cache aplikace byla smazána.");
-        await mutate();
     }
 
     return {
@@ -164,6 +179,7 @@ export function useAppSettings() {
         isLoading,
         saving,
         clearingCache,
+        lastCacheClear,
         reservationsStatus,
         setReservationsStatus,
         submitReservations,

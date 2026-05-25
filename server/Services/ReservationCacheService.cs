@@ -130,14 +130,16 @@ public sealed class ReservationCacheService(
 
 			var roomsAndComputers = await GetRoomsAndComputersAsync();
 			var reservations = await db.Reservations.AsNoTracking().CountAsync();
-			var accounts = await db.Accounts.AsNoTracking().ToListAsync();
+			var accounts = await db.Accounts.AsNoTracking().CountAsync();
+			var accountsWithEnabledReservations = await db.Accounts
+				.AsNoTracking()
+				.CountAsync(a => a.EnableReservations);
 			var maxCapacity = roomsAndComputers.Computers.Count + roomsAndComputers.Rooms.Sum(r => r.Capacity);
-			var accountsWithEnabledReservations = accounts.Count(a => a.EnableReservations);
 
 			status = new ReservationStatusCacheDto(
 				maxCapacity,
 				accountsWithEnabledReservations,
-				accounts.Count == 0 ? 0 : Math.Min(Math.Round((double)accountsWithEnabledReservations / accounts.Count * 100), 100),
+				accounts == 0 ? 0 : Math.Min(Math.Round((double)accountsWithEnabledReservations / accounts * 100), 100),
 				reservations,
 				maxCapacity == 0 ? 0 : Math.Min(Math.Round((double)reservations / maxCapacity * 100), 100)
 			);
