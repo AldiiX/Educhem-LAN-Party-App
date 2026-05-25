@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import {ReactNode, useEffect, useMemo, useState} from "react";
+import {ReactNode, useEffect, useMemo} from "react";
 import style from "./layoutclient.module.scss";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -10,7 +10,7 @@ import {Button} from "@/components/Button";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {useWebTheme} from "@/app/_providers/WebThemeProvider";
 import {hasRoleAtLeast} from "@/lib/roles";
-import {useSelectedRoomOrComputerStore} from "@/app/app/(withlayout)/reservations/_components/SelectedRoomOrComputer";
+
 
 
 export default function({ children }: { children: ReactNode }) {
@@ -18,10 +18,7 @@ export default function({ children }: { children: ReactNode }) {
     const router = useRouter();
     const { account: loggedAccount, setAccount } = useAuth();
     const {toggleTheme} = useWebTheme();
-    const setSelectedRoomOrComputer = useSelectedRoomOrComputerStore(state => state.setSelectedRoomOrComputer);
-    const suppressSelectionUntilMouseMove = useSelectedRoomOrComputerStore(state => state.suppressSelectionUntilMouseMove);
     const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0";
-    const [isPopoverSuppressed, setIsPopoverSuppressed] = useState(false);
 
     const navItems = useMemo(() => [
         { href: "/app", label: "Home", icon: "/icons/home.svg", exact: true },
@@ -89,16 +86,6 @@ export default function({ children }: { children: ReactNode }) {
         };
     }, []);
 
-    useEffect(() => {
-        setIsPopoverSuppressed(true);
-        setSelectedRoomOrComputer(null);
-        suppressSelectionUntilMouseMove();
-    }, [pathname, setSelectedRoomOrComputer, suppressSelectionUntilMouseMove]);
-
-    const handleLoginShellLeave = () => {
-        setIsPopoverSuppressed(false);
-    };
-
     const logout = async () => {
         await fetch("/api/v1/account/logout", {method: "POST"});
         setAccount(null);
@@ -146,11 +133,7 @@ export default function({ children }: { children: ReactNode }) {
                 className={style.bannerWallpaper}
                 style={loggedAccount?.bannerUrl ? {backgroundImage: `url(${loggedAccount.bannerUrl})`} : undefined}
             />
-            <div
-                className={style.loginShell}
-                data-popover-suppressed={isPopoverSuppressed}
-                onMouseLeave={handleLoginShellLeave}
-            >
+            <div className={style.loginShell}>
                 <div className={style.login}>
                     <If condition={loggedAccount !== null} fallback={
                         // uzivatel neni lognuty

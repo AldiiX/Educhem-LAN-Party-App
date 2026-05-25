@@ -14,31 +14,13 @@ import {Button} from "@/components/Button";
 import {ProfileHoverCard} from "@/components/ProfileHoverCard";
 import {toast} from "react-hot-toast"
 
-let isSelectionSuppressionListenerAttached = false;
 
 export const useSelectedRoomOrComputerStore = create<{
     selectedRoomOrComputer: Room | Computer | null,
-    setSelectedRoomOrComputer: (roomOrComputer: Room | Computer | null) => void,
-    isSelectionSuppressed: boolean,
-    suppressSelectionUntilMouseMove: () => void,
+    setSelectedRoomOrComputer: (roomOrComputer: Room | Computer | null) => void
 }>((set) => ({
     selectedRoomOrComputer: null,
-    isSelectionSuppressed: false,
-    setSelectedRoomOrComputer: (roomOrComputer: Room | Computer | null) => set({ selectedRoomOrComputer: roomOrComputer }),
-    suppressSelectionUntilMouseMove: () => {
-        set({ isSelectionSuppressed: true, selectedRoomOrComputer: null });
-
-        if (typeof window === "undefined" || isSelectionSuppressionListenerAttached) return;
-        isSelectionSuppressionListenerAttached = true;
-
-        const handler = () => {
-            isSelectionSuppressionListenerAttached = false;
-            window.removeEventListener("mousemove", handler);
-            set({ isSelectionSuppressed: false });
-        };
-
-        window.addEventListener("mousemove", handler, { once: true });
-    },
+    setSelectedRoomOrComputer: (roomOrComputer: Room | Computer | null) => set({ selectedRoomOrComputer: roomOrComputer })
 }))
 
 

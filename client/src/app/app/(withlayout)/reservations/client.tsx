@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import style from "@/app/app/(withlayout)/reservations/client.module.scss";
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useMemo, useState} from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import If from "@/components/util/If";
 import Link from "next/link";
@@ -21,7 +21,6 @@ import {ReservationCountdownStatus} from "@/app/app/(withlayout)/reservations/_c
 import {useLiveReservationsEnabled} from "@/app/app/(withlayout)/reservations/_hooks/useLiveReservationsEnabled";
 import {useRememberedCollapseState} from "@/app/app/(withlayout)/reservations/_hooks/useRememberedCollapseState";
 import {useReservationStats} from "@/app/app/(withlayout)/reservations/_hooks/useReservationStats";
-import {useSelectedRoomOrComputerStore} from "@/app/app/(withlayout)/reservations/_components/SelectedRoomOrComputer";
 
 export const maps = [
     { id: "ithub", name: "IT Hub (Spodní patro)"},
@@ -58,17 +57,9 @@ export default function Client({
         return isReconnecting || isDisconnected;
     }, [isDisconnected, isReconnecting])
     const reservationDisplay = useReservationsDisplay(rooms, computers, reservations);
-    const setSelectedRoomOrComputer = useSelectedRoomOrComputerStore(state => state.setSelectedRoomOrComputer);
-    const suppressSelectionUntilMouseMove = useSelectedRoomOrComputerStore(state => state.suppressSelectionUntilMouseMove);
-
-    useEffect(() => {
-        setSelectedRoomOrComputer(null);
-        suppressSelectionUntilMouseMove();
-    }, [selectedTab, setSelectedRoomOrComputer, suppressSelectionUntilMouseMove]);
-
-    const account = useAuth().account;
+    const {account} = useAuth();
     const reservationStats = useReservationStats(reservations, computersCapacity, roomsCapacity, maxCapacity);
-
+    
     return <>
         <h1 className={style.title}>Rezervace</h1>
         <div className={style.tabs}>
