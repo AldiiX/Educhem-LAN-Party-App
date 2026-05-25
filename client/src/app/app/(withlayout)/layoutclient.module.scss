@@ -180,6 +180,25 @@
             z-index: 1;
             padding-bottom: 18px;
 
+            &[data-popover-suppressed="true"] {
+                .accountPopover {
+                    opacity: 0;
+                    visibility: hidden;
+                    transform: translateY(-8px) scale(.98);
+                    pointer-events: none;
+                }
+
+                &:hover,
+                &:focus-within {
+                    .accountPopover {
+                        opacity: 0;
+                        visibility: hidden;
+                        transform: translateY(-8px) scale(.98);
+                        pointer-events: none;
+                    }
+                }
+            }
+
             &:hover,
             &:focus-within {
                 z-index: 5;

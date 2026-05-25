@@ -8,8 +8,10 @@ type ReservationDisplayClass = "available" | "unavailable" | "taken-by-you";
 export function useReservationsDisplay(rooms: Room[], computers: Computer[], reservations: Reservation[] | null) {
     const { account } = useAuth();
     const setSelectedRoomOrComputer = useSelectedRoomOrComputerStore(state => state.setSelectedRoomOrComputer);
+    const isSelectionSuppressed = useSelectedRoomOrComputerStore(state => state.isSelectionSuppressed);
 
     function openReservationPopup(target: any | null) {
+        if (isSelectionSuppressed) return;
         const id = String(target.id).replace("ROOM_", "");
         setSelectedRoomOrComputer(computers.find((computer) => computer.id === id) ?? rooms.find((room) => room.id === id) ?? null);
     }
