@@ -3,6 +3,7 @@ using server.Data.Entities;
 using server.Dto.Requests;
 using server.Dto.Responses;
 using server.Services;
+using System.Globalization;
 
 namespace server.Controllers;
 
@@ -113,7 +114,7 @@ public sealed class AppSettingsControllerV1(
         if (changes.Count > 0)
         {
             await dbLogger.LogInfoAsync(
-                $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "upravil", "upravila")} nastavení aplikace: {string.Join("; ", changes)}.",
+                $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "upravil", "upravila")} časy a nastavení rezervací: {string.Join("; ", changes)}.",
                 "app-settings-edit",
                 ct
             );
@@ -157,14 +158,26 @@ public sealed class AppSettingsControllerV1(
             return;
         }
 
-        changes.Add($"{name}: {previous} -> {next}");
+        changes.Add($"{FormatChangeName(name)}: {previous} -> {next}");
+    }
+
+    private static string FormatChangeName(string name)
+    {
+        return name switch
+        {
+            "ReservationsEnabledFrom" => "Začátek rezervací",
+            "ReservationsEnabledTo" => "Konec rezervací",
+            "ReservationsStatus" => "Stav rezervací",
+            "ChatEnabled" => "Chat",
+            _ => name
+        };
     }
 
     private static string FormatValue<T>(T value)
     {
         return value switch
         {
-            DateTime date => date.ToUniversalTime().ToString("O"),
+            DateTime date => date.ToLocalTime().ToString("dd. MM. yyyy HH:mm:ss", CultureInfo.GetCultureInfo("cs-CZ")),
             null => "(null)",
             _ => value.ToString() ?? "(null)"
         };
