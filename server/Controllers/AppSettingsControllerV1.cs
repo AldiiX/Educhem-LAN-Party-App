@@ -49,7 +49,9 @@ public sealed class AppSettingsControllerV1(
             ReservationsEnabledFrom = reservationsEnabledFrom,
             ReservationsEnabledTo = reservationsEnabledTo,
             ReservationsStatus = reservationsStatus.ToString(),
-            ReservationsEnabledRightNow = reservationsEnabledRightNow
+            ReservationsEnabledRightNow = reservationsEnabledRightNow,
+            AttendanceEnabled = await settings.GetAttendanceEnabledAsync(ct),
+            ProblemReportsEnabled = await settings.GetProblemReportsEnabledAsync(ct)
         });
     }
 
@@ -71,12 +73,7 @@ public sealed class AppSettingsControllerV1(
 
         var changes = new List<string>();
 
-        if (request.ChatEnabled.HasValue)
-        {
-            var previousValue = await settings.GetChatEnabledAsync(ct);
-            await settings.SetChatEnabledAsync(request.ChatEnabled.Value, ct);
-            AddChange(changes, "ChatEnabled", previousValue, request.ChatEnabled.Value);
-        }
+        await UpdateFeatureSettingsAsync(request, changes, ct);
 
         if (!string.IsNullOrWhiteSpace(request.ReservationsStatus))
         {
@@ -121,6 +118,33 @@ public sealed class AppSettingsControllerV1(
         }
 
         return NoContent();
+    }
+
+    private async Task UpdateFeatureSettingsAsync(
+        UpdateAppSettingsRequest request,
+        ICollection<string> changes,
+        CancellationToken ct)
+    {
+        if (request.ChatEnabled.HasValue)
+        {
+            var previousValue = await settings.GetChatEnabledAsync(ct);
+            await settings.SetChatEnabledAsync(request.ChatEnabled.Value, ct);
+            AddChange(changes, "ChatEnabled", previousValue, request.ChatEnabled.Value);
+        }
+
+        if (request.AttendanceEnabled.HasValue)
+        {
+            var previousValue = await settings.GetAttendanceEnabledAsync(ct);
+            await settings.SetAttendanceEnabledAsync(request.AttendanceEnabled.Value, ct);
+            AddChange(changes, "AttendanceEnabled", previousValue, request.AttendanceEnabled.Value);
+        }
+
+        if (request.ProblemReportsEnabled.HasValue)
+        {
+            var previousValue = await settings.GetProblemReportsEnabledAsync(ct);
+            await settings.SetProblemReportsEnabledAsync(request.ProblemReportsEnabled.Value, ct);
+            AddChange(changes, "ProblemReportsEnabled", previousValue, request.ProblemReportsEnabled.Value);
+        }
     }
 
     [HttpPost("cache/clear")]
@@ -169,6 +193,8 @@ public sealed class AppSettingsControllerV1(
             "ReservationsEnabledTo" => "Konec rezervací",
             "ReservationsStatus" => "Stav rezervací",
             "ChatEnabled" => "Chat",
+            "AttendanceEnabled" => "Dochazka",
+            "ProblemReportsEnabled" => "Hlaseni problemu",
             _ => name
         };
     }

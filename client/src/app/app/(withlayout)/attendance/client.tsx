@@ -47,6 +47,10 @@ export default function AttendanceClient() {
                     <span className={attendance.nextType === "CheckIn" ? styles.arrival : styles.departure}>{attendanceActionLabels[attendance.nextType]}</span>
                 </div>
 
+                {attendance.data?.attendanceEnabled === false && (
+                    <p className={styles.error}>Docházka je momentálně uzamčená.</p>
+                )}
+
                 {attendance.canManageAttendance && (
                     <label>
                         <span>Účastník</span>
@@ -75,7 +79,7 @@ export default function AttendanceClient() {
 
                 {attendance.submitError && <p className={styles.error}>{attendance.submitError}</p>}
 
-                <button type="submit" disabled={attendance.isSubmitting || attendance.isLoading}>
+                <button type="submit" disabled={attendance.isSubmitting || attendance.isLoading || attendance.data?.attendanceEnabled === false}>
                     <span style={{maskImage: `url(${attendance.nextType === "CheckIn" ? "/icons/login.svg" : "/icons/logout.svg"})`}} />
                     {attendance.isSubmitting ? "Ukládám..." : `Zapsat ${attendance.nextType === "CheckIn" ? "příchod" : "odchod"}`}
                 </button>

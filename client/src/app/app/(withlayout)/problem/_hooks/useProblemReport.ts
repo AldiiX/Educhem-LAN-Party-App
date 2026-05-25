@@ -128,8 +128,13 @@ const reportsFetcher = async (url: string) => {
     return reports.map(parseReport);
 };
 
+const availabilityFetcher = async (url: string) => {
+    return await fetcher<{enabled: boolean}>(url);
+};
+
 export function useProblemReport() {
     const {data, error, isLoading, mutate} = useSWR<ProblemReportItem[]>("/api/v1/problem-reports", reportsFetcher);
+    const {data: availability, mutate: mutateAvailability} = useSWR("/api/v1/problem-reports/availability", availabilityFetcher);
     const [form, setForm] = useState<ProblemReportForm>(initialForm);
     const [wasSubmitted, setWasSubmitted] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
@@ -183,7 +188,7 @@ export function useProblemReport() {
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if(!canSubmit || isSubmitting) return;
+        if(!canSubmit || isSubmitting || availability?.enabled === false) return;
 
         setIsSubmitting(true);
         setSubmitError(null);
@@ -195,6 +200,10 @@ export function useProblemReport() {
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(form),
             });
+
+            if(response.status === 423) {
+                throw new Error("Hlášení problémů je momentálně uzamčené.");
+            }
 
             if(!response.ok) throw new Error("Problem report request failed.");
 
@@ -267,6 +276,7 @@ export function useProblemReport() {
     };
 
     const openCreateModal = () => {
+        if(availability?.enabled === false) return;
         setWasSubmitted(false);
         setSubmitError(null);
         setIsCreateModalOpen(true);
@@ -284,6 +294,7 @@ export function useProblemReport() {
         filteredReports,
         reportsError: error,
         isLoadingReports: isLoading,
+        reportsEnabled: availability?.enabled ?? true,
         canSubmit,
         wasSubmitted,
         submitError,
@@ -312,6 +323,7 @@ export function useProblemReport() {
         resolveReport,
         deleteReport,
         getResolveDraft,
+        mutateAvailability,
     };
 }
 

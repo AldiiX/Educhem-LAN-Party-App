@@ -53,7 +53,7 @@ export function ProblemReportForm({report}: {report: ProblemReportHook}) {
             />
         </label>
 
-        <button type="submit" disabled={!report.canSubmit || report.isSubmitting}>
+        <button type="submit" disabled={!report.canSubmit || report.isSubmitting || !report.reportsEnabled}>
             {report.isSubmitting ? "Odesílám..." : "Odeslat hlášení"}
         </button>
     </form>;

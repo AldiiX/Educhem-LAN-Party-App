@@ -15,6 +15,8 @@ public sealed class AppSettingsService : IAppSettingsService
     private const string ReservationsEnabledToKey = "ReservationsEnabledTo";
     private const string ReservationsStatusKey = "ReservationsStatus";
     private const string ReservationsEnabledRightNowKey = "ReservationsEnabledRightNow";
+    private const string AttendanceEnabledKey = "AttendanceEnabled";
+    private const string ProblemReportsEnabledKey = "ProblemReportsEnabled";
 
     private readonly AppDbContext _db;
     private readonly AppCacheService _cache;
@@ -182,6 +184,26 @@ public sealed class AppSettingsService : IAppSettingsService
     public async Task SetChatEnabledAsync(bool value, CancellationToken ct = default)
     {
         await SetValueAsync(ChatEnabledKey, value.ToString(), ct);
+    }
+
+    public async Task<bool> GetAttendanceEnabledAsync(CancellationToken ct = default)
+    {
+        return await GetBoolAsync(AttendanceEnabledKey, ct);
+    }
+
+    public async Task SetAttendanceEnabledAsync(bool value, CancellationToken ct = default)
+    {
+        await SetValueAsync(AttendanceEnabledKey, value.ToString(), ct);
+    }
+
+    public async Task<bool> GetProblemReportsEnabledAsync(CancellationToken ct = default)
+    {
+        return await GetBoolAsync(ProblemReportsEnabledKey, ct);
+    }
+
+    public async Task SetProblemReportsEnabledAsync(bool value, CancellationToken ct = default)
+    {
+        await SetValueAsync(ProblemReportsEnabledKey, value.ToString(), ct);
     }
 
     public async Task<bool> AreReservationsEnabledRightNowAsync(CancellationToken ct = default)

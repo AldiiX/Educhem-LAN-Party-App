@@ -21,11 +21,13 @@ export default function ProblemClient() {
                 <h2>Dej organizátorům vědět, co nefunguje</h2>
                 <p>Popiš problém co nejkonkrétněji, aby se dal rychle dohledat a vyřešit.</p>
             </div>
-            <button type="button" onClick={report.openCreateModal}>
+            <button type="button" onClick={report.openCreateModal} disabled={!report.reportsEnabled}>
                 <span style={{maskImage: "url(/icons/plus.svg)"}}></span>
                 Nová porucha
             </button>
         </section>
+
+        {!report.reportsEnabled && <p className={style.success}>Hlášení problémů je momentálně uzamčené.</p>}
 
         {report.wasSubmitted && <p className={style.success}>Hlášení bylo odesláno.</p>}
 

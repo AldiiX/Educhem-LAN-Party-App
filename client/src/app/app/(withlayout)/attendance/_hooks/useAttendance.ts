@@ -5,6 +5,7 @@ import {fetcher} from "@/lib/swr";
 import {hasRoleAtLeast} from "@/lib/roles";
 import {
     AttendanceEntryType,
+    AttendanceDeltaSchema,
     AttendanceOverview,
     AttendanceOverviewSchema,
     AttendanceParticipant,
@@ -60,7 +61,7 @@ export function useAttendance() {
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if(isSubmitting) return;
+        if(isSubmitting || data?.attendanceEnabled === false) return;
 
         setIsSubmitting(true);
         setSubmitError(null);
@@ -76,13 +77,41 @@ export function useAttendance() {
                 }),
             });
 
+            if(response.status === 423) {
+                const text = await response.text();
+                throw new Error(text || "Docházka je momentálně uzamčená.");
+            }
+
             if(!response.ok) {
                 const text = await response.text();
                 throw new Error(text || "Záznam se nepodařilo uložit.");
             }
 
+            const delta = AttendanceDeltaSchema.parse(await response.json());
             setReason("");
-            await mutate();
+            await mutate(currentData => {
+                if(!currentData) return currentData;
+
+                const participantExists = currentData.participants.some(participant =>
+                    participant.profile.id === delta.participant.profile.id
+                );
+                const participants = participantExists
+                    ? currentData.participants.map(participant =>
+                        participant.profile.id === delta.participant.profile.id ? delta.participant : participant
+                    )
+                    : [...currentData.participants, delta.participant]
+                        .sort((a, b) => a.profile.fullName.localeCompare(b.profile.fullName, "cs-CZ"));
+
+                return {
+                    ...currentData,
+                    entries: [
+                        delta.entry,
+                        ...currentData.entries.filter(entry => entry.id !== delta.entry.id),
+                    ],
+                    participants,
+                    stats: delta.stats,
+                };
+            }, {revalidate: false});
         } catch (err) {
             setSubmitError(err instanceof Error ? err.message : "Záznam se nepodařilo uložit.");
         } finally {

@@ -26,6 +26,12 @@ public interface IAppSettingsService
     Task<bool> GetChatEnabledAsync(CancellationToken ct = default);
     Task SetChatEnabledAsync(bool value, CancellationToken ct = default);
 
+    Task<bool> GetAttendanceEnabledAsync(CancellationToken ct = default);
+    Task SetAttendanceEnabledAsync(bool value, CancellationToken ct = default);
+
+    Task<bool> GetProblemReportsEnabledAsync(CancellationToken ct = default);
+    Task SetProblemReportsEnabledAsync(bool value, CancellationToken ct = default);
+
     Task<bool> AreReservationsEnabledRightNowAsync(CancellationToken ct = default);
     Task<bool> GetReservationsEnabledRightNowStoredAsync(CancellationToken ct = default);
     Task SetReservationsEnabledRightNowAsync(bool value, CancellationToken ct = default);

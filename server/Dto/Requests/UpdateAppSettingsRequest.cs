@@ -9,4 +9,8 @@ public sealed class UpdateAppSettingsRequest
     public DateTime? ReservationsEnabledTo { get; set; }
 
     public string? ReservationsStatus { get; set; }
+
+    public bool? AttendanceEnabled { get; set; }
+
+    public bool? ProblemReportsEnabled { get; set; }
 }

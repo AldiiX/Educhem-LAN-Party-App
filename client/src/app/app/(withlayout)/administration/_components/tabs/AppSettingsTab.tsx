@@ -98,19 +98,35 @@ export function AppSettingsTab() {
 
             <div className={style.settingsCard}>
                 <form
-                    key={`chat-${String(settings.appSettings.chatEnabled)}`}
-                    onSubmit={settings.submitChat}
+                    key={`features-${String(settings.appSettings.chatEnabled)}-${String(settings.appSettings.attendanceEnabled)}-${String(settings.appSettings.problemReportsEnabled)}`}
+                    onSubmit={settings.submitFeatureSettings}
                 >
                     <div className={style.cardHeader}>
-                        <h2>Nastavení chatu</h2>
-                        <p>Zapnutí nebo vypnutí chatu.</p>
+                        <h2>Nastavení funkcí</h2>
+                        <p>Zapnutí nebo uzamčení dostupných funkcí.</p>
                     </div>
 
                     <label className={style.field}>
-                        <span>Viditelnost</span>
+                        <span>Chat</span>
                         <select name="chatEnabled" defaultValue={String(settings.appSettings.chatEnabled)}>
                             <option value="true">Povolené</option>
                             <option value="false">Zakázané</option>
+                        </select>
+                    </label>
+
+                    <label className={style.field}>
+                        <span>Docházka</span>
+                        <select name="attendanceEnabled" defaultValue={String(settings.appSettings.attendanceEnabled)}>
+                            <option value="true">Povolená</option>
+                            <option value="false">Uzamčená</option>
+                        </select>
+                    </label>
+
+                    <label className={style.field}>
+                        <span>Hlášení problémů</span>
+                        <select name="problemReportsEnabled" defaultValue={String(settings.appSettings.problemReportsEnabled)}>
+                            <option value="true">Povolené</option>
+                            <option value="false">Uzamčené</option>
                         </select>
                     </label>
 

@@ -13,13 +13,23 @@ namespace server.Controllers;
 [Route("api/v1/attendance")]
 public sealed class AttendanceControllerV1(
 	IAuthService auth,
-	AppDbContext db
+	AppDbContext db,
+	IAppSettingsService appSettings,
+	AppCacheService cache
 ) : Controller {
+	private const string AttendanceOverviewCacheKey = "attendance:overview";
 
 	[HttpGet]
 	public async Task<IActionResult> GetAttendance(CancellationToken ct = default) {
 		var acc = await auth.ReAuthAsync(ct);
 		if(acc == null) return new UnauthorizedResult();
+
+		var attendanceEnabled = await appSettings.GetAttendanceEnabledAsync(ct);
+		if(cache.TryGetValue(AttendanceOverviewCacheKey, out AttendanceOverviewDto? cachedOverview)
+		   && cachedOverview is not null
+		   && cachedOverview.AttendanceEnabled == attendanceEnabled) {
+			return Ok(cachedOverview);
+		}
 
 		var entries = await db.AttendanceEntriesEf()
 			.AsNoTracking()
@@ -46,17 +56,24 @@ public sealed class AttendanceControllerV1(
 			.ToList();
 		var present = participantDtos.Count(p => p.CurrentState == AttendanceEntryType.CheckIn);
 
-		return Ok(new AttendanceOverviewDto(
+		var overview = new AttendanceOverviewDto(
 			entries.Select(e => e.ToDto()).ToList(),
 			participantDtos,
-			new AttendanceStatsDto(present, Math.Max(0, participants.Count - present), participants.Count)
-		));
+			new AttendanceStatsDto(present, Math.Max(0, participants.Count - present), participants.Count),
+			attendanceEnabled
+		);
+		cache.Set(AttendanceOverviewCacheKey, overview);
+
+		return Ok(overview);
 	}
 
 	[HttpPost]
 	public async Task<IActionResult> CreateAttendanceEntry([FromBody] CreateAttendanceEntryRequest request, CancellationToken ct = default) {
 		var acc = await auth.ReAuthAsync(ct);
 		if(acc == null) return new UnauthorizedResult();
+		if(!await appSettings.GetAttendanceEnabledAsync(ct)) {
+			return StatusCode(StatusCodes.Status423Locked, "Dochazka je momentalne uzamcena.");
+		}
 
 		var targetAccountId = request.AccountId ?? acc.Id;
 		var isSelfEntry = targetAccountId == acc.Id;
@@ -112,7 +129,70 @@ public sealed class AttendanceControllerV1(
 			.AsNoTracking()
 			.FirstAsync(e => e.Id == entry.Id, ct);
 
-		return Ok(created.ToDto());
+		var delta = await BuildDeltaAsync(created, ct);
+		UpdateCachedOverview(delta);
+
+		return Ok(delta);
+	}
+
+	private async Task<AttendanceDeltaDto> BuildDeltaAsync(AttendanceEntry created, CancellationToken ct) {
+		var latestEntry = await db.AttendanceEntriesEf()
+			.AsNoTracking()
+			.Where(e => e.AccountId == created.AccountId)
+			.OrderByDescending(e => e.CreatedAtUtc)
+			.FirstAsync(ct);
+		var participant = await db.AccountsEf()
+			.AsNoTracking()
+			.FirstAsync(a => a.Id == created.AccountId, ct);
+		var presentAccountIds = await db.AttendanceEntries
+			.AsNoTracking()
+			.GroupBy(e => e.AccountId)
+			.Select(g => new {
+				AccountId = g.Key,
+				LatestType = g.OrderByDescending(e => e.CreatedAtUtc).First().Type,
+			})
+			.Where(x => x.LatestType == AttendanceEntryType.CheckIn)
+			.Select(x => x.AccountId)
+			.ToListAsync(ct);
+		var total = await db.Accounts
+			.AsNoTracking()
+			.CountAsync(a => a.EnableReservations, ct);
+		var present = presentAccountIds.Count;
+
+		return new AttendanceDeltaDto(
+			created.ToDto(),
+			new AttendanceParticipantDto(
+				participant.ToProfileDto(),
+				latestEntry.Type,
+				latestEntry.ToDto(false)
+			),
+			new AttendanceStatsDto(present, Math.Max(0, total - present), total)
+		);
+	}
+
+	private void UpdateCachedOverview(AttendanceDeltaDto delta) {
+		if(!cache.TryGetValue(AttendanceOverviewCacheKey, out AttendanceOverviewDto? overview)
+		   || overview is null) {
+			return;
+		}
+
+		var entries = new[] { delta.Entry }
+			.Concat(overview.Entries.Where(entry => entry.Id != delta.Entry.Id))
+			.ToList();
+		var participants = overview.Participants
+			.Select(participant => participant.Profile.Id == delta.Participant.Profile.Id ? delta.Participant : participant)
+			.ToList();
+
+		if(!participants.Any(participant => participant.Profile.Id == delta.Participant.Profile.Id)) {
+			participants.Add(delta.Participant);
+			participants = participants.OrderBy(participant => participant.Profile.FullName).ToList();
+		}
+
+		cache.Set(AttendanceOverviewCacheKey, overview with {
+			Entries = entries,
+			Participants = participants,
+			Stats = delta.Stats,
+		});
 	}
 
 	private static bool HasRoleAtLeast(Account account, AccountType accountType) {

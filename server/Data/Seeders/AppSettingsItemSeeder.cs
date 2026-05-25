@@ -24,7 +24,9 @@ public static class AppSettingsItemSeeder
             ["ReservationsStatus"] = "Closed",
             ["ReservationsEnabledFrom"] = now.ToString(DateFormat, CultureInfo.InvariantCulture),
             ["ReservationsEnabledTo"] = now.AddDays(7).ToString(DateFormat, CultureInfo.InvariantCulture),
-            ["ReservationsEnabledRightNow"] = "false"
+            ["ReservationsEnabledRightNow"] = "false",
+            ["AttendanceEnabled"] = "false",
+            ["ProblemReportsEnabled"] = "false"
         };
 
         foreach (var item in defaults)

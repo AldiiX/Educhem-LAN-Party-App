@@ -27,9 +27,21 @@ export const AttendanceOverviewSchema = z.object({
         away: z.number(),
         total: z.number(),
     }),
+    attendanceEnabled: z.boolean(),
+});
+
+export const AttendanceDeltaSchema = z.object({
+    entry: AttendanceEntrySchema,
+    participant: AttendanceParticipantSchema,
+    stats: z.object({
+        present: z.number(),
+        away: z.number(),
+        total: z.number(),
+    }),
 });
 
 export type AttendanceEntryType = z.infer<typeof AttendanceEntryTypeSchema>;
 export type AttendanceEntry = z.infer<typeof AttendanceEntrySchema>;
 export type AttendanceParticipant = z.infer<typeof AttendanceParticipantSchema>;
 export type AttendanceOverview = z.infer<typeof AttendanceOverviewSchema>;
+export type AttendanceDelta = z.infer<typeof AttendanceDeltaSchema>;

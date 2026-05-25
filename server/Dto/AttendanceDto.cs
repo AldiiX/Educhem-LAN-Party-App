@@ -24,5 +24,12 @@ public sealed record AttendanceStatsDto(
 public sealed record AttendanceOverviewDto(
 	IReadOnlyList<AttendanceEntryDto> Entries,
 	IReadOnlyList<AttendanceParticipantDto> Participants,
+	AttendanceStatsDto Stats,
+	bool AttendanceEnabled
+);
+
+public sealed record AttendanceDeltaDto(
+	AttendanceEntryDto Entry,
+	AttendanceParticipantDto Participant,
 	AttendanceStatsDto Stats
 );

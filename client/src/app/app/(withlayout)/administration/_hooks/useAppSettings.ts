@@ -120,7 +120,7 @@ export function useAppSettings() {
         await mutate();
     }
 
-    async function submitChat(event: FormEvent<HTMLFormElement>) {
+    async function submitFeatureSettings(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
         const form = event.currentTarget;
@@ -134,17 +134,19 @@ export function useAppSettings() {
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 chatEnabled: formData.get("chatEnabled") === "true",
+                attendanceEnabled: formData.get("attendanceEnabled") === "true",
+                problemReportsEnabled: formData.get("problemReportsEnabled") === "true",
             }),
         });
 
         setSaving(false);
 
         if (!res.ok) {
-            toast.error("Nastavení chatu se nepodařilo uložit.");
+            toast.error("Nastavení funkcí se nepodařilo uložit.");
             return;
         }
 
-        toast.success("Nastavení chatu bylo uloženo.");
+        toast.success("Nastavení funkcí bylo uloženo.");
         await mutate();
     }
 
@@ -183,7 +185,7 @@ export function useAppSettings() {
         reservationsStatus,
         setReservationsStatus,
         submitReservations,
-        submitChat,
+        submitFeatureSettings,
         clearAppCache,
         mutate,
     };

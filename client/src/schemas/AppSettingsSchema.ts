@@ -7,6 +7,8 @@ export type AppSettingsItem = {
     reservationsEnabledTo: Date;
     reservationsStatus: ReservationStatusType;
     reservationsEnabledRightNow: boolean;
+    attendanceEnabled: boolean;
+    problemReportsEnabled: boolean;
 };
 
 export type AppSettingsResponse = {
@@ -16,6 +18,8 @@ export type AppSettingsResponse = {
     reservationsEnabledTo: string;
     reservationsStatus: ReservationStatusType;
     reservationsEnabledRightNow: boolean;
+    attendanceEnabled: boolean;
+    problemReportsEnabled: boolean;
 };
 
 export function mapAppSettings(data: AppSettingsResponse): AppSettingsItem {
@@ -26,5 +30,7 @@ export function mapAppSettings(data: AppSettingsResponse): AppSettingsItem {
         reservationsEnabledTo: new Date(data.reservationsEnabledTo),
         reservationsStatus: data.reservationsStatus,
         reservationsEnabledRightNow: data.reservationsEnabledRightNow,
+        attendanceEnabled: data.attendanceEnabled,
+        problemReportsEnabled: data.problemReportsEnabled,
     };
 }

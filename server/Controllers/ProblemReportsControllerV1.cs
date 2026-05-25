@@ -13,7 +13,8 @@ namespace server.Controllers;
 [Route("api/v1/problem-reports")]
 public sealed class ProblemReportsControllerV1(
 	IAuthService auth,
-	AppDbContext db
+	AppDbContext db,
+	IAppSettingsService appSettings
 ) : Controller {
 
 	[HttpGet]
@@ -33,10 +34,23 @@ public sealed class ProblemReportsControllerV1(
 		return Ok(reports);
 	}
 
+	[HttpGet("availability")]
+	public async Task<IActionResult> GetAvailability(CancellationToken ct = default) {
+		var acc = await auth.ReAuthAsync(ct);
+		if(acc == null) return new UnauthorizedResult();
+
+		return Ok(new ProblemReportsAvailabilityResponse(
+			await appSettings.GetProblemReportsEnabledAsync(ct)
+		));
+	}
+
 	[HttpPost]
 	public async Task<IActionResult> CreateProblemReport([FromBody] CreateProblemReportRequest request, CancellationToken ct = default) {
 		var acc = await auth.ReAuthAsync(ct);
 		if(acc == null) return new UnauthorizedResult();
+		if(!await appSettings.GetProblemReportsEnabledAsync(ct)) {
+			return StatusCode(StatusCodes.Status423Locked, "Hlaseni problemu je momentalne uzamcene.");
+		}
 
 		if(string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Description))
 			return BadRequest("Missing required problem report fields.");
@@ -136,4 +150,6 @@ public sealed class ProblemReportsControllerV1(
 		ProblemReportStatus Status,
 		string? ResolutionNote
 	);
+
+	public sealed record ProblemReportsAvailabilityResponse(bool Enabled);
 }
