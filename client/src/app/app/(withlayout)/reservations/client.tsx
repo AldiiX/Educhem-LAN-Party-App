@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import style from "@/app/app/(withlayout)/reservations/client.module.scss";
-import {useCallback, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import If from "@/components/util/If";
 import Link from "next/link";
@@ -14,8 +14,8 @@ import CapacityChart from "@/components/CapacityChart";
 import {useRoomsAndComputers} from "@/app/app/(withlayout)/reservations/_hooks/useRoomsAndComputers";
 import {useReservationsDisplay} from "@/app/app/(withlayout)/reservations/_hooks/useReservationsDisplay";
 import Switch, {Case} from "@/components/util/Switch";
-import SelectedRoomOrComputer from "@/app/app/(withlayout)/reservations/_components/SelectedRoomOrComputer";
-import {ProfileHoverCard} from "@/components/ProfileHoverCard";
+import SelectedRoomOrComputer, {useSelectedRoomOrComputerStore} from "@/app/app/(withlayout)/reservations/_components/SelectedRoomOrComputer";
+import {ProfileHoverCard, closeProfileHoverImmediate} from "@/components/ProfileHoverCard";
 import {useReservationStatus} from "@/app/app/(withlayout)/reservations/_hooks/useReservationStatus";
 import {ReservationCountdownStatus} from "@/app/app/(withlayout)/reservations/_components/ReservationCountdownStatus";
 import {useLiveReservationsEnabled} from "@/app/app/(withlayout)/reservations/_hooks/useLiveReservationsEnabled";
@@ -37,6 +37,7 @@ export default function Client({
     initialLegendCollapsed = false,
 }: ClientProps) {
     const [selectedTab, setSelectedTab] = useState<string>("ithub");
+    const setSelectedRoomOrComputer = useSelectedRoomOrComputerStore(state => state.setSelectedRoomOrComputer);
     const [isRightPanelCollapsed, toggleRightPanelCollapsed] = useRememberedCollapseState(
         initialRightPanelCollapsed,
         "reservationsRightPanelCollapsed",
@@ -59,7 +60,12 @@ export default function Client({
     const reservationDisplay = useReservationsDisplay(rooms, computers, reservations);
     const {account} = useAuth();
     const reservationStats = useReservationStats(reservations, computersCapacity, roomsCapacity, maxCapacity);
-    
+
+    useEffect(() => {
+        closeProfileHoverImmediate();
+        setSelectedRoomOrComputer(null);
+    }, [selectedTab, setSelectedRoomOrComputer]);
+
     return <>
         <h1 className={style.title}>Rezervace</h1>
         <div className={style.tabs}>

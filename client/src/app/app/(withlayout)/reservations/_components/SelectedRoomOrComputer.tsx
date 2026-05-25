@@ -4,7 +4,7 @@ import { create } from "zustand"
 import {Computer, ComputerSchema, Reservation, Room, RoomSchema} from "@/schemas/ReservationSchema";
 import style from "./SelectedReservation.module.scss";
 import Switch, { Case } from "@/components/util/Switch";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import If from "@/components/util/If";
 import {Avatar} from "@/components/Avatar";
@@ -13,6 +13,7 @@ import {useRoomsAndComputers} from "@/app/app/(withlayout)/reservations/_hooks/u
 import {Button} from "@/components/Button";
 import {ProfileHoverCard} from "@/components/ProfileHoverCard";
 import {toast} from "react-hot-toast"
+import {usePathname} from "next/navigation";
 
 
 export const useSelectedRoomOrComputerStore = create<{
@@ -26,9 +27,14 @@ export const useSelectedRoomOrComputerStore = create<{
 
 export default function SelectedRoomOrComputer({ reservations, reserve, unbook, isReservationMutationPending, reservationsEnabled }: { reservations: Reservation[] | null, reserve: (id: string, type: "room" | "computer") => void, unbook: () => void, isReservationMutationPending: boolean,  reservationsEnabled: boolean}) {
     const { account } = useAuth();
+    const pathname = usePathname();
 
     const roomOrComputer = useSelectedRoomOrComputerStore(state => state.selectedRoomOrComputer)
     const setRoc = useSelectedRoomOrComputerStore(state => state.setSelectedRoomOrComputer);
+
+    useEffect(() => {
+        setRoc(null);
+    }, [pathname, setRoc]);
 
     const [isComputerReservation, computer] = useMemo(() => {
         const computer = ComputerSchema.safeParse(roomOrComputer);
