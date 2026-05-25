@@ -54,6 +54,9 @@ public sealed class ProblemReportsControllerV1(
 
 		if(string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Description))
 			return BadRequest("Missing required problem report fields.");
+		if(!Enum.IsDefined(request.Category) || !Enum.IsDefined(request.Priority)) {
+			return BadRequest("Invalid problem report category or priority.");
+		}
 
 		var reporter = await db.Accounts.FirstOrDefaultAsync(a => a.Id == acc.Id, ct);
 		if(reporter == null) return new UnauthorizedResult();
@@ -90,6 +93,9 @@ public sealed class ProblemReportsControllerV1(
 		if(acc == null) return new UnauthorizedResult();
 		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
 			return Forbid();
+		if(!Enum.IsDefined(request.Status)) {
+			return BadRequest("Invalid problem report status.");
+		}
 
 		var report = await db.ProblemReports.FirstOrDefaultAsync(r => r.Id == id, ct);
 		if(report == null) return NotFound();

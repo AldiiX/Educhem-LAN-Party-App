@@ -84,6 +84,9 @@ public sealed class AttendanceControllerV1(
 
 		var targetAccount = await db.AccountsEf().FirstOrDefaultAsync(a => a.Id == targetAccountId, ct);
 		if(targetAccount == null) return NotFound();
+		if(!targetAccount.EnableReservations) {
+			return BadRequest("Ucet nema povolenou ucast na akci.");
+		}
 
 		if(!isSelfEntry && !CanManageAccount(acc, targetAccount)) {
 			return Forbid();
@@ -144,6 +147,11 @@ public sealed class AttendanceControllerV1(
 		var participant = await db.AccountsEf()
 			.AsNoTracking()
 			.FirstAsync(a => a.Id == created.AccountId, ct);
+		var eligibleAccountIds = await db.Accounts
+			.AsNoTracking()
+			.Where(a => a.EnableReservations)
+			.Select(a => a.Id)
+			.ToListAsync(ct);
 		var presentAccountIds = await db.AttendanceEntries
 			.AsNoTracking()
 			.GroupBy(e => e.AccountId)
@@ -154,10 +162,8 @@ public sealed class AttendanceControllerV1(
 			.Where(x => x.LatestType == AttendanceEntryType.CheckIn)
 			.Select(x => x.AccountId)
 			.ToListAsync(ct);
-		var total = await db.Accounts
-			.AsNoTracking()
-			.CountAsync(a => a.EnableReservations, ct);
-		var present = presentAccountIds.Count;
+		var total = eligibleAccountIds.Count;
+		var present = presentAccountIds.Count(eligibleAccountIds.Contains);
 
 		return new AttendanceDeltaDto(
 			created.ToDto(),

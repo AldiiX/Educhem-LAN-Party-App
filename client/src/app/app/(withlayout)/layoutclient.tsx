@@ -28,7 +28,7 @@ export default function({ children }: { children: ReactNode }) {
         ...(loggedAccount !== null ? [{ href: "/app/attendance", label: "Docházka", icon: "/icons/user_in_building.svg" }] : []),
         // ...(loggedAccount !== null ? [{ href: "/app/chat", label: "Chat", icon: "/icons/chat.svg" }] : []),
         { href: "/app/tournaments", label: "Turnaje", icon: "/icons/trophy_star.svg" },
-        ...(loggedAccount !== null ? [{ href: "/app/problem", label: "Nahlásit problém", icon: "/icons/warn2.svg" }] : []),
+        ...(loggedAccount !== null ? [{ href: "/app/support", label: "Nahlásit problém", icon: "/icons/warn2.svg" }] : []),
         ...(hasRoleAtLeast(loggedAccount, "TeacherOrg") ? [{ href: "/app/administration", label: "Administrace", icon: "/icons/user_with_shield.svg" }] : []),
         ...(loggedAccount !== null ? [{ href: "/app/account", label: "Můj účet", icon: "/icons/account.svg", pushBottom: true }] : []),
         ...(loggedAccount !== null ? [{ href: "/app/profile", label: "Veřejný profil", icon: "/icons/account_outline.svg", avatar: true }] : []),

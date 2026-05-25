@@ -74,6 +74,12 @@ const nextConfig: NextConfig = {
                 destination: '/app/administration',
                 permanent: true,
             },
+
+            {
+                source: '/app/problem',
+                destination: '/app/support',
+                permanent: true,
+            },
         ]
     },
 

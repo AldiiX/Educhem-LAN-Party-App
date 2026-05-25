@@ -1,13 +1,13 @@
 import type {Metadata} from "next";
 import {requireLoggedAccountOrRedirect} from "@/lib/auth";
-import ProblemClient from "./client";
+import SupportClient from "./client";
 
 export const metadata: Metadata = {
     title: "Nahlásit problém",
 };
 
-export default async function ProblemPage() {
+export default async function SupportPage() {
     await requireLoggedAccountOrRedirect();
 
-    return <ProblemClient />;
+    return <SupportClient />;
 }

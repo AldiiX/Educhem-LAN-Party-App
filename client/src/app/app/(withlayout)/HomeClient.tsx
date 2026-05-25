@@ -22,7 +22,7 @@ const quickLinks = [
     {href: "/app/map", label: "Mapa", icon: "/icons/map.svg"},
     {href: "/app/attendance", label: "Docházka", icon: "/icons/user_in_building.svg", authOnly: true},
     {href: "/app/tournaments", label: "Turnaje", icon: "/icons/trophy_star.svg"},
-    {href: "/app/problem", label: "Nahlásit problém", icon: "/icons/warn2.svg"},
+    {href: "/app/support", label: "Nahlásit problém", icon: "/icons/warn2.svg"},
     {href: "/app/administration", label: "Administrace", icon: "/icons/user_with_shield.svg", staffOnly: true},
 ];
 

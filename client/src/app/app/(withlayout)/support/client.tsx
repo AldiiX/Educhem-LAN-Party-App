@@ -7,7 +7,7 @@ import {useProblemReport} from "./_hooks/useProblemReport";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {hasRoleAtLeast} from "@/lib/roles";
 
-export default function ProblemClient() {
+export default function SupportClient() {
     const report = useProblemReport();
     const {account} = useAuth();
     const canManageReports = hasRoleAtLeast(account, "TeacherOrg");
