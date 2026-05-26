@@ -1,4 +1,5 @@
 import "./Area.scss";
+import type {PointerEvent} from "react";
 
 type ReservationAreaProps = {
     onHoverReservation?: (target: EventTarget | null) => void;
@@ -11,7 +12,18 @@ export const ITHub = ({
     getComputerClass = () => "",
     getRoomClass = () => "",
 }: ReservationAreaProps) => {
-    return <g className="map-reservation-area-main">
+    function handleReservationPointerDown(event: PointerEvent<SVGGElement>) {
+        if (event.pointerType === "mouse") return;
+
+        const target = event.target;
+        if (!(target instanceof SVGCircleElement)) return;
+        if (!target.classList.contains("pc") && !target.classList.contains("room")) return;
+
+        event.stopPropagation();
+        onHoverReservation(target);
+    }
+
+    return <g className="map-reservation-area-main" onPointerDownCapture={handleReservationPointerDown}>
         <defs>
             <style>{`
                 .cls-1 {

@@ -156,7 +156,6 @@ export default function MovableMap({
     const handlePointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
         if (event.button !== 0 && event.pointerType === "mouse") return;
 
-        event.preventDefault();
         activePointerId.current = event.pointerId;
         dragStart.current = { x: event.clientX, y: event.clientY };
         dragStartOffset.current = offset;

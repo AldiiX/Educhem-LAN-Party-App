@@ -1,4 +1,4 @@
-import type { MouseEvent } from "react";
+import type { MouseEvent, PointerEvent } from "react";
 import "./Area.scss";
 
 type ReservationAreaProps = {
@@ -14,9 +14,20 @@ export const SpiralUpper = ({
 }: ReservationAreaProps) => {
     function e(event: MouseEvent<SVGCircleElement>) {
         return onHoverReservation(event.target);
-    } 
+    }
+
+    function handleReservationPointerDown(event: PointerEvent<SVGGElement>) {
+        if (event.pointerType === "mouse") return;
+
+        const target = event.target;
+        if (!(target instanceof SVGCircleElement)) return;
+        if (!target.classList.contains("pc") && !target.classList.contains("room")) return;
+
+        event.stopPropagation();
+        onHoverReservation(target);
+    }
     
-    return <g className="map-reservation-area-main">
+    return <g className="map-reservation-area-main" onPointerDownCapture={handleReservationPointerDown}>
         <defs>
             <style>{`
                 .cls-1, .cls-2, .cls-3, .cls-4 {
