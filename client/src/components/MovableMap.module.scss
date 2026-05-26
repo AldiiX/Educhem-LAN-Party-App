@@ -8,12 +8,19 @@
     border-radius: 8px;
     background-size: 32px 32px;
     user-select: none;
+    touch-action: none;
+    overscroll-behavior: contain;
+    -webkit-user-select: none;
 
     .svg {
         width: 100%;
         height: 100%;
         max-width: none;
         touch-action: none;
+
+        * {
+            touch-action: none;
+        }
     }
 
     .controls {

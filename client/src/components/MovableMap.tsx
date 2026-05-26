@@ -140,9 +140,23 @@ export default function MovableMap({
         return () => svg.removeEventListener("wheel", handleWheel);
     }, [scale, zoomTo]);
 
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const preventPageScroll = (event: TouchEvent) => {
+            event.preventDefault();
+        };
+
+        container.addEventListener("touchmove", preventPageScroll, { passive: false });
+
+        return () => container.removeEventListener("touchmove", preventPageScroll);
+    }, []);
+
     const handlePointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
         if (event.button !== 0 && event.pointerType === "mouse") return;
 
+        event.preventDefault();
         activePointerId.current = event.pointerId;
         dragStart.current = { x: event.clientX, y: event.clientY };
         dragStartOffset.current = offset;
