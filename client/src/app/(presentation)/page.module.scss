@@ -5,18 +5,32 @@
     align-items: end;
     overflow: hidden;
     padding: calc(var(--header-height) + 64px) 20px 72px;
-}
 
-.hero::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background: linear-gradient(110deg, transparent 22%, rgba(255, 255, 255, 0.16) 45%, transparent 62%);
-    opacity: 0;
-    transform: translateX(-48%);
-    animation: heroSweep 1100ms 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
-    pointer-events: none;
+    &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(110deg, transparent 22%, rgba(255, 255, 255, 0.16) 45%, transparent 62%);
+        opacity: 0;
+        transform: translateX(-48%);
+        animation: heroSweep 1100ms 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        pointer-events: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &::after {
+            animation: none;
+        }
+    }
+
+    @media (max-width: 900px) {
+        min-height: 82vh;
+    }
+
+    @media (max-width: 620px) {
+        padding-bottom: 44px;
+    }
 }
 
 .heroImage {
@@ -31,19 +45,25 @@
         height: 100%;
         object-fit: cover;
         animation: heroImageSettle 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+
+        @media (prefers-reduced-motion: reduce) {
+            animation: none;
+        }
     }
-}
 
-.heroImageLight {
-    opacity: 0;
-}
+    &Dark {
+        :global(html[data-theme='light']) & {
+            opacity: 0;
+        }
+    }
 
-:global(html[data-theme='light']) .heroImageDark {
-    opacity: 0;
-}
+    &Light {
+        opacity: 0;
 
-:global(html[data-theme='light']) .heroImageLight {
-    opacity: 1;
+        :global(html[data-theme='light']) & {
+            opacity: 1;
+        }
+    }
 }
 
 .heroOverlay {
@@ -52,21 +72,21 @@
     z-index: -1;
     background: linear-gradient(90deg, rgba(0, 0, 0, 0.88), rgba(0, 0, 0, 0.48) 48%, rgba(0, 0, 0, 0.24)),
     linear-gradient(0deg, var(--background-bg), transparent 36%);
-}
 
-:global(html[data-theme='light']) .heroOverlay {
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.48) 48%, rgba(255, 255, 255, 0.24)),
-    linear-gradient(0deg, var(--background-bg), transparent 36%);
-}
-
-:global(html[data-theme='light']) .heroDescription {
-    color: black;
+    :global(html[data-theme='light']) & {
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.48) 48%, rgba(255, 255, 255, 0.24)),
+        linear-gradient(0deg, var(--background-bg), transparent 36%);
+    }
 }
 
 .heroContent {
     width: min(var(--container-width), 100%);
     margin: 0 auto;
     animation: heroContentEnter 780ms 120ms cubic-bezier(0.22, 1, 0.36, 1) both;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
 }
 
 .heroTitle {
@@ -88,6 +108,10 @@
     margin-top: 24px;
     color: #f2f2f2;
     font-size: clamp(1.05rem, 2vw, 1.28rem);
+
+    :global(html[data-theme='light']) & {
+        color: black;
+    }
 }
 
 .heroButtons {
@@ -99,11 +123,11 @@
 
 .section {
     padding: 86px 20px;
-}
 
-.sectionTint {
-    background: color-mix(in srgb, var(--element-bg) 70%, transparent);
-    border-block: 1px solid var(--border-color);
+    &Tint {
+        background: color-mix(in srgb, var(--element-bg) 70%, transparent);
+        border-block: 1px solid var(--border-color);
+    }
 }
 
 .container {
@@ -115,23 +139,35 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
+
+    @media (max-width: 900px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 620px) {
+        grid-template-columns: 1fr;
+    }
 }
 
 .infoCard {
     padding: 22px;
     animation: riseIn 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
 
-.infoCard:nth-child(2) {
-    animation-delay: 80ms;
-}
+    &:nth-child(2) {
+        animation-delay: 80ms;
+    }
 
-.infoCard:nth-child(3) {
-    animation-delay: 160ms;
-}
+    &:nth-child(3) {
+        animation-delay: 160ms;
+    }
 
-.infoCard:nth-child(4) {
-    animation-delay: 240ms;
+    &:nth-child(4) {
+        animation-delay: 240ms;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
 }
 
 .infoKicker {
@@ -142,10 +178,24 @@
 }
 
 .infoValue {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    align-items: baseline;
     margin-top: 10px;
     font-size: 1.35rem;
     line-height: 1.1;
     font-weight: 800;
+
+    &Note {
+        font-size: 14px;
+        font-weight: 400;
+        opacity: 0.5;
+    }
+
+    &Separator {
+        opacity: 0.7;
+    }
 }
 
 .feature {
@@ -164,29 +214,45 @@
         min-height: 330px;
         object-fit: cover;
         transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+
+        @media (prefers-reduced-motion: reduce) {
+            transition: none;
+        }
     }
 
-    &:hover img {
-        transform: scale(1.035);
+    &:hover {
+        img {
+            transform: scale(1.035);
+        }
     }
-}
 
-.featureCaption {
-    position: absolute;
-    left: 22px;
-    bottom: 22px;
-    max-width: 420px;
-    padding: 16px 18px;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: var(--radius);
-    background: rgba(0, 0, 0, 0.62);
-    color: white;
-    backdrop-filter: blur(12px);
-}
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
 
-.featureCaption strong {
-    display: block;
-    margin-bottom: 4px;
+    &Caption {
+        position: absolute;
+        left: 22px;
+        bottom: 22px;
+        max-width: 420px;
+        padding: 16px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: var(--radius);
+        background: rgba(0, 0, 0, 0.62);
+        color: white;
+        backdrop-filter: blur(12px);
+
+        strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        @media (max-width: 620px) {
+            left: 14px;
+            right: 14px;
+            bottom: 14px;
+        }
+    }
 }
 
 .systemPanel {
@@ -201,6 +267,18 @@
     background: linear-gradient(135deg, var(--accent-soft), color-mix(in srgb, var(--element-bg) 90%, transparent));
     box-shadow: 0 18px 44px var(--shadow-color);
     animation: riseIn 700ms 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+
+    @media (max-width: 900px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 620px) {
+        grid-template-columns: 1fr;
+    }
 }
 
 .systemKicker {
@@ -236,6 +314,14 @@
     grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
     gap: 54px;
     align-items: center;
+
+    @media (max-width: 900px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 620px) {
+        grid-template-columns: 1fr;
+    }
 }
 
 .steps {
@@ -253,18 +339,22 @@
     background: var(--element-bg);
     box-shadow: 0 16px 38px var(--shadow-color);
     animation: riseIn 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
 
-.step:nth-child(3) {
-    animation-delay: 80ms;
-}
+    &:nth-child(3) {
+        animation-delay: 80ms;
+    }
 
-.step:nth-child(4) {
-    animation-delay: 160ms;
-}
+    &:nth-child(4) {
+        animation-delay: 160ms;
+    }
 
-.step:nth-child(5) {
-    animation-delay: 240ms;
+    &:nth-child(5) {
+        animation-delay: 240ms;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
 }
 
 .stepNumber {
@@ -298,29 +388,41 @@
     background: var(--warning-background);
     box-shadow: 0 16px 38px var(--shadow-color);
     animation: riseIn 620ms 60ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
 
-.homeQrKicker {
-    color: var(--accent-color);
-    font-size: 0.84rem;
-    font-weight: 800;
-    text-transform: uppercase;
-}
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
 
-.homeQrText {
-    margin-top: 6px;
-    color: var(--text-color-secondary);
-}
+    @media (max-width: 620px) {
+        grid-template-columns: 1fr;
+    }
 
-.homeQrImage {
-    width: clamp(118px, 13vw, 156px);
-    aspect-ratio: 1;
-    padding: 8px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    background: white;
-    object-fit: contain;
-    pointer-events: none;
+    &Kicker {
+        color: var(--accent-color);
+        font-size: 0.84rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    &Text {
+        margin-top: 6px;
+        color: var(--text-color-secondary);
+    }
+
+    &Image {
+        width: clamp(118px, 13vw, 156px);
+        aspect-ratio: 1;
+        padding: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        background: white;
+        object-fit: contain;
+        pointer-events: none;
+
+        @media (max-width: 620px) {
+            width: min(164px, 100%);
+        }
+    }
 }
 
 .setupImage {
@@ -334,6 +436,14 @@
         width: 100%;
         min-height: 440px;
         object-fit: cover;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+
+    @media (max-width: 900px) {
+        grid-column: 1 / -1;
     }
 }
 
@@ -400,65 +510,5 @@
         clip-path: inset(0 0 0 0 round var(--radius));
         opacity: 1;
         transform: translateY(0);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .hero::after,
-    .heroImage img,
-    .heroContent,
-    .infoCard,
-    .feature,
-    .systemPanel,
-    .step,
-    .homeQr,
-    .setupImage {
-        animation: none;
-    }
-
-    .feature img {
-        transition: none;
-    }
-}
-
-@media (max-width: 900px) {
-    .hero {
-        min-height: 82vh;
-    }
-
-    .infoGrid,
-    .processGrid,
-    .systemPanel {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .setupImage {
-        grid-column: 1 / -1;
-    }
-}
-
-@media (max-width: 620px) {
-    .hero {
-        padding-bottom: 44px;
-    }
-
-    .infoGrid,
-    .processGrid,
-    .systemPanel {
-        grid-template-columns: 1fr;
-    }
-
-    .featureCaption {
-        left: 14px;
-        right: 14px;
-        bottom: 14px;
-    }
-
-    .homeQr {
-        grid-template-columns: 1fr;
-    }
-
-    .homeQrImage {
-        width: min(164px, 100%);
     }
 }

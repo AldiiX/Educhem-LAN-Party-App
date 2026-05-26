@@ -56,7 +56,13 @@ export default function HomePage() {
                         </div>
                         <div className={`${shell.card} ${styles.infoCard}`}>
                             <p className={styles.infoKicker}>Čas</p>
-                            <p className={styles.infoValue}>{event.startTime} - {event.endTime}</p>
+                            <p className={styles.infoValue}>
+                                {event.startTime}
+                                <span className={styles.infoValueNote}>(1. den)</span>
+                                <span className={styles.infoValueSeparator}>-</span>
+                                {event.endTime}
+                                <span className={styles.infoValueNote}>(2. den)</span>
+                            </p>
                         </div>
                         <div className={`${shell.card} ${styles.infoCard}`}>
                             <p className={styles.infoKicker}>Vstupné</p>
