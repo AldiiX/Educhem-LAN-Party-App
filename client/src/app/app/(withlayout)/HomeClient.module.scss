@@ -1,15 +1,20 @@
 .home {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     min-height: 100%;
     display: grid;
     grid-template-rows: auto auto 1fr;
     gap: 28px;
     padding-top: 64px;
+    overflow-x: clip;
 
     .hero {
         display: grid;
         grid-template-columns: minmax(340px, 1fr) minmax(520px, 1.15fr);
         gap: 32px;
         align-items: end;
+        min-width: 0;
 
         >h1 {
             color: var(--accent-color);
@@ -24,8 +29,10 @@
             display: grid;
             grid-template-columns: repeat(3, minmax(128px, 1fr));
             gap: 14px;
+            min-width: 0;
 
             >a {
+                min-width: 0;
                 min-height: 92px;
                 display: grid;
                 grid-template-columns: 40px 1fr;
@@ -71,8 +78,10 @@
         display: grid;
         grid-template-columns: 1.15fr 1fr 1fr;
         gap: 18px;
+        min-width: 0;
 
         .statCard {
+            min-width: 0;
             min-height: 126px;
             display: grid;
             grid-template-columns: 70px 1fr;
@@ -130,9 +139,11 @@
         display: grid;
         grid-template-columns: minmax(360px, .95fr) minmax(420px, 1.1fr) minmax(360px, .95fr);
         gap: 18px;
+        min-width: 0;
         min-height: 0;
 
         .panel {
+            min-width: 0;
             min-height: 310px;
             padding: 26px;
             border: 1px solid var(--border-color);
@@ -168,13 +179,16 @@
             }
 
             .rings {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
+                display: flex;
+                flex-wrap: wrap;
                 gap: 26px;
                 align-items: center;
+                min-width: 0;
                 padding-top: 8px;
 
                 .ring {
+                    width: 100%;
+                    max-width: 200px;
                     --progress: 0%;
                     aspect-ratio: 1/1;
                     display: grid;
@@ -262,12 +276,14 @@
             .bars {
                 display: grid;
                 gap: 14px;
+                min-width: 0;
 
                 .barRow {
                     display: grid;
-                    grid-template-columns: 58px 1fr 34px;
+                    grid-template-columns: minmax(0, 58px) minmax(0, 1fr) 34px;
                     gap: 14px;
                     align-items: center;
+                    min-width: 0;
 
                     >span,
                     >strong {
@@ -278,6 +294,7 @@
                     }
 
                     >div {
+                        min-width: 0;
                         height: 12px;
                         overflow: hidden;
                         border-radius: 999px;
@@ -300,6 +317,7 @@
             .recent {
                 display: grid;
                 gap: 16px;
+                min-width: 0;
 
                 >a,
                 >span >a {

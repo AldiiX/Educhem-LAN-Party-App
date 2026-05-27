@@ -378,6 +378,51 @@
             }
         }
 
+        .blockMeta {
+            display: none;
+            gap: 14px;
+            padding: 18px;
+
+            .compactCapacity {
+                padding: 0;
+                border-radius: 0;
+                background: transparent;
+                backdrop-filter: none;
+
+                >div:first-child {
+                    width: 58px;
+                    height: 58px;
+                    flex-basis: 58px;
+                }
+
+                strong {
+                    font-size: 28px;
+                }
+
+                span {
+                    max-width: none;
+                    font-size: 15px;
+                }
+            }
+
+            .inlineReservationStatus {
+                min-width: 0;
+                padding: 14px 0 0;
+                border-top: 1px solid var(--border-color);
+                border-radius: 0;
+                backdrop-filter: none;
+
+                p {
+                    font-size: 14px;
+                }
+
+                strong {
+                    min-height: 28px;
+                    font-size: 28px;
+                }
+            }
+        }
+
         .block2 {
             align-self: stretch;
             height: 100%;
@@ -550,8 +595,9 @@
             flex: unset;
             max-height: none;
 
+            .reservationStatus,
             .mapTopLeft {
-                flex-direction: column;
+                display: none;
             }
 
             .legend {
@@ -567,6 +613,10 @@
         .right {
             width: 100%;
             flex-basis: auto;
+
+            .blockMeta {
+                display: grid;
+            }
 
             .rightToggle {
                 top: -12px;

@@ -194,6 +194,19 @@ export default function Client({
                     </Switch>
 
 
+                    <div className={`${style.block} ${style.blockMeta}`}>
+                        <CapacityChart
+                            percentage={!isConnectionLost ? reservationStats.filledCapacityPercentage : 0}
+                            className={style.compactCapacity}
+                        />
+                        <If condition={reservationStatus !== null}>
+                            <ReservationCountdownStatus
+                                status={reservationStatus!}
+                                reservationsEnabled={reservationsEnabled}
+                                className={style.inlineReservationStatus}
+                            />
+                        </If>
+                    </div>
 
                     <div className={`${style.block} ${style.block1}`}>
                         <h2>Statistiky</h2>

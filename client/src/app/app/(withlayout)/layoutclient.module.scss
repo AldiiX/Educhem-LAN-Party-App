@@ -168,6 +168,8 @@
     .content {
         position: relative;
         flex: 1;
+        min-width: 0;
+        max-width: 100%;
         padding: 48px;
         overflow: auto;
         overscroll-behavior: contain;
