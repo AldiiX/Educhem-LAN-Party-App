@@ -55,6 +55,7 @@ const organizers: Organizer[] = [
     {name: 'Serhii Yavorskyi', role: 'Správce LAN Party systému', instagram: '@_.yavorskiy.s._', category: 'admin', avatarUrl: "https://cloud02.emsio.cz/public/avatars/serhii.png"},
     //{name: 'Jáchym Klír', role: 'Organizátor CS2 turnaje', instagram: '@klirakk', category: 'tournaments', avatarUrl: "https://cloud02.emsio.cz/public/avatars/DSC_4222.jpg"},
     //{name: 'Sebastien Prejza', role: 'Organizátor CS2 turnaje', instagram: '@@', category: 'tournaments', avatarUrl: null},
+    {name: 'Prokop Veselý', role: 'Organizátor CS2 turnaje', instagram: '@prokyss', category: 'tournaments', avatarUrl: "https://cloud02.emsio.cz/public/avatars/proky.webp" },
 ]
 
 function OrganizerCard({org}: { org: Organizer }) {
