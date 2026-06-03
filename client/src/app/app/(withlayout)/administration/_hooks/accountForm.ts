@@ -12,6 +12,7 @@ export function accountToForm(account: Account | null): AccountForm {
         email: account.email ?? "",
         class: account.class ?? "",
         gender: account.gender ?? "",
+        communicationStyle: account.communicationStyle ?? "Formal",
         schoolId: account.school ? String(account.school.id) : "",
         accountType: account.accountType ?? "Student",
         avatarUrl: account.avatarUrl ?? "",

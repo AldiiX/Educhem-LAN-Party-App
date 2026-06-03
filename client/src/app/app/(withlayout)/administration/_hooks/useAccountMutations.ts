@@ -2,6 +2,7 @@ import {Dispatch, FormEvent, SetStateAction} from "react";
 import {useRouter} from "next/navigation";
 import {toast} from "react-hot-toast";
 import {Account, AccountSchema} from "@/schemas/AccountSchema";
+import {phrase} from "@/lib/communicationStyle";
 import {canManageAccountRole, hasRoleAtLeast} from "@/lib/roles";
 import {splitDisplayName} from "./accountForm";
 import {AccountForm, ModalMode} from "./types";
@@ -42,12 +43,12 @@ export function useAccountMutations({
         if(saving) return;
 
         if(!canManageAccountRole(loggedAccount, form.accountType)) {
-            toast.error("Nemůžeš vytvořit nebo nastavit uživatele se stejnou nebo vyšší rolí.");
+            toast.error(phrase(loggedAccount?.communicationStyle, "Nemůžeš vytvořit nebo nastavit uživatele se stejnou nebo vyšší rolí.", "Nemůžete vytvořit nebo nastavit uživatele se stejnou nebo vyšší rolí."));
             return;
         }
 
         if(modalMode === "edit" && !canManageSelectedAccount) {
-            toast.error("Nemůžeš upravit uživatele se stejnou nebo vyšší rolí.");
+            toast.error(phrase(loggedAccount?.communicationStyle, "Nemůžeš upravit uživatele se stejnou nebo vyšší rolí.", "Nemůžete upravit uživatele se stejnou nebo vyšší rolí."));
             return;
         }
 
@@ -71,6 +72,7 @@ export function useAccountMutations({
             email: form.email,
             class: form.class,
             gender: form.gender || null,
+            communicationStyle: form.communicationStyle,
             schoolId: form.schoolId ? Number(form.schoolId) : null,
             accountType: form.accountType,
             avatarUrl: form.avatarUrl,

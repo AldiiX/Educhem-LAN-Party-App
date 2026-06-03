@@ -11,6 +11,7 @@ export const emptyForm: AccountForm = {
     email: "",
     class: "",
     gender: "",
+    communicationStyle: "Formal",
     schoolId: "",
     accountType: "Student",
     avatarUrl: "",

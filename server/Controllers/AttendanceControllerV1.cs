@@ -103,7 +103,12 @@ public sealed class AttendanceControllerV1(
 			var retryAfter = CreateCooldown - (DateTime.UtcNow - latestEntry.CreatedAtUtc);
 			if(retryAfter > TimeSpan.Zero) {
 				await dbLogger.LogWarnAsync($"Attendance cooldown hit by account {acc.Id} for target account {targetAccount.Id}; retry after {Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds))}s", "attendance-cooldown", ct);
-				return Cooldown(retryAfter, "Další záznam docházky můžeš zapsat za {0} s.");
+				return Cooldown(
+					retryAfter,
+					acc,
+					"Další záznam docházky můžeš zapsat za {0} s.",
+					"Další záznam docházky můžete zapsat za {0} s."
+				);
 			}
 		}
 
@@ -113,8 +118,8 @@ public sealed class AttendanceControllerV1(
 
 		if(request.Type != expectedType) {
 			return BadRequest(expectedType == AttendanceEntryType.CheckIn
-				? "Účastník aktuálně není na akci, můžeš zapsat jen příchod."
-				: "Účastník aktuálně je na akci, můžeš zapsat jen odchod.");
+				? Phrase(acc, "Účastník aktuálně není na akci, můžeš zapsat jen příchod.", "Účastník aktuálně není na akci, můžete zapsat jen příchod.")
+				: Phrase(acc, "Účastník aktuálně je na akci, můžeš zapsat jen odchod.", "Účastník aktuálně je na akci, můžete zapsat jen odchod."));
 		}
 
 		var reason = NormalizeOptional(request.Reason);
@@ -227,10 +232,14 @@ public sealed class AttendanceControllerV1(
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 	}
 
-	private IActionResult Cooldown(TimeSpan retryAfter, string messageFormat) {
+	private IActionResult Cooldown(TimeSpan retryAfter, Account account, string informalMessageFormat, string formalMessageFormat) {
 		var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
 		Response.Headers["Retry-After"] = seconds.ToString();
-		return StatusCode(StatusCodes.Status429TooManyRequests, string.Format(messageFormat, seconds));
+		return StatusCode(StatusCodes.Status429TooManyRequests, string.Format(Phrase(account, informalMessageFormat, formalMessageFormat), seconds));
+	}
+
+	private static string Phrase(Account account, string informal, string formal) {
+		return account.CommunicationStyle == CommunicationStyle.Informal ? informal : formal;
 	}
 
 	public sealed record CreateAttendanceEntryRequest(

@@ -3,6 +3,7 @@
 import style from "@/app/app/(withlayout)/reservations/client.module.scss";
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {phrase} from "@/lib/communicationStyle";
 import If from "@/components/util/If";
 import Link from "next/link";
 import {useReservationsHub} from "@/app/app/(withlayout)/reservations/_hooks/useReservationsHub";
@@ -183,8 +184,12 @@ export default function Client({
                 <div className={style.rightContent} aria-hidden={isRightPanelCollapsed}>
                     <Switch>
                         <Case when={account?.enableReservations === false} as="div" className={`${style.block} ${style.block0}`}>
-                            <h2>Tvůj účet nemá povolené rezervace!</h2>
-                            <p>Důvodem může být to, že nemáš zaplacený vstup. Pokud si myslíš, že se jedná o chybu, kontaktuj administrátora.</p>
+                            <h2>{phrase(account?.communicationStyle, "Tvůj účet nemá povolené rezervace!", "Váš účet nemá povolené rezervace!")}</h2>
+                            <p>{phrase(
+                                account?.communicationStyle,
+                                "Důvodem může být to, že nemáš zaplacený vstup. Pokud si myslíš, že se jedná o chybu, kontaktuj administrátora.",
+                                "Důvodem může být to, že nemáte zaplacený vstup. Pokud si myslíte, že se jedná o chybu, kontaktujte administrátora."
+                            )}</p>
                         </Case>
 
                         <Case when={reservationStatus !== null && !reservationsEnabled} as="div" className={`${style.block} ${style.block0}`}>

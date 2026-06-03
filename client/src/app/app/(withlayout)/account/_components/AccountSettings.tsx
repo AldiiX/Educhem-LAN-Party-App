@@ -1,7 +1,7 @@
 import styles from "./AccountSettings.module.scss";
 import {Avatar} from "@/components/Avatar";
 import {Button} from "@/components/Button";
-import {genderLabel} from "@/lib/enumLabels";
+import {communicationStyleLabel, genderLabel} from "@/lib/enumLabels";
 import {AccountPageState} from "../_hooks/types";
 
 
@@ -120,6 +120,14 @@ export function AccountSettings({state}: {state: AccountPageState}) {
                     </select>
                 </label>
                 <p className={styles.currentGender}>Aktuálně: {genderLabel(account.gender)}</p>
+                <label>
+                    <span>Oslovování</span>
+                    <select value={profileDraft.communicationStyle} onChange={event => setProfileDraft({...profileDraft, communicationStyle: event.target.value as typeof profileDraft.communicationStyle})}>
+                        <option value="Informal">Tykání</option>
+                        <option value="Formal">Vykání</option>
+                    </select>
+                </label>
+                <p className={styles.currentGender}>Aktuálně: {communicationStyleLabel(account.communicationStyle)}</p>
 
                 <div className={styles.formActions}>
                     <Button type="secondary" text="Zrušit změny" onClick={state.resetProfileDraft} />

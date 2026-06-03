@@ -1,4 +1,4 @@
-import {Account, AccountGender, AccountType} from "@/schemas/AccountSchema";
+import {Account, AccountCommunicationStyle, AccountGender, AccountType} from "@/schemas/AccountSchema";
 
 export type FilterKey = "accountType" | "gender" | "class" | "school" | "reservations";
 export type SortKey = "fullName" | "email" | "gender" | "school" | "class" | "accountType" | "createdAtUtc" | "updatedAtUtc" | "lastActiveUtc";
@@ -24,6 +24,7 @@ export type AccountForm = {
     email: string;
     class: string;
     gender: AccountGender | "";
+    communicationStyle: AccountCommunicationStyle;
     schoolId: string;
     accountType: AccountType;
     avatarUrl: string;

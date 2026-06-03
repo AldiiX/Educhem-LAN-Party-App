@@ -44,7 +44,7 @@ export default function ResetPasswordClient({token}: {token: string}) {
                 return;
             }
 
-            toast.success("Heslo bylo změněno. Teď se můžeš přihlásit.");
+            toast.success("Heslo bylo změněno. Teď se můžete přihlásit.");
             router.push("/app/login");
         } finally {
             setLoading(false);

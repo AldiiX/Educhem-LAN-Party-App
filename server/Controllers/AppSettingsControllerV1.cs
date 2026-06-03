@@ -26,7 +26,11 @@ public sealed class AppSettingsControllerV1(
             return Unauthorized(new
             {
                 success = false,
-                message = "Nelze zobrazit nastavení aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva."
+                message = Phrase(
+                    acc,
+                    "Nelze zobrazit nastavení aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva.",
+                    "Nelze zobrazit nastavení aplikace, pokud nejste přihlášený, nebo nemáte dostatečná práva."
+                )
             });
         }
 
@@ -67,7 +71,11 @@ public sealed class AppSettingsControllerV1(
             return Unauthorized(new
             {
                 success = false,
-                message = "Nelze upravit nastavení aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva."
+                message = Phrase(
+                    acc,
+                    "Nelze upravit nastavení aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva.",
+                    "Nelze upravit nastavení aplikace, pokud nejste přihlášený, nebo nemáte dostatečná práva."
+                )
             });
         }
 
@@ -157,7 +165,11 @@ public sealed class AppSettingsControllerV1(
             return Unauthorized(new
             {
                 success = false,
-                message = "Nelze smazat cache aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva."
+                message = Phrase(
+                    acc,
+                    "Nelze smazat cache aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva.",
+                    "Nelze smazat cache aplikace, pokud nejste přihlášený, nebo nemáte dostatečná práva."
+                )
             });
         }
 
@@ -222,5 +234,10 @@ public sealed class AppSettingsControllerV1(
     private static string PastVerb(Account account, string masculine, string feminine)
     {
         return account.Gender == Gender.Female ? feminine : masculine;
+    }
+
+    private static string Phrase(Account? account, string informal, string formal)
+    {
+        return account?.CommunicationStyle == CommunicationStyle.Informal ? informal : formal;
     }
 }

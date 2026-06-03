@@ -159,7 +159,7 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
                     <div style={{ width: "100%", height: 1, backgroundColor: "var(--border-color)"}}></div>
                     <If condition={showReserveButton}>
                         <If condition={account !== null} fallback={
-                            <p>Pro rezervaci <Link href={"/app/login"} style={{ color: "var(--accent-color)"}}>se musíš přihlásit</Link>.</p>
+                            <p>Pro rezervaci <Link href={"/app/login"} style={{ color: "var(--accent-color)"}}>se musíte přihlásit</Link>.</p>
                         }>
                             <Button
                                 type={"primary"}

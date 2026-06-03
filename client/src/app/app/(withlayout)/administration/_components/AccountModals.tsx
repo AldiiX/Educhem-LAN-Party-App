@@ -1,15 +1,17 @@
 import {Dispatch, FormEvent, ReactNode, SetStateAction} from "react";
 import Link from "next/link";
-import {Account, AccountGender, AccountType} from "@/schemas/AccountSchema";
+import {Account, AccountCommunicationStyle, AccountGender, AccountType} from "@/schemas/AccountSchema";
 import {Avatar} from "@/components/Avatar";
 import {Modal} from "@/components/Modal";
 import {ModalDestructive, ModalInformative} from "@/components/ModalDialog";
-import {accountTypeFilterLabel, accountTypeLabel, genderLabel, schoolLabel} from "@/lib/enumLabels";
+import {phrase} from "@/lib/communicationStyle";
+import {accountTypeFilterLabel, accountTypeLabel, communicationStyleLabel, genderLabel, schoolLabel} from "@/lib/enumLabels";
 import {AccountForm, ModalMode, SchoolOption} from "../_hooks/types";
 import style from "./AccountModals.module.scss";
 
 type AccountModalsProps = {
     modalMode: ModalMode | null;
+    viewerCommunicationStyle?: AccountCommunicationStyle | null;
     selectedAccount: Account | null;
     form: AccountForm;
     setForm: Dispatch<SetStateAction<AccountForm>>;
@@ -34,6 +36,7 @@ type AccountModalsProps = {
 export function AccountModals(props: AccountModalsProps) {
     const {
         modalMode,
+        viewerCommunicationStyle,
         selectedAccount,
         form,
         setForm,
@@ -87,7 +90,11 @@ export function AccountModals(props: AccountModalsProps) {
         <ModalDestructive
             open={modalMode === "delete" && selectedAccount !== null}
             title="Smazat uživatele"
-            description={selectedAccount ? `Opravdu chceš smazat účet ${selectedAccount.fullName}? Tahle akce nejde vrátit.` : ""}
+            description={selectedAccount ? phrase(
+                viewerCommunicationStyle,
+                `Opravdu chceš smazat účet ${selectedAccount.fullName}? Tahle akce nejde vrátit.`,
+                `Opravdu chcete smazat účet ${selectedAccount.fullName}? Tahle akce nejde vrátit.`
+            ) : ""}
             confirmText="Smazat"
             loading={saving}
             onClose={() => selectedAccount ? onOpenDetail(selectedAccount) : onClose()}
@@ -148,6 +155,7 @@ function AccountDetailModal({account, canManage, canImpersonate, showRoleWarning
                 <InfoRow icon="/icons/email.svg">{account.email}</InfoRow>
                 <InfoRow icon="/icons/class.svg">{account.class || "-"}</InfoRow>
                 <InfoRow icon="/icons/gender.svg">{genderLabel(account.gender)}</InfoRow>
+                <InfoRow icon="/icons/chat.svg">{communicationStyleLabel(account.communicationStyle)}</InfoRow>
                 <InfoRow icon="/icons/user_with_shield.svg">{accountTypeLabel(account.accountType, account.gender)}</InfoRow>
                 <InfoRow icon="/icons/organization.svg" title={account.school?.displayName}>{schoolLabel(account.school) || "-" }</InfoRow>
             </div>
@@ -215,6 +223,12 @@ function AccountFormModal({mode, form, setForm, schoolOptions, manageableAccount
                         <option value="Female">Žena</option>
                         <option value="Male">Muž</option>
                         <option value="Other">Ostatní</option>
+                    </select>
+                </EditRow>
+                <EditRow icon="/icons/chat.svg">
+                    <select value={form.communicationStyle} onChange={event => update("communicationStyle", event.target.value as AccountCommunicationStyle)}>
+                        <option value="Informal">Tykání</option>
+                        <option value="Formal">Vykání</option>
                     </select>
                 </EditRow>
                 <EditRow icon="/icons/user_with_shield.svg">

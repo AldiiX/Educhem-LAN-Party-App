@@ -47,6 +47,9 @@ public class Account : AuditableEntity<Guid> {
 	[DefaultValue(false)]
 	public bool EnableReservations { get; set; } = false;
 
+	[StringEnum, DefaultValue(CommunicationStyle.Formal)]
+	public CommunicationStyle CommunicationStyle { get; set; } = CommunicationStyle.Formal;
+
 	public ICollection<AccountAchievement> AccountAchievements { get; set; } = new List<AccountAchievement>();
 	public ICollection<AccountBadge> AccountBadges { get; set; } = new List<AccountBadge>();
 }
@@ -65,4 +68,10 @@ public enum AccountType {
 	TeacherOrg = 2,
 	Admin = 3,
 	SuperAdmin = 4
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum CommunicationStyle {
+	Formal = 0,
+	Informal = 1
 }

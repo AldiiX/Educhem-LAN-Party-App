@@ -136,6 +136,7 @@ public sealed class AccountControllerV1(
 			AvatarUrl = NormalizeOptional(request.AvatarUrl),
 			BannerUrl = NormalizeOptional(request.BannerUrl),
 			EnableReservations = request.EnableReservations ?? false,
+			CommunicationStyle = request.CommunicationStyle ?? (requestedAccountType >= AccountType.Teacher ? CommunicationStyle.Formal : CommunicationStyle.Informal),
 		};
 
 		db.Accounts.Add(account);
@@ -192,6 +193,7 @@ public sealed class AccountControllerV1(
 		account.AvatarUrl = NormalizeOptional(request.AvatarUrl);
 		account.BannerUrl = NormalizeOptional(request.BannerUrl);
 		account.EnableReservations = request.EnableReservations ?? account.EnableReservations;
+		account.CommunicationStyle = request.CommunicationStyle ?? account.CommunicationStyle;
 
 		if(request.SchoolId != null) {
 			var school = await db.Set<School>().FirstOrDefaultAsync(s => s.Id == request.SchoolId, ct);
@@ -344,6 +346,7 @@ public sealed class AccountControllerV1(
 		if(account == null) return NotFound();
 
 		account.Gender = request.Gender;
+		account.CommunicationStyle = request.CommunicationStyle ?? account.CommunicationStyle;
 		account.AvatarUrl = NormalizeOptional(request.AvatarUrl);
 		account.BannerUrl = NormalizeOptional(request.BannerUrl);
 
@@ -402,7 +405,8 @@ public sealed class AccountControllerV1(
 			resetLink,
 			account.FirstName,
 			account.LastName,
-			account.Gender
+			account.Gender,
+			account.CommunicationStyle
 		);
 
 		if(emailSent) {
@@ -493,7 +497,8 @@ public sealed class AccountControllerV1(
 		string? BannerUrl,
 		bool? EnableReservations,
 		bool? SendLoginCredentialsEmail,
-		string? Password
+		string? Password,
+		CommunicationStyle? CommunicationStyle
 	);
 
 	public sealed record AccountMutationResponse(AccountDto Account, bool LoginCredentialsEmailSent = false);
@@ -508,7 +513,7 @@ public sealed class AccountControllerV1(
 		IReadOnlyList<DashboardClassStat> ClassBreakdown
 	);
 	public sealed record DashboardClassStat(string Class, int Count);
-	public sealed record MyAccountMutationRequest(Gender? Gender, string? AvatarUrl, string? BannerUrl);
+	public sealed record MyAccountMutationRequest(Gender? Gender, CommunicationStyle? CommunicationStyle, string? AvatarUrl, string? BannerUrl);
 	public sealed record ChangeMyPasswordRequest(string OldPassword, string NewPassword);
 	public sealed record ForgotPasswordRequest(string Email);
 	public sealed record ConfirmPasswordResetRequest(string Token, string NewPassword);
@@ -552,7 +557,7 @@ public sealed class AccountControllerV1(
 		Gender? gender
 	) {
 		var webLink = GetLoginLink(account);
-		var model = new EmailUserRegisterModel(password, webLink, email, firstName, lastName, gender);
+		var model = new EmailUserRegisterModel(password, webLink, email, firstName, lastName, gender, account.CommunicationStyle);
 		var fallbackBody = $"Email: {email}\nHeslo: {password}\n{webLink}";
 		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
 	}
@@ -564,9 +569,10 @@ public sealed class AccountControllerV1(
 		string resetLink,
 		string? firstName,
 		string? lastName,
-		Gender? gender
+		Gender? gender,
+		CommunicationStyle communicationStyle
 	) {
-		var model = new EmailPasswordResetLinkModel(resetLink, email, firstName, lastName, gender);
+		var model = new EmailPasswordResetLinkModel(resetLink, email, firstName, lastName, gender, communicationStyle);
 		var fallbackBody = $"Reset link: {resetLink}";
 		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
 	}

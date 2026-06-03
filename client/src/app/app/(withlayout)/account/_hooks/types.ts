@@ -1,11 +1,12 @@
 import {Dispatch, SetStateAction} from "react";
-import {Account, AccountGender} from "@/schemas/AccountSchema";
+import {Account, AccountCommunicationStyle, AccountGender} from "@/schemas/AccountSchema";
 
 export type AccountTab = "overview" | "achievements" | "settings";
 export type AccountModal = "avatar-info" | "banner-info" | "remove-avatar" | "remove-banner" | null;
 
 export type ProfileDraft = {
     gender: AccountGender | "";
+    communicationStyle: AccountCommunicationStyle;
     avatarUrl: string | null;
     bannerUrl: string | null;
 };

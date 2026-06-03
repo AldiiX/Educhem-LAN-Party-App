@@ -75,7 +75,12 @@ public sealed class ProblemReportsControllerV1(
 				var retryAfter = CreateCooldown - (nowUtc - latestReportCreatedAtUtc.Value);
 				if(retryAfter > TimeSpan.Zero) {
 					await dbLogger.LogWarnAsync($"Problem report cooldown hit by account {acc.Id}; retry after {Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds))}s", "problem-report-cooldown", ct);
-					return Cooldown(retryAfter, "Další hlášení můžeš vytvořit za {0} sekund.");
+					return Cooldown(
+						retryAfter,
+						acc,
+						"Další hlášení můžeš vytvořit za {0} sekund.",
+						"Další hlášení můžete vytvořit za {0} sekund."
+					);
 				}
 			}
 		}
@@ -163,10 +168,14 @@ public sealed class ProblemReportsControllerV1(
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 	}
 
-	private IActionResult Cooldown(TimeSpan retryAfter, string messageFormat) {
+	private IActionResult Cooldown(TimeSpan retryAfter, Account account, string informalMessageFormat, string formalMessageFormat) {
 		var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
 		Response.Headers["Retry-After"] = seconds.ToString();
-		return StatusCode(StatusCodes.Status429TooManyRequests, string.Format(messageFormat, seconds));
+		return StatusCode(StatusCodes.Status429TooManyRequests, string.Format(Phrase(account, informalMessageFormat, formalMessageFormat), seconds));
+	}
+
+	private static string Phrase(Account account, string informal, string formal) {
+		return account.CommunicationStyle == CommunicationStyle.Informal ? informal : formal;
 	}
 
 	public sealed record CreateProblemReportRequest(

@@ -18,7 +18,14 @@ public sealed class AdminLogsControllerV1(
     public async Task<IActionResult> GetLogs(CancellationToken ct = default) {
         var acc = await auth.ReAuthFromContextOrNullAsync(ct);
         if(acc == null || acc.AccountType < AccountType.Admin)
-            return new UnauthorizedObjectResult(new { success = false, message = "Nelze zobrazit logy, pokud nejsi přihlášený, nebo nemáš dostatečná práva." });
+            return new UnauthorizedObjectResult(new {
+                success = false,
+                message = Phrase(
+                    acc,
+                    "Nelze zobrazit logy, pokud nejsi přihlášený, nebo nemáš dostatečná práva.",
+                    "Nelze zobrazit logy, pokud nejste přihlášený, nebo nemáte dostatečná práva."
+                )
+            });
 
         var logs = await db.LogEntries
             .AsNoTracking()
@@ -27,5 +34,9 @@ public sealed class AdminLogsControllerV1(
             .ToListAsync(ct);
 
         return Ok(logs);
+    }
+
+    private static string Phrase(Account? account, string informal, string formal) {
+        return account?.CommunicationStyle == CommunicationStyle.Informal ? informal : formal;
     }
 }

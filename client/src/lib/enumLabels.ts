@@ -1,4 +1,5 @@
 ﻿import {Account, AccountGender, AccountType} from "@/schemas/AccountSchema";
+import type {AccountCommunicationStyle} from "@/schemas/AccountSchema";
 
 export function accountTypeLabel(type?: AccountType | null, gender?: AccountGender | null) {
     const female = gender === "Female";
@@ -33,6 +34,17 @@ export function genderLabel(gender?: AccountGender | null) {
             return "Ostatní";
         default:
             return "Neznámé";
+    }
+}
+
+export function communicationStyleLabel(style?: AccountCommunicationStyle | null) {
+    switch (style) {
+        case "Informal":
+            return "Tykání";
+        case "Formal":
+            return "Vykání";
+        default:
+            return "Vykání";
     }
 }
 

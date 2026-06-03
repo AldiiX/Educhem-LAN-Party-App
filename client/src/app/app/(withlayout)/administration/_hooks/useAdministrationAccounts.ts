@@ -1,5 +1,6 @@
 import {useState} from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {phrase} from "@/lib/communicationStyle";
 import {accountTypeOrder, canManageAccount, canManageAccountRole, hasRoleAtLeast, isSuperAdmin} from "@/lib/roles";
 import {useAccountFilters} from "./useAccountFilters";
 import {useAccountModalState} from "./useAccountModalState";
@@ -24,7 +25,7 @@ export function useAdministrationAccounts() {
         ? !canManageAccount(loggedAccount, modalState.selectedAccount)
         : false;
     const selectedAccountWarningMessage = selectedAccountSelfBlocked
-        ? "Nemůžeš upravit svůj vlastní účet."
+        ? phrase(loggedAccount?.communicationStyle, "Nemůžeš upravit svůj vlastní účet.", "Nemůžete upravit svůj vlastní účet.")
         : "Tohoto uživatele nejde upravit, protože má stejnou nebo vyšší roli.";
     const canManageSelectedAccount = canCreateUsers && modalState.selectedAccount
         ? canManageAccount(loggedAccount, modalState.selectedAccount)

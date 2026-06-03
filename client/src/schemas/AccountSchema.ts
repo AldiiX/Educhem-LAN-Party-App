@@ -5,6 +5,8 @@ export const AccountGenderSchema = z.enum(["Male", "Female", "Other"]);
 
 export const AccountTypeSchema = z.enum(["Student", "Teacher", "TeacherOrg", "Admin", "SuperAdmin"]);
 
+export const AccountCommunicationStyleSchema = z.enum(["Informal", "Formal"]);
+
 export const AccountSchema = z.object({
     id: z.uuid(),
     firstName: z.string(),
@@ -18,6 +20,7 @@ export const AccountSchema = z.object({
     updatedAtUtc: z.coerce.date().nullish(),
     lastActiveUtc: z.coerce.date().nullish(),
     gender: AccountGenderSchema.nullish(),
+    communicationStyle: AccountCommunicationStyleSchema.default("Formal"),
     school: z.object({
         id: z.uint32(),
         slug: z.string(),
@@ -34,3 +37,4 @@ export const AccountSchema = z.object({
 export type Account = z.infer<typeof AccountSchema>;
 export type AccountGender = z.infer<typeof AccountGenderSchema>;
 export type AccountType = z.infer<typeof AccountTypeSchema>;
+export type AccountCommunicationStyle = z.infer<typeof AccountCommunicationStyleSchema>;

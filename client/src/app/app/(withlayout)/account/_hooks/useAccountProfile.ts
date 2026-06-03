@@ -22,6 +22,7 @@ export function useAccountProfile(account: Account, setAccount: (account: Accoun
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
                     gender: profileDraft.gender || null,
+                    communicationStyle: profileDraft.communicationStyle,
                     avatarUrl: profileDraft.avatarUrl,
                     bannerUrl: profileDraft.bannerUrl,
                 }),
@@ -58,6 +59,7 @@ export function useAccountProfile(account: Account, setAccount: (account: Accoun
 function createProfileDraft(account: Account): ProfileDraft {
     return {
         gender: account.gender ?? "",
+        communicationStyle: account.communicationStyle ?? "Formal",
         avatarUrl: account.avatarUrl ?? null,
         bannerUrl: account.bannerUrl ?? null,
     };

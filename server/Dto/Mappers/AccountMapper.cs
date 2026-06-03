@@ -55,6 +55,7 @@ public static class AccountMapper {
 				AccountType = account.AccountType,
 				Achievements = achievements,
 				Badges = badges,
+				CommunicationStyle = account.CommunicationStyle,
 			};
 		}
 
@@ -84,6 +85,7 @@ public static class AccountMapper {
 				Achievements = achievements,
 				Badges = badges,
 				PasswordHash = account.PasswordHash,
+				CommunicationStyle = account.CommunicationStyle,
 			};
 		}
 	}

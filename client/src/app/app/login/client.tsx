@@ -84,7 +84,7 @@ export default function() {
                         <span className={style.modalIcon}></span>
                         <div>
                             <h2>Obnova hesla</h2>
-                            <p>Zadej e-mail účtu. Pošleme ti odkaz pro nastavení nového hesla.</p>
+                            <p>Zadejte e-mail účtu. Pošleme vám odkaz pro nastavení nového hesla.</p>
                         </div>
                     </div>
                     <label>

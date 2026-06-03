@@ -48,6 +48,7 @@ export function UsersTab() {
 
         <AccountModals
             modalMode={administration.modalMode}
+            viewerCommunicationStyle={administration.loggedAccount?.communicationStyle}
             selectedAccount={administration.selectedAccount}
             form={administration.form}
             setForm={administration.setForm}
