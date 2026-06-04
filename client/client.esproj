@@ -15,5 +15,6 @@
   <ItemGroup>
     <Script Include="next.config.types.ts" />
     <Script Include="src\app\app\(withlayout)\reservations\_components\ReservationCountdownStatus.tsx" />
+    <Script Include="src\lib\isNullOrUndefined.ts" />
   </ItemGroup>
 </Project>

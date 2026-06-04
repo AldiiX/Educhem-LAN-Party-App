@@ -3,9 +3,11 @@
 import {useState} from 'react'
 import {siteConfig} from '@/data/site'
 import shell from '../page-shell.module.scss'
-import styles from './info.module.scss'
+import style from './info.module.scss'
 import {Header} from "@/components/header";
 import {Footer} from "@/components/footer";
+import If from "@/components/util/If";
+import isNullOrUndefined from "@/lib/isNullOrUndefined";
 
 const tocItems = [
     {id: 'ucitele', label: 'Učitelé'},
@@ -20,17 +22,18 @@ interface Organizer {
     name: string;
     role: string;
     phone?: string;
-    instagram?: string;
+    instagram?: string | null;
+    discord?: string | null;
     avatarUrl?: string | null;
     category: 'teacher' | 'admin' | 'grillmaster' | "tournaments";
 }
 
-const organizers: Organizer[] = [
+const organizers: Organizer[] = [ // TODO: tahat toto z db, ne takto hardcoded
     {
         name: 'Michaela Mudrochová',
         role: 'Učitelka',
         phone: '+420 777 131 303',
-        instagram: '@micha_cz',
+        discord: 'micha_cz',
         category: 'teacher',
         avatarUrl: "https://cloud02.emsio.cz/public/avatars/17111c13-da60-47c0-b436-64b2c39e584e.jpg",
     },
@@ -38,24 +41,24 @@ const organizers: Organizer[] = [
         name: 'Michal Mudroch Bureš',
         role: 'Učitel',
         phone: '+420 777 116 567',
-        instagram: '@deathwalker_cz',
+        discord: 'deathwalker_cz',
         category: 'teacher',
         avatarUrl: "https://cloud02.emsio.cz/public/avatars/874350a8-a348-4036-9af4-4e10b4780861.png",
     },
     {
         name: 'Sebastian Netolický',
         role: 'Učitel',
-        instagram: '@internal_server_error.',
+        discord: 'internal_server_error.',
         category: 'teacher',
         avatarUrl: "https://cloud02.emsio.cz/public/avatars/1682759192302.jpg",
     },
-    {name: 'David Chlad', role: 'Učitel', instagram: '@ampercz1', category: 'teacher', avatarUrl: "https://cloud02.emsio.cz/public/avatars/649d2825-ca12-4b48-8e00-391b42422897.png"},
-    {name: 'Karel Honsig', role: 'Učitel', phone: '+420 724 478 552', instagram: '@karelhonsig', category: 'teacher', avatarUrl: "https://cloud02.emsio.cz/public/avatars/f997e1dc-2467-45be-bc13-3d0c58a0c424.png",},
-    {name: 'Stanislav Škudrna', role: 'Správce LAN Party systému', instagram: '@aldiix', category: 'admin', avatarUrl: "https://cloud02.emsio.cz/public/avatars/stanislavskudrna.png"},
-    {name: 'Serhii Yavorskyi', role: 'Správce LAN Party systému', instagram: '@_.yavorskiy.s._', category: 'admin', avatarUrl: "https://cloud02.emsio.cz/public/avatars/serhii.png"},
+    {name: 'David Chlad', role: 'Učitel', discord: 'ampercz1', category: 'teacher', avatarUrl: "https://cloud02.emsio.cz/public/avatars/649d2825-ca12-4b48-8e00-391b42422897.png"},
+    {name: 'Karel Honsig', role: 'Učitel', phone: '+420 724 478 552', discord: 'karelhonsig', category: 'teacher', avatarUrl: "https://cloud02.emsio.cz/public/avatars/f997e1dc-2467-45be-bc13-3d0c58a0c424.png",},
+    {name: 'Stanislav Škudrna', role: 'Správce LAN Party systému', instagram: 'stanley.sku', discord: 'aldiix', category: 'admin', avatarUrl: "https://cloud02.emsio.cz/public/avatars/stanislavskudrna.png"},
+    {name: 'Serhii Yavorskyi', role: 'Správce LAN Party systému', discord: '_.yavorskiy.s._', instagram: '_.yavorskiy.s._', category: 'admin', avatarUrl: "https://cloud02.emsio.cz/public/avatars/serhii.png"},
+    {name: 'Prokop Veselý', role: 'Organizátor CS2 turnaje', discord: 'prokyss', instagram: 'prokyzz', category: 'tournaments', avatarUrl: "https://cloud02.emsio.cz/public/avatars/proky.webp" },
     //{name: 'Jáchym Klír', role: 'Organizátor CS2 turnaje', instagram: '@klirakk', category: 'tournaments', avatarUrl: "https://cloud02.emsio.cz/public/avatars/DSC_4222.jpg"},
-    //{name: 'Sebastien Prejza', role: 'Organizátor CS2 turnaje', instagram: '@@', category: 'tournaments', avatarUrl: null},
-    {name: 'Prokop Veselý', role: 'Organizátor CS2 turnaje', instagram: '@prokyss', category: 'tournaments', avatarUrl: "https://cloud02.emsio.cz/public/avatars/proky.webp" },
+    //{name: 'Sebastien Prejza', role: 'Organizátor CS2 turnaje', instagram: null, discord: null, category: 'tournaments', avatarUrl: null},
 ]
 
 function OrganizerCard({org}: { org: Organizer }) {
@@ -66,28 +69,33 @@ function OrganizerCard({org}: { org: Organizer }) {
         .join('')
 
     return (
-        <div className={`${shell.card} ${styles.organizerCard}`}>
-            <div className={styles.avatar} aria-hidden={! org.avatarUrl}>
+        <div className={`${shell.card} ${style.organizerCard}`}>
+            <div className={style.avatar} aria-hidden={! org.avatarUrl}>
                 {org.avatarUrl ? (
-                    <img src={org.avatarUrl} alt={`Avatar: ${org.name}`} className={styles.avatarImage}/>
+                    <img src={org.avatarUrl} alt={`Avatar: ${org.name}`} className={style.avatarImage}/>
                 ) : (
                     <span>{initials}</span>
                 )}
             </div>
-            <h3 className={styles.name}>{org.name}</h3>
-            <p className={styles.role}>{org.role}</p>
-            {org.phone && (
-                <a href={`tel:${org.phone.replace(/\s/g, '')}`} className={styles.contact}>
-                    <span className={styles.contactMark} aria-hidden="true"/>
-                    {org.phone}
-                </a>
-            )}
-            {org.instagram && (
-                <p className={styles.contact}>
-                    <span className={styles.contactMark} aria-hidden="true"/>
-                    {org.instagram}
-                </p>
-            )}
+            <h3 className={style.name}>{org.name}</h3>
+            <p className={style.role}>{org.role}</p>
+
+            <If condition={!isNullOrUndefined(org.instagram) || !isNullOrUndefined(org.discord) || !isNullOrUndefined(org.phone) } as="div" className={style.socials}>
+                <If condition={!isNullOrUndefined(org.phone)} as="div" className={style.social}>
+                    <div style={{ '--icon': `url(/icons/phone.svg)`} as React.CSSProperties} className={style.icon}/>
+                    <span className={style.val}>{org.phone}</span>
+                </If>
+
+                <If condition={!isNullOrUndefined(org.discord)} as="div" className={style.social}>
+                    <div style={{ '--icon': `url(/icons/discord.svg)`} as React.CSSProperties} className={style.icon}/>
+                    <span className={style.val}>{org.discord}</span>
+                </If>
+                
+                <If condition={!isNullOrUndefined(org.instagram)} as="div" className={style.social}>
+                    <div style={{ '--icon': `url(/icons/instagram.svg)`} as React.CSSProperties} className={style.icon}/>
+                    <span className={style.val}>{org.instagram}</span>
+                </If>
+            </If>
         </div>
     )
 }

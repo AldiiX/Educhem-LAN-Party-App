@@ -56,7 +56,11 @@ public static class Program {
 
         builder.Services.AddControllersWithViews();
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddSignalR();
+        builder.Services.AddSignalR(options => {
+            options.KeepAliveInterval = TimeSpan.FromSeconds(10);
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+            options.HandshakeTimeout = TimeSpan.FromSeconds(15);
+        });
         builder.Services.AddDataProtection()
             .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
             .SetApplicationName("EduchemLANPartyApp");

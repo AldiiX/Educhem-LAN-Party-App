@@ -33,6 +33,8 @@ type UseSignalRHubOptions = {
     withCredentials?: boolean;
     transport?: HttpTransportType;
     skipNegotiation?: boolean;
+    serverTimeout?: number;
+    keepAliveInterval?: number;
 };
 
 function wait(ms: number) {
@@ -83,7 +85,9 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
         accessTokenFactory,
         withCredentials,
         transport,
-        skipNegotiation
+        skipNegotiation,
+        serverTimeout = 30000,
+        keepAliveInterval = 10000
     } = options;
 
     const [connection, setConnection] = useState<HubConnection | null>(null);
@@ -138,11 +142,20 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
             connectionOptions.skipNegotiation = skipNegotiation;
         }
 
-        const newConnection = new HubConnectionBuilder()
+        const builder = new HubConnectionBuilder()
             .withUrl(fullUrl, connectionOptions)
             .withAutomaticReconnect(reconnectDelays)
-            .configureLogging(logLevel)
-            .build();
+            .configureLogging(logLevel);
+
+        if(typeof serverTimeout === "number") {
+            builder.withServerTimeout(serverTimeout);
+        }
+
+        if(typeof keepAliveInterval === "number") {
+            builder.withKeepAliveInterval(keepAliveInterval);
+        }
+
+        const newConnection = builder.build();
 
         const registeredHandlers: Array<{
             eventName: string;
@@ -229,8 +242,7 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
             }
 
             if(
-                newConnection.state !== HubConnectionState.Disconnected &&
-                newConnection.state !== HubConnectionState.Connecting
+                newConnection.state !== HubConnectionState.Disconnected
             ) {
                 newConnection.stop().catch(error => {
                     console.error("signalr stop failed", error);
@@ -248,7 +260,9 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
         startRetryDelaysKey,
         withCredentials,
         transport,
-        skipNegotiation
+        skipNegotiation,
+        serverTimeout,
+        keepAliveInterval
     ]);
 
     const invoke = useCallback(async <T = unknown>(methodName: string, ...args: unknown[]) => {

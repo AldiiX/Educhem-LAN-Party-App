@@ -36,7 +36,7 @@
 }
 
 .role {
-    margin-top: 5px;
+    margin-top: 6px;
     color: var(--text-color-darker);
 }
 
@@ -56,6 +56,31 @@
     background: var(--accent-color);
     box-shadow: 0 0 0 5px var(--accent-soft);
     flex: 0 0 auto;
+}
+
+.socials {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    margin-top: 16px;
+
+    .social {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-color-secondary);
+        font-weight: 500;
+
+        .icon {
+            width: 16px;
+            aspect-ratio: 1/1;
+            mask: var(--icon);
+            mask-size: cover;
+            mask-position: center;
+            mask-repeat: no-repeat;
+            background: var(--accent-color);
+        }
+    }
 }
 
 .smallNote {

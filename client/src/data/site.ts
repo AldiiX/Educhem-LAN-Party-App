@@ -56,6 +56,18 @@ export const siteConfig = {
 }
 
 export const historyEvents: HistoryEvent[] = [
+    /*{
+        title: 'Summer LAN Party',
+        year: '2026',
+        date: '5. - 6. června 2026',
+        description: 'Letní LAN party s turnaji, volným hraním, volejbalem a večerním programem.',
+        links: [
+        ],
+        photos: [
+
+        ],
+    },*/
+
     {
         title: 'Mikulášská LAN Party',
         year: '2025',
@@ -82,6 +94,7 @@ export const historyEvents: HistoryEvent[] = [
             {src: '/images/img2.jpg', alt: ''},
         ],
     },
+
     {
         title: 'Christmas LAN',
         year: '2024',
@@ -108,7 +121,7 @@ export const historyEvents: HistoryEvent[] = [
         title: 'Summer LAN',
         year: '2024',
         date: 'červen 2024',
-        description: 'Letní akce, ze které se postupně skládá dnešní LAN Party systém a organizace.',
+        description: 'Letní akce s turnaji, grillem, posezením venku a večerním programem (hraní na kytaru, ...)',
         links: [
             {label: 'Záznam Michalovo streamu', href: 'https://www.twitch.tv/videos/2167913910?filter=all&sort=time'},
         ],
@@ -144,7 +157,7 @@ export const historyEvents: HistoryEvent[] = [
         title: 'LAN Party Strupčice',
         year: '2019',
         date: 'červen 2019',
-        description: 'Třídenní LAN party v kulturním domě ve Strupčicích, která položila základy pro pozdější školní akce.',
+        description: 'Třídenní LAN party v kulturním domě ve Strupčicích. Úplně první LAN Party pořádaná naší školou.',
         links: [],
         photos: [],
     },
