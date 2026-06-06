@@ -236,13 +236,13 @@ export default function() {
                             </div>
                         </section>
 
-                        <section id="stazeni">
-                            <h2 className={shell.sectionTitle}><span className={shell.sectionMark} aria-hidden="true"/>Stažení
-                                PDF</h2>
-                            <a href="/info.pdf" download className={`${shell.button} ${shell.secondaryButton}`}>
-                                Stáhnout originální info.pdf
-                            </a>
-                        </section>
+                        {/*<section id="stazeni">*/}
+                        {/*    <h2 className={shell.sectionTitle}><span className={shell.sectionMark} aria-hidden="true"/>Stažení*/}
+                        {/*        PDF</h2>*/}
+                        {/*    <a href="/info.pdf" download className={`${shell.button} ${shell.secondaryButton}`}>*/}
+                        {/*        Stáhnout originální info.pdf*/}
+                        {/*    </a>*/}
+                        {/*</section>*/}
                     </div>
                 </div>
             </div>

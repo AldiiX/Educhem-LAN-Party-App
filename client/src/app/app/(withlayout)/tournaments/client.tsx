@@ -19,7 +19,7 @@ const tournamentGames: TournamentGame[] = [ // TODO: udělat aby to šlo z db a 
         name: "Counter-Strike 2",
         url: "https://www.copafacil.com/-v9yer2",
         backgroundImage: 'https://i.imgur.com/hjpEYZz.png',
-        enabled: true,
+        enabled: false,
     },
     {
         id: "valorant",

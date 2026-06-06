@@ -56,17 +56,20 @@ export const siteConfig = {
 }
 
 export const historyEvents: HistoryEvent[] = [
-    /*{
+    {
         title: 'Summer LAN Party',
         year: '2026',
         date: '5. - 6. června 2026',
-        description: 'Letní LAN party s turnaji, volným hraním, volejbalem a večerním programem.',
+        description: 'Letní LAN party s volným hraním, volejbalem a večerním programem.',
         links: [
         ],
         photos: [
-
+            {src: '/images/history/summer2026/IMG_2010.webp', alt: '', wide: true },
+            {src: '/images/history/summer2026/IMG_2014.webp', alt: ''},
+            {src: '/images/history/summer2026/IMG_2017.webp', alt: ''},
+            {src: '/images/history/summer2026/IMG_2019.webp', alt: ''},
         ],
-    },*/
+    },
 
     {
         title: 'Mikulášská LAN Party',
