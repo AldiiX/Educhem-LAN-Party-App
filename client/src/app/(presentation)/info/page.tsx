@@ -15,7 +15,7 @@ const tocItems = [
     {id: 'organizatoriturnaju', label: 'Organizátoři turnajů'},
     {id: 'grillmasteri', label: 'Grillmasteři'},
     {id: 'kontakt', label: 'Kontakt'},
-    {id: 'stazeni', label: 'Stažení PDF'},
+    //{id: 'stazeni', label: 'Stažení PDF'},
 ]
 
 interface Organizer {
