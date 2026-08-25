@@ -90,6 +90,7 @@ export function Avatar({
                         className={style.image}
                         src={src ?? undefined}
                         alt="avatar"
+                        referrerPolicy="no-referrer"
                         onError={() => {
                             if(fallbackOnImageError) {
                                 setImageFailed(true);

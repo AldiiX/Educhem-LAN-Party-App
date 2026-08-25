@@ -1,5 +1,7 @@
 ﻿import { z } from "zod";
 import { AccountAchievementSchema, AccountBadgeSchema } from "@/schemas/AchievementBadgeSchema";
+import {avatarSyncPlatformValues} from "@/data/platforms";
+import type {AvatarSyncPlatform} from "@/data/platforms";
 
 export const AccountGenderSchema = z.enum(["Male", "Female", "Other"]);
 
@@ -7,7 +9,7 @@ export const AccountTypeSchema = z.enum(["Student", "Teacher", "TeacherOrg", "Ad
 
 export const AccountCommunicationStyleSchema = z.enum(["Informal", "Formal"]);
 
-export const AvatarSyncPlatformSchema = z.enum(["Discord", "GitHub", "Google", "Instagram"]);
+export const AvatarSyncPlatformSchema = z.enum(avatarSyncPlatformValues);
 
 export const SchoolSchema = z.object({
     id: z.uint32(),
@@ -31,6 +33,9 @@ export const AccountSchema = z.object({
     avatarUrl: z.string().nullish(),
     bannerUrl: z.string().nullish(),
     discordUsername: z.string().nullish(),
+    githubUsername: z.string().nullish(),
+    githubProfileUrl: z.string().url().nullish(),
+    googleName: z.string().nullish(),
     avatarSyncPlatform: AvatarSyncPlatformSchema.nullish(),
     accountType: AccountTypeSchema.nullish(),
     createdAtUtc: z.coerce.date(),
@@ -48,4 +53,4 @@ export type Account = z.infer<typeof AccountSchema>;
 export type AccountGender = z.infer<typeof AccountGenderSchema>;
 export type AccountType = z.infer<typeof AccountTypeSchema>;
 export type AccountCommunicationStyle = z.infer<typeof AccountCommunicationStyleSchema>;
-export type AvatarSyncPlatform = z.infer<typeof AvatarSyncPlatformSchema>;
+export type {AvatarSyncPlatform};

@@ -17,7 +17,7 @@ public sealed class AuthService(
     AppDbContext db,
     IHttpContextAccessor http,
     IServiceScopeFactory scopeFactory,
-    IDiscordOAuthService discordOAuth,
+    IOAuthService oauth,
     ILogger<AuthService> logger
 ) : IAuthService {
 
@@ -48,8 +48,8 @@ public sealed class AuthService(
 
         if (!VerifyPassword(plainPassword, acc.PasswordHash)) return null;
 
-        if (acc.DiscordConnection != null) {
-            await discordOAuth.EnsureConnectionAsync(acc.Id, true, ct);
+        if (acc.OAuthConnections.Any(connection => connection.Provider == OAuthProvider.Discord)) {
+            await oauth.EnsureDiscordConnectionAsync(acc.Id, true, ct);
         }
 
         var accountForSession = await db.AccountsEf()
@@ -95,8 +95,8 @@ public sealed class AuthService(
             .FirstOrDefaultAsync(a => a.Id == sessionAcc.Id, ct);
         if (accLight == null || accLight.PasswordHash != sessionAcc.PasswordHash) return null;
 
-        if (accLight.DiscordConnection != null) {
-            await discordOAuth.EnsureConnectionAsync(accLight.Id, false, ct);
+        if (accLight.OAuthConnections.Any(connection => connection.Provider == OAuthProvider.Discord)) {
+            await oauth.EnsureDiscordConnectionAsync(accLight.Id, false, ct);
             accLight = await db.Accounts
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == sessionAcc.Id, ct);

@@ -31,7 +31,7 @@ public sealed class AccountControllerV1(
 	IDistributedCache distributedCache,
 	ReservationCacheService reservationCache,
 	IDbLoggerService dbLogger,
-	IDiscordOAuthService discordOAuth
+	IOAuthService oauth
 ) : Controller {
 
 	private readonly IDataProtector passwordResetProtector = dataProtectionProvider.CreateProtector("account-password-reset");
@@ -381,7 +381,7 @@ public sealed class AccountControllerV1(
 		var acc = await auth.ReAuthAsync(ct);
 		if (acc == null) return new UnauthorizedResult();
 
-		var updated = await discordOAuth.SetAvatarSyncPlatformAsync(acc.Id, request.Platform, ct);
+		var updated = await oauth.SetAvatarSyncPlatformAsync(acc.Id, request.Platform, ct);
 		return updated == null ? NotFound() : Ok(updated.ToDto());
 	}
 
@@ -542,7 +542,7 @@ public sealed class AccountControllerV1(
 	);
 	public sealed record DashboardClassStat(SchoolDto School, string Class, int Count);
 	public sealed record MyAccountMutationRequest(Gender? Gender, CommunicationStyle? CommunicationStyle, string? AvatarUrl, string? BannerUrl);
-	public sealed record AvatarSyncPlatformRequest(AvatarSyncPlatform? Platform);
+	public sealed record AvatarSyncPlatformRequest(OAuthProvider? Platform);
 	public sealed record ChangeMyPasswordRequest(string OldPassword, string NewPassword);
 	public sealed record ForgotPasswordRequest(string Email);
 	public sealed record ConfirmPasswordResetRequest(string Token, string NewPassword);
@@ -658,13 +658,15 @@ public sealed class AccountControllerV1(
 		return $"login-link:{tokenId}";
 	}
 
-	private string BuildAbsoluteUrl(string pathAndQuery) {
-		if(Program.ENV.TryGetValue("WEB_URL", out var webUrl) && !string.IsNullOrWhiteSpace(webUrl)) {
-			return $"{webUrl.TrimEnd('/')}{pathAndQuery}";
+	private static string BuildAbsoluteUrl(string pathAndQuery) {
+		if (!Program.ENV.TryGetValue("WEB_URL", out var webUrl) || !Uri.TryCreate(webUrl, UriKind.Absolute, out var uri)) {
+			throw new InvalidOperationException("WEB_URL musi byt nastavene jako absolutni URL.");
+		}
+		if (uri.Scheme is not ("http" or "https") || !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment)) {
+			throw new InvalidOperationException("WEB_URL musi obsahovat jen HTTP(S) originu.");
 		}
 
-		var request = HttpContext.Request;
-		return $"{request.Scheme}://{request.Host}{pathAndQuery}";
+		return $"{uri.GetLeftPart(UriPartial.Authority)}{pathAndQuery}";
 	}
 
 	private static string FormatAccount(Account account) {

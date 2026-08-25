@@ -44,26 +44,31 @@ const genderOptions = [
 
 export function AccountSettings({state}: {state: AccountPageState}) {
     const {account, profileDraft, setProfileDraft, passwordForm, setPasswordForm} = state;
+	const connectedPlatforms: Record<string, string | undefined> = {
+		discord: account.discordUsername ?? undefined,
+		github: account.githubUsername ?? undefined,
+		google: account.googleName ?? undefined,
+	};
 
     return <section className={styles.settings}>
         <div className={styles.connections}>
             <h2>Propojení</h2>
             <div className={styles.platforms}>
                 {platforms.map(platform => (
-                    <button key={platform.id} type="button" className={`${platform.disabled ? styles.disabled : ""} ${platform.id === "discord" && account.discordUsername ? styles.connected : ""}`} disabled={platform.disabled || state.discordLoading} onClick={() => {
-                        if(platform.id !== "discord") return;
-                        if(account.discordUsername) {
-                            state.disconnectDiscord();
+                    <button key={platform.id} type="button" className={`${platform.disabled ? styles.disabled : ""} ${connectedPlatforms[platform.id] ? styles.connected : ""}`} disabled={platform.disabled || state.platformLoading} onClick={() => {
+                        if(platform.id === "instagram") return;
+                        if(connectedPlatforms[platform.id]) {
+                            state.disconnectPlatform(platform.id);
                         } else {
-                            state.connectDiscord();
+                            state.connectPlatform(platform.id);
                         }
                     }}>
                         <span className={styles.platformIcon} style={{maskImage: `url(${platform.icon})`}}></span>
                         <span className={styles.platformName}>
                             <span>{platform.name}</span>
-                            {platform.id === "discord" && account.discordUsername && <small>{account.discordUsername}</small>}
+                            {connectedPlatforms[platform.id] && <small>{connectedPlatforms[platform.id]}</small>}
                         </span>
-                        <span className={styles.platformAction}>{platform.id === "discord" && account.discordUsername ? "Odpojit" : "+"}</span>
+                        <span className={styles.platformAction}>{connectedPlatforms[platform.id] ? "Odpojit" : "+"}</span>
                     </button>
                 ))}
             </div>
@@ -146,7 +151,7 @@ export function AccountSettings({state}: {state: AccountPageState}) {
                         <MediaButtons disabled={account.avatarSyncPlatform != null} onEdit={() => state.setModal("avatar-info")} onDelete={() => state.setModal("remove-avatar")} />
                         <label className={styles.avatarSyncPlatform}>
                             <span>Synchronizace avataru</span>
-                            <select value={account.avatarSyncPlatform ?? ""} disabled={state.discordLoading} onChange={event => state.setAvatarSyncPlatform(event.target.value ? event.target.value as AvatarSyncPlatform : null)}>
+                            <select value={account.avatarSyncPlatform ?? ""} disabled={state.platformLoading} onChange={event => state.setAvatarSyncPlatform(event.target.value ? event.target.value as AvatarSyncPlatform : null)}>
                                 {avatarSyncPlatforms.map(platform => <option key={platform.value} value={platform.value}>{platform.label}</option>)}
                             </select>
                         </label>

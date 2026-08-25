@@ -97,8 +97,7 @@ public static class Program {
 
         builder.Services.AddControllers();
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddHttpClient<IDiscordOAuthService, DiscordOAuthService>(client => {
-            client.BaseAddress = new Uri("https://discord.com/api/v10/");
+        builder.Services.AddHttpClient<IOAuthService, OAuthService>(client => {
             client.Timeout = TimeSpan.FromSeconds(10);
             client.DefaultRequestHeaders.UserAgent.ParseAdd("EduchemLANPartyApp/4.1");
         });

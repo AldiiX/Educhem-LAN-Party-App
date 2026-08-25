@@ -3,20 +3,22 @@
 import {useState} from "react";
 import toast from "react-hot-toast";
 import {Account, AccountSchema, AvatarSyncPlatform} from "@/schemas/AccountSchema";
+import {ConnectablePlatform, platforms} from "@/data/platforms";
 
-export function useAccountDiscord(setAccount: (account: Account) => void) {
-    const [discordLoading, setDiscordLoading] = useState(false);
+export function useAccountPlatforms(setAccount: (account: Account) => void) {
+    const [platformLoading, setPlatformLoading] = useState(false);
 
-    function connectDiscord() {
-        window.location.assign("/api/v1/discord/connect");
+    function connectPlatform(platform: ConnectablePlatform) {
+        window.location.assign(`/api/v1/${platform}/connect`);
     }
 
-    async function disconnectDiscord() {
-        setDiscordLoading(true);
+    async function disconnectPlatform(platform: ConnectablePlatform) {
+        const platformName = platforms.find(item => item.id === platform)?.name ?? platform;
+        setPlatformLoading(true);
         try {
-            const response = await fetch("/api/v1/discord/connection", {method: "DELETE"});
+            const response = await fetch(`/api/v1/${platform}/connection`, {method: "DELETE"});
             if(!response.ok) {
-                toast.error("Discord se nepodařilo odpojit.");
+                toast.error(`${platformName} se nepodařilo odpojit.`);
                 return;
             }
 
@@ -27,14 +29,14 @@ export function useAccountDiscord(setAccount: (account: Account) => void) {
             }
 
             setAccount(account.data);
-            toast.success("Discord odpojen.");
+            toast.success(`${platformName} odpojen.`);
         } finally {
-            setDiscordLoading(false);
+            setPlatformLoading(false);
         }
     }
 
 	async function setAvatarSyncPlatform(platform: AvatarSyncPlatform | null) {
-		setDiscordLoading(true);
+		setPlatformLoading(true);
 		try {
 			const response = await fetch("/api/v1/account/avatar-sync-platform", {
 				method: "PUT",
@@ -57,14 +59,14 @@ export function useAccountDiscord(setAccount: (account: Account) => void) {
 				? "Discord zvolen. Avatar se synchronizuje po propojení."
 				: platform ? `Avatar se synchronizuje z ${platform}.` : "Synchronizace avataru vypnuta.");
         } finally {
-            setDiscordLoading(false);
+            setPlatformLoading(false);
         }
     }
 
     return {
-        discordLoading,
-        connectDiscord,
-        disconnectDiscord,
+		platformLoading,
+		connectPlatform,
+		disconnectPlatform,
 		setAvatarSyncPlatform,
     };
 }

@@ -145,13 +145,13 @@ export default function({ children }: { children: ReactNode }) {
                             <p>Přihlášen{loggedAccount?.gender === "Female" ? "a" : ''} jako</p>
                             <h2>{ loggedAccount?.fullName }</h2>
                         </div>
-                        <Avatar name={loggedAccount?.fullName ?? ""} size="48px" src={loggedAccount?.avatarUrl} />
+                        <Avatar name={loggedAccount?.fullName ?? ""} size="48px" src={loggedAccount?.avatarUrl} fallbackOnImageError={true} />
                     </If>
                 </div>
 
                 <If condition={loggedAccount !== null}>
                     <div className={style.accountPopover}>
-                        <Avatar name={loggedAccount?.fullName ?? ""} size="128px" src={loggedAccount?.avatarUrl} className={style.popoverAvatar} />
+                        <Avatar name={loggedAccount?.fullName ?? ""} size="128px" src={loggedAccount?.avatarUrl} className={style.popoverAvatar} fallbackOnImageError={true} />
                         <h2>{ loggedAccount?.fullName }</h2>
                         <p>{ loggedAccount?.email }</p>
 

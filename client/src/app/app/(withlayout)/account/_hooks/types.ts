@@ -1,5 +1,6 @@
 import {Dispatch, SetStateAction} from "react";
 import {Account, AccountCommunicationStyle, AccountGender, AvatarSyncPlatform} from "@/schemas/AccountSchema";
+import {ConnectablePlatform} from "@/data/platforms";
 
 export type AccountTab = "overview" | "achievements" | "settings";
 export type AccountModal = "avatar-info" | "banner-info" | "remove-avatar" | "remove-banner" | null;
@@ -49,8 +50,8 @@ export type AccountPageState = {
     badgeUpdatingIds: ReadonlySet<string>;
     toggleAchievementVisibility: (entryId: string, nextHidden: boolean) => Promise<void>;
     toggleBadgeTakenOut: (entryId: string, nextTakenOut: boolean) => Promise<void>;
-    discordLoading: boolean;
-    connectDiscord: () => void;
-    disconnectDiscord: () => Promise<void>;
+    platformLoading: boolean;
+    connectPlatform: (platform: ConnectablePlatform) => void;
+    disconnectPlatform: (platform: ConnectablePlatform) => Promise<void>;
 	setAvatarSyncPlatform: (platform: AvatarSyncPlatform | null) => Promise<void>;
 };

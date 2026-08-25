@@ -22,14 +22,16 @@ export default function() {
     const [loginLoading, setLoginLoading] = useState(false);
 
     useEffect(() => {
-        const discordStatus = searchParams.get("discord");
-        if(!discordStatus) return;
+        const socialProvider = (["discord", "github", "google"] as const).find(provider => searchParams.get(provider) != null);
+        if(!socialProvider) return;
 
+        const socialStatus = searchParams.get(socialProvider);
+        const platformName = socialProvider === "github" ? "GitHub" : socialProvider === "google" ? "Google" : "Discord";
         const message = {
-            "not-linked": "Discord účet není propojený s Educhem LAN Party účtem. Přihlas se e-mailem a propoj ho v nastavení.",
-            cancelled: "Přihlášení přes Discord bylo zrušeno.",
-            error: "Přihlášení přes Discord se nepodařilo.",
-        }[discordStatus];
+            "not-linked": `${platformName} účet není propojený s Educhem LAN Party účtem. Přihlas se e-mailem a propoj ho v nastavení.`,
+            cancelled: `Přihlášení přes ${platformName} bylo zrušeno.`,
+            error: `Přihlášení přes ${platformName} se nepodařilo.`,
+        }[socialStatus ?? ""];
         if(message) toast.error(message);
         router.replace("/app/login");
     }, [router, searchParams]);
@@ -88,7 +90,7 @@ export default function() {
                         <p>Jiné možnosti přihlášení</p>
                         <div className={style.socialLoginIcons}>
                             {platforms.map(platform => <button key={platform.id} type="button" className={style.socialLogin} disabled={platform.disabled} aria-label={`Přihlásit se přes ${platform.name}`} title={platform.disabled ? `${platform.name} zatím není dostupný` : `Přihlásit se přes ${platform.name}`} onClick={() => {
-                                if(platform.id === "discord") window.location.assign("/api/v1/discord/login");
+                                if(platform.id !== "instagram") window.location.assign(`/api/v1/${platform.id}/login`);
                             }}>
                                 <span style={{maskImage: `url(${platform.icon})`, background: platform.iconBackground}}></span>
                             </button>)}

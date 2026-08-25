@@ -41,6 +41,11 @@ export default function({ account }: { account: Account }) {
                         <p>{ profile.discordUsername }</p>
                     </If>
 
+                    <If condition={profile.githubUsername != null && profile.githubProfileUrl != null} as="div" className={style.item} title="GitHub">
+                        <div className={style.icon} style={{ maskImage: "url(/icons/github.svg)" }}></div>
+                        <a className={style.githubLink} href={profile.githubProfileUrl ?? undefined} target="_blank" rel="noreferrer">{ profile.githubUsername }</a>
+                    </If>
+
                     <If condition={profile.createdAtUtc != null} as="div" className={style.item} title={`Datum registrace: ${profile.createdAtUtc.toLocaleDateString()}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/login.svg)` }}></div>
                         <p>{ profile.createdAtUtc.toLocaleDateString() }</p>
