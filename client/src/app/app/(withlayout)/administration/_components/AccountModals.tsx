@@ -153,11 +153,11 @@ function AccountDetailModal({account, canManage, canImpersonate, showRoleWarning
 
             <div className={style.infoRows}>
                 <InfoRow icon="/icons/email.svg">{account.email}</InfoRow>
-                <InfoRow icon="/icons/class.svg">{account.class || "-"}</InfoRow>
+                <InfoRow icon="/icons/class.svg">{account.enrollment?.class || "-"}</InfoRow>
                 <InfoRow icon="/icons/gender.svg">{genderLabel(account.gender)}</InfoRow>
                 <InfoRow icon="/icons/chat.svg">{communicationStyleLabel(account.communicationStyle)}</InfoRow>
                 <InfoRow icon="/icons/user_with_shield.svg">{accountTypeLabel(account.accountType, account.gender)}</InfoRow>
-                <InfoRow icon="/icons/organization.svg" title={account.school?.displayName}>{schoolLabel(account.school) || "-" }</InfoRow>
+                <InfoRow icon="/icons/organization.svg" title={account.enrollment?.school.displayName}>{schoolLabel(account.enrollment?.school) || "-" }</InfoRow>
             </div>
 
             {canManage && <div className={style.modalActions}>

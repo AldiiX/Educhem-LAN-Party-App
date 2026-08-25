@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using server.Data;
@@ -12,9 +13,11 @@ using server.Data.Entities;
 namespace server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260824225123_AddEnrollment")]
+    partial class AddEnrollment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -335,6 +338,28 @@ namespace server.Migrations
                     b.ToTable("BadgeRequirements", "achievements");
                 });
 
+            modelBuilder.Entity("server.Data.Entities.Class", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Classes", "public");
+                });
+
             modelBuilder.Entity("server.Data.Entities.Computer", b =>
                 {
                     b.Property<string>("Id")
@@ -374,14 +399,15 @@ namespace server.Migrations
                     b.Property<Guid>("AccountId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Class")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
+                    b.Property<int>("ClassId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("SchoolId")
                         .HasColumnType("integer");
 
                     b.HasKey("AccountId");
+
+                    b.HasIndex("ClassId");
 
                     b.HasIndex("SchoolId");
 
@@ -732,6 +758,12 @@ namespace server.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("server.Data.Entities.Class", "Class")
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("server.Data.Entities.School", "School")
                         .WithMany()
                         .HasForeignKey("SchoolId")
@@ -739,6 +771,8 @@ namespace server.Migrations
                         .IsRequired();
 
                     b.Navigation("Account");
+
+                    b.Navigation("Class");
 
                     b.Navigation("School");
                 });

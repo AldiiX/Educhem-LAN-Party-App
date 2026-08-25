@@ -2,7 +2,7 @@ import {z} from "zod";
 import {fetchBackendJson} from "@/lib/backendClient";
 import {getCurrentLoggedAccount} from "@/lib/auth";
 import HomeClient from "./HomeClient";
-import {AccountSchema} from "@/schemas/AccountSchema";
+import {AccountSchema, SchoolSchema} from "@/schemas/AccountSchema";
 import {StatusData} from "@/app/app/(withlayout)/_hooks/useStatus";
 
 const DashboardSchema = z.object({
@@ -13,6 +13,7 @@ const DashboardSchema = z.object({
     staffCount: z.number(),
     latestAccounts: z.array(AccountSchema),
     classBreakdown: z.array(z.object({
+        school: SchoolSchema,
         class: z.string(),
         count: z.number(),
     })),

@@ -64,16 +64,23 @@ export function useAccountMutations({
             return;
         }
 
+        if(form.class.trim() && !form.schoolId) {
+            toast.error("Třídu lze zadat jen společně se školou.");
+            return;
+        }
+
         setSaving(true);
 
         const body = {
             firstName,
             lastName,
             email: form.email,
-            class: form.class,
+            enrollment: form.schoolId ? {
+                class: form.class.trim() || null,
+                schoolId: Number(form.schoolId),
+            } : null,
             gender: form.gender || null,
             communicationStyle: form.communicationStyle,
-            schoolId: form.schoolId ? Number(form.schoolId) : null,
             accountType: form.accountType,
             avatarUrl: form.avatarUrl,
             bannerUrl: form.bannerUrl,

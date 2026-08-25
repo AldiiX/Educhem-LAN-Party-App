@@ -111,7 +111,7 @@ export function AccountSettings({state}: {state: AccountPageState}) {
                 </label>
                 <label>
                     <span>Třída</span>
-                    <input type="text" value={account.class ?? "Žádná"} disabled />
+                    <input type="text" value={account.enrollment?.class ?? "Žádná"} disabled />
                 </label>
                 <label>
                     <span>Pohlaví</span>

@@ -54,7 +54,7 @@ export function useAttendance() {
 
         return data.entries.filter(entry => [
             entry.profile.fullName,
-            entry.profile.class ?? "",
+            entry.profile.enrollment?.class ?? "",
             entry.reason ?? "",
             attendanceActionLabels[entry.type],
             entry.createdBy.fullName,

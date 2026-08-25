@@ -118,7 +118,7 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
                                         <Link href={`/app/profile/${reservationProfile.id}`} className={style.profile}>
                                             <Avatar name={reservationProfile.fullName} src={reservationProfile.avatarUrl} size="24px" />
                                             <p>{reservationProfile.fullName}</p>
-                                            <small>{ reservationProfile.class }</small>
+                                            <small>{ reservationProfile.enrollment?.class }</small>
                                         </Link>
                                     </ProfileHoverCard>
                                 )}
@@ -141,7 +141,7 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
                                     <Link className={style.user} href={`/app/profile/${rr.profile.id}`}>
                                         <Avatar name={rr.profile.fullName} src={rr.profile.avatarUrl} size="24px" />
                                         <p>{rr.profile.fullName}</p>
-                                        <small>{ rr.profile.class }</small>
+                                        <small>{ rr.profile.enrollment?.class }</small>
                                     </Link>
                                     </ProfileHoverCard>
                                 })

@@ -7,6 +7,19 @@ export const AccountTypeSchema = z.enum(["Student", "Teacher", "TeacherOrg", "Ad
 
 export const AccountCommunicationStyleSchema = z.enum(["Informal", "Formal"]);
 
+export const SchoolSchema = z.object({
+    id: z.uint32(),
+    slug: z.string(),
+    shortName: z.string(),
+    displayName: z.string(),
+    iconUrl: z.string().nullish(),
+});
+
+export const EnrollmentSchema = z.object({
+    school: SchoolSchema,
+    class: z.string().nullish(),
+});
+
 export const AccountSchema = z.object({
     id: z.uuid(),
     firstName: z.string(),
@@ -21,14 +34,7 @@ export const AccountSchema = z.object({
     lastActiveUtc: z.coerce.date().nullish(),
     gender: AccountGenderSchema.nullish(),
     communicationStyle: AccountCommunicationStyleSchema.default("Formal"),
-    school: z.object({
-        id: z.uint32(),
-        slug: z.string(),
-        shortName: z.string(),
-        displayName: z.string(),
-        iconUrl: z.string().nullish(),
-    }).nullish(),
-    class: z.string().nullish(),
+    enrollment: EnrollmentSchema.nullish(),
     enableReservations: z.boolean().nullish(),
     achievements: z.array(AccountAchievementSchema).optional().default([]),
     badges: z.array(AccountBadgeSchema).optional().default([]),
