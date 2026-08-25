@@ -4,22 +4,7 @@ import {Button} from "@/components/Button";
 import {communicationStyleLabel, genderLabel} from "@/lib/enumLabels";
 import {AvatarSyncPlatform} from "@/schemas/AccountSchema";
 import {AccountPageState} from "../_hooks/types";
-
-
-const platforms = [
-    {id: "discord", name: "Discord", icon: "/icons/discord.svg", disabled: false},
-    {id: "github", name: "GitHub", icon: "/icons/github.svg", disabled: true},
-    {id: "google", name: "Google", icon: "/icons/google.svg", disabled: true},
-    {id: "instagram", name: "Instagram", icon: "/icons/instagram.svg", disabled: true},
-];
-
-const avatarSyncPlatforms = [
-    {value: "", label: "Nesynchronizovat"},
-    {value: "Discord", label: "Discord"},
-    {value: "GitHub", label: "GitHub"},
-    {value: "Google", label: "Google"},
-    {value: "Instagram", label: "Instagram"},
-] as const;
+import {avatarSyncPlatforms, platforms} from "@/data/platforms";
 
 const genderOptions = [
     {value: "Male", label: "Muž", disabled: false},

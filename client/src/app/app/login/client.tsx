@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import useLogin from "@/app/app/login/_hooks/useLogin";
 import {Modal} from "@/components/Modal";
 import {Button} from "@/components/Button";
+import {platforms} from "@/data/platforms";
 
 export default function() {
     const { login, resetPassword } = useLogin();
@@ -77,15 +78,21 @@ export default function() {
                     </div>
                     <Button type="primary" text="Přihlásit se" buttonType="submit" className={style.submitBtn} disabled={loginLoading} loading={loginLoading} />
 
-                    <button type="button" className={style.discordLogin} onClick={() => window.location.assign("/api/v1/discord/login")}>
-                        <span style={{maskImage: "url(/icons/discord.svg)"}}></span>
-                        Přihlásit se přes Discord
-                    </button>
+                    <div className={style.socialLogins}>
+                        <p>Jiné možnosti přihlášení</p>
+                        <div className={style.socialLoginIcons}>
+                            {platforms.map(platform => <button key={platform.id} type="button" className={style.socialLogin} disabled={platform.disabled} aria-label={`Přihlásit se přes ${platform.name}`} title={platform.disabled ? `${platform.name} zatím není dostupný` : `Přihlásit se přes ${platform.name}`} onClick={() => {
+                                if(platform.id === "discord") window.location.assign("/api/v1/discord/login");
+                            }}>
+                                <span style={{maskImage: `url(${platform.icon})`, background: platform.iconBackground}}></span>
+                            </button>)}
+                        </div>
+                    </div>
 
                     <button type="button" className={style.forgotPassword} onClick={() => {
                         setResetEmail(email);
                         setResetOpen(true);
-                    }}>Zapoměl jsem heslo</button>
+                    }}>Zapoměl/a jsem heslo</button>
 
                 </form>
             </div>
