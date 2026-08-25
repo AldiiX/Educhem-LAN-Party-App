@@ -294,6 +294,12 @@ WEB_URL=http://localhost:3547
 
 STEAM_WEB_API_KEY=change-me
 
+# apple je ted vypnuty, tyhle hodnoty se budou hodit az pak
+# APPLE_CLIENT_ID=cz.example.educhemlanparty.web
+# APPLE_TEAM_ID=change-me
+# APPLE_KEY_ID=change-me
+# APPLE_PRIVATE_KEY_BASE64=change-me
+
 SMTP_HOST=smtp.example.com
 SMTP_PORT=465
 SMTP_EMAIL_USERNAME=lanparty@example.com
@@ -348,14 +354,38 @@ Backend načítá proměnné z `server/.env` přes `dotenv.net`.
 | `REDIS_IP` | Host Redis serveru |
 | `REDIS_PORT` | Port Redis serveru |
 | `REDIS_PASSWORD` | Redis heslo, může být prázdné |
-| `WEB_URL` | Veřejná URL aplikace pro emailové odkazy |
+| `WEB_URL` | Pevný veřejný HTTP(S) origin aplikace pro emailové odkazy a OAuth callbacky |
 | `STEAM_WEB_API_KEY` | Steam Web API klíč pro načtení jména a avataru propojeného Steam účtu |
+| `APPLE_CLIENT_ID` | Apple Services ID použité jako OAuth `client_id` |
+| `APPLE_TEAM_ID` | Team ID z Apple Developer účtu |
+| `APPLE_KEY_ID` | ID privátního klíče s povoleným Sign in with Apple |
+| `APPLE_PRIVATE_KEY_BASE64` | Celý Apple `.p8` privátní klíč zakódovaný v Base64; neukládat do Gitu |
 | `SMTP_HOST` | SMTP server |
 | `SMTP_PORT` | SMTP port, typicky `465` |
 | `SMTP_EMAIL_USERNAME` | Odesílací email a SMTP login |
 | `SMTP_EMAIL_PASSWORD` | SMTP heslo |
 
 Nastavení jako `ChatEnabled`, `ReservationsStatus`, `ReservationsEnabledFrom`, `ReservationsEnabledTo` a `ReservationsEnabledRightNow` se ukládají do databázové tabulky `administration.AppSettings` a při startu aplikace se seedují výchozí hodnoty.
+
+### Sign in with Apple
+
+Integrace je v kódu připravená, ale aktuálně vypnutá na frontendu i backendu. Pro pozdější zapnutí změň u Apple platformy `disabled` na `false` a odkomentuj Apple větev v `OAuthService.GetProviderConfig`.
+
+Sign in with Apple neposkytuje profilovou fotku ani URL avataru. Apple proto zůstává mimo nabídku synchronizace avataru a propojení může sloužit jen k přihlášení a identifikaci účtu.
+
+Apple webové přihlášení vyžaduje členství v Apple Developer Programu, primární App ID s povoleným Sign in with Apple, navázané Services ID a privátní `.p8` klíč. V Apple Developer portálu zaregistruj produkční doménu a přesnou návratovou URL:
+
+```text
+https://tvoje-domena.cz/api/v1/apple/callback
+```
+
+Apple nepovoluje jako návratovou URL `localhost`, IP adresu ani nezabezpečené HTTP. Proto Apple přihlášení při lokálním `WEB_URL=http://localhost:3547` záměrně vrátí stav `503`; ověřuje se až přes registrovanou HTTPS doménu.
+
+Hodnotu `APPLE_PRIVATE_KEY_BASE64` vytvoř z obsahu staženého `.p8` klíče, například v PowerShellu:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("AuthKey_CHANGE_ME.p8"))
+```
 
 ## Databáze a migrace
 

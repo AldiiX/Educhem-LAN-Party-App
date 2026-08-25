@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using server.Data;
 using server.Data.Entities;
 
@@ -25,6 +27,8 @@ public sealed class OAuthService(
 	private const string SteamOpenIdEndpoint = "https://steamcommunity.com/openid/login";
 	private const string SteamClaimedIdPrefix = "https://steamcommunity.com/openid/id/";
 	private const string SteamProfileEndpoint = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/";
+	private const string AppleIssuer = "https://appleid.apple.com";
+	private const string AppleJwksEndpoint = "https://appleid.apple.com/auth/keys";
 	private static readonly TimeSpan StateLifetime = TimeSpan.FromMinutes(10);
 	private static readonly TimeSpan ValidationInterval = TimeSpan.FromMinutes(15);
 	private readonly IDataProtector discordTokenProtector = dataProtectionProvider.CreateProtector("discord-oauth-tokens");
@@ -34,6 +38,7 @@ public sealed class OAuthService(
 	public async Task<Uri?> CreateAuthorizationUrlAsync(Guid? accountId, OAuthProvider provider, OAuthFlow flow, HttpRequest request, CancellationToken ct = default) {
 		var frontendOrigin = GetFrontendOrigin();
 		if (frontendOrigin == null) return null;
+		if (provider == OAuthProvider.Apple && !IsHttps(frontendOrigin)) return null;
 		if (flow == OAuthFlow.Connect && accountId == null) return null;
 		var routeSegment = GetRouteSegment(provider);
 		if (routeSegment == null) return null;
@@ -45,9 +50,10 @@ public sealed class OAuthService(
 		var state = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
 		var codeVerifier = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
 		var codeChallenge = WebEncoders.Base64UrlEncode(SHA256.HashData(Encoding.UTF8.GetBytes(codeVerifier)));
+		var nonce = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
 		var callbackUri = $"{frontendOrigin}/api/v1/{routeSegment}/callback";
 		if (provider == OAuthProvider.Steam) callbackUri = QueryHelpers.AddQueryString(callbackUri, "state", state);
-		var payload = new OAuthState(accountId, provider, flow, callbackUri, frontendOrigin, codeVerifier);
+		var payload = new OAuthState(accountId, provider, flow, callbackUri, frontendOrigin, codeVerifier, nonce);
 		await cache.SetStringAsync(GetStateCacheKey(state), JsonSerializer.Serialize(payload), new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = StateLifetime }, ct);
 
 		request.HttpContext.Response.Cookies.Append(StateCookieName, state, new CookieOptions {
@@ -67,6 +73,16 @@ public sealed class OAuthService(
 				["openid.realm"] = $"{frontendOrigin}/",
 				["openid.identity"] = "http://specs.openid.net/auth/2.0/identifier_select",
 				["openid.claimed_id"] = "http://specs.openid.net/auth/2.0/identifier_select",
+			}));
+		}
+		if (provider == OAuthProvider.Apple) {
+			return new Uri(QueryHelpers.AddQueryString(config!.AuthorizationEndpoint, new Dictionary<string, string?> {
+				["client_id"] = config.ClientId,
+				["response_type"] = "code",
+				["response_mode"] = "query",
+				["redirect_uri"] = callbackUri,
+				["state"] = state,
+				["nonce"] = nonce,
 			}));
 		}
 
@@ -99,14 +115,21 @@ public sealed class OAuthService(
 
 		var config = GetProviderConfig(provider);
 		if (config == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
-		var tokenResult = await RequestTokenAsync(config, new Dictionary<string, string> {
+		var tokenContent = new Dictionary<string, string> {
 			["grant_type"] = "authorization_code",
 			["code"] = code,
 			["redirect_uri"] = oauthState.CallbackUri,
-			["code_verifier"] = oauthState.CodeVerifier,
-		}, ct);
-		if (tokenResult.Tokens?.AccessToken is not { Length: > 0 } accessToken) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
-		var profileResult = await GetProfileAsync(config, accessToken!, ct);
+		};
+		if (provider != OAuthProvider.Apple) tokenContent["code_verifier"] = oauthState.CodeVerifier;
+		var tokenResult = await RequestTokenAsync(config, tokenContent, ct);
+		OAuthProfileResult profileResult;
+		if (provider == OAuthProvider.Apple) {
+			if (tokenResult.Tokens?.IdToken is not { Length: > 0 } idToken) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+			profileResult = await GetAppleProfileAsync(config, idToken, oauthState.Nonce, ct);
+		} else {
+			if (tokenResult.Tokens?.AccessToken is not { Length: > 0 } accessToken) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+			profileResult = await GetProfileAsync(config, accessToken, ct);
+		}
 		if (profileResult.Profile == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
 		var profile = profileResult.Profile;
 
@@ -368,6 +391,7 @@ public sealed class OAuthService(
 	#region Synchronizace avataru
 
 	public async Task<Account?> SetAvatarSyncPlatformAsync(Guid accountId, OAuthProvider? platform, CancellationToken ct = default) {
+		if (platform == OAuthProvider.Apple) return null;
 		var account = await db.Accounts
 			.Include(item => item.OAuthConnections)
 			.FirstOrDefaultAsync(item => item.Id == accountId, ct);
@@ -570,12 +594,67 @@ public sealed class OAuthService(
 
 	#endregion
 
+	#region Apple profil
+
+	private async Task<OAuthProfileResult> GetAppleProfileAsync(ProviderConfig config, string idToken, string expectedNonce, CancellationToken ct) {
+		try {
+			using var request = new HttpRequestMessage(HttpMethod.Get, AppleJwksEndpoint);
+			request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+			using var response = await httpClient.SendAsync(request, ct);
+			if (!response.IsSuccessStatusCode) return new OAuthProfileResult(null, false);
+
+			var keySet = new JsonWebKeySet(await response.Content.ReadAsStringAsync(ct));
+			var validation = await new JsonWebTokenHandler().ValidateTokenAsync(idToken, new TokenValidationParameters {
+				ValidateIssuerSigningKey = true,
+				IssuerSigningKeys = keySet.Keys,
+				ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
+				ValidateIssuer = true,
+				ValidIssuer = AppleIssuer,
+				ValidateAudience = true,
+				ValidAudience = config.ClientId,
+				ValidateLifetime = true,
+				RequireExpirationTime = true,
+				RequireSignedTokens = true,
+				ClockSkew = TimeSpan.FromMinutes(2),
+			});
+			if (!validation.IsValid) {
+				logger.LogWarning(validation.Exception, "Apple identity token validation failed");
+				return new OAuthProfileResult(null, true);
+			}
+
+			var userId = validation.Claims.TryGetValue("sub", out var subject) ? subject?.ToString() : null;
+			var nonce = validation.Claims.TryGetValue("nonce", out var nonceClaim) ? nonceClaim?.ToString() : null;
+			if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(nonce)) return new OAuthProfileResult(null, true);
+			if (!CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(nonce), Encoding.UTF8.GetBytes(expectedNonce))) return new OAuthProfileResult(null, true);
+
+			return new OAuthProfileResult(new OAuthProfile(userId, "Apple účet", null, null), false);
+		} catch (HttpRequestException exception) {
+			logger.LogWarning(exception, "Apple public key request failed");
+			return new OAuthProfileResult(null, false);
+		} catch (JsonException exception) {
+			logger.LogWarning(exception, "Apple public key response was invalid");
+			return new OAuthProfileResult(null, false);
+		} catch (ArgumentException exception) {
+			logger.LogWarning(exception, "Apple public key response was invalid");
+			return new OAuthProfileResult(null, false);
+		} catch (SecurityTokenException exception) {
+			logger.LogWarning(exception, "Apple identity token was invalid");
+			return new OAuthProfileResult(null, true);
+		} catch (OperationCanceledException exception) when (!ct.IsCancellationRequested) {
+			logger.LogWarning(exception, "Apple identity token validation timed out");
+			return new OAuthProfileResult(null, false);
+		}
+	}
+
+	#endregion
+
 	#region Konfigurace a helpery
 
 	private static string? GetRouteSegment(OAuthProvider provider) => provider switch {
 		OAuthProvider.Discord => "discord",
 		OAuthProvider.GitHub => "github",
 		OAuthProvider.Google => "google",
+		OAuthProvider.Apple => "apple",
 		OAuthProvider.Steam => "steam",
 		_ => null,
 	};
@@ -585,6 +664,19 @@ public sealed class OAuthService(
 		: null;
 
 	private static ProviderConfig? GetProviderConfig(OAuthProvider provider) {
+		if (provider == OAuthProvider.Apple) {
+			// apple je ted vypnuty, az se ti bude chtit resit portal, tak tohle odkomentuj
+			/*
+			// sign in with apple profilovku neposila, takze avatar zustava null a synchronizovat ho nejde
+			if (!Program.ENV.TryGetValue("APPLE_CLIENT_ID", out var appleClientId) || string.IsNullOrWhiteSpace(appleClientId)) return null;
+			var appleClientSecret = CreateAppleClientSecret(appleClientId);
+			return appleClientSecret == null
+				? null
+				: new ProviderConfig(provider, appleClientId, appleClientSecret, "apple", "https://appleid.apple.com/auth/authorize", "https://appleid.apple.com/auth/token", "", "");
+			*/
+			return null;
+		}
+
 		var prefix = provider switch {
 			OAuthProvider.Discord => "DISCORD",
 			OAuthProvider.GitHub => "GITHUB",
@@ -602,6 +694,33 @@ public sealed class OAuthService(
 		};
 	}
 
+	private static string? CreateAppleClientSecret(string clientId) {
+		if (!Program.ENV.TryGetValue("APPLE_TEAM_ID", out var teamId) || string.IsNullOrWhiteSpace(teamId)) return null;
+		if (!Program.ENV.TryGetValue("APPLE_KEY_ID", out var keyId) || string.IsNullOrWhiteSpace(keyId)) return null;
+		if (!Program.ENV.TryGetValue("APPLE_PRIVATE_KEY_BASE64", out var encodedPrivateKey) || string.IsNullOrWhiteSpace(encodedPrivateKey)) return null;
+
+		try {
+			var privateKey = Encoding.UTF8.GetString(Convert.FromBase64String(encodedPrivateKey));
+			using var ecdsa = ECDsa.Create();
+			ecdsa.ImportFromPem(privateKey);
+			var now = DateTime.UtcNow;
+			return new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor {
+				Issuer = teamId,
+				Audience = AppleIssuer,
+				Claims = new Dictionary<string, object> { ["sub"] = clientId },
+				IssuedAt = now,
+				Expires = now.AddMinutes(5),
+				SigningCredentials = new SigningCredentials(new ECDsaSecurityKey(ecdsa) { KeyId = keyId }, SecurityAlgorithms.EcdsaSha256),
+			});
+		} catch (FormatException) {
+			return null;
+		} catch (CryptographicException) {
+			return null;
+		} catch (ArgumentException) {
+			return null;
+		}
+	}
+
 	private static string? GetFrontendOrigin() {
 		if (!Program.ENV.TryGetValue("WEB_URL", out var webUrl) || !Uri.TryCreate(webUrl, UriKind.Absolute, out var uri)) return null;
 		if (uri.Scheme is not ("http" or "https") || !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment)) return null;
@@ -617,7 +736,7 @@ public sealed class OAuthService(
 	#region Spolecne interni modely
 
 	private sealed record ProviderConfig(OAuthProvider Provider, string ClientId, string ClientSecret, string RouteSegment, string AuthorizationEndpoint, string TokenEndpoint, string UserEndpoint, string Scope);
-	private sealed record OAuthState(Guid? AccountId, OAuthProvider Provider, OAuthFlow Flow, string CallbackUri, string ReturnOrigin, string CodeVerifier);
+	private sealed record OAuthState(Guid? AccountId, OAuthProvider Provider, OAuthFlow Flow, string CallbackUri, string ReturnOrigin, string CodeVerifier, string Nonce);
 	private sealed record OAuthProfile(string UserId, string Username, string? AvatarUrl, string? ProfileUrl);
 	private sealed record OAuthTokenResult(OAuthTokenResponse? Tokens, bool Invalid);
 	private sealed record OAuthProfileResult(OAuthProfile? Profile, bool TokenInvalid);
@@ -631,6 +750,9 @@ public sealed class OAuthService(
 
 		[JsonPropertyName("expires_in")]
 		public int? ExpiresIn { get; init; }
+
+		[JsonPropertyName("id_token")]
+		public string? IdToken { get; init; }
 	}
 
 	#endregion

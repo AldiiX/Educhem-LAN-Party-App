@@ -22,7 +22,7 @@ export default function() {
     const [loginLoading, setLoginLoading] = useState(false);
 
     useEffect(() => {
-        const socialProvider = (["discord", "github", "google", "steam"] as const).find(provider => searchParams.get(provider) != null);
+        const socialProvider = (["discord", "github", "google", "apple", "steam"] as const).find(provider => searchParams.get(provider) != null);
         if(!socialProvider) return;
 
         const socialStatus = searchParams.get(socialProvider);
@@ -90,7 +90,8 @@ export default function() {
                         <p>Jiné možnosti přihlášení</p>
                         <div className={style.socialLoginIcons}>
                             {platforms.map(platform => <button key={platform.id} type="button" className={style.socialLogin} disabled={platform.disabled} aria-label={`Přihlásit se přes ${platform.name}`} title={platform.disabled ? `${platform.name} zatím není dostupný` : `Přihlásit se přes ${platform.name}`} onClick={() => {
-                                if(platform.id !== "instagram") window.location.assign(`/api/v1/${platform.id}/login`);
+								if(platform.disabled) return;
+                                window.location.assign(`/api/v1/${platform.id}/login`);
                             }}>
                                 <span data-platform={platform.id} style={{
                                     maskImage: `url(${platform.icon})`,

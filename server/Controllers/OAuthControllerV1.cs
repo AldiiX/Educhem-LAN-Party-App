@@ -36,6 +36,7 @@ public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : 
 			OAuthProvider.Discord => "discord",
 			OAuthProvider.GitHub => "github",
 			OAuthProvider.Google => "google",
+			OAuthProvider.Apple => "apple",
 			OAuthProvider.Steam => "steam",
 			_ => throw new InvalidOperationException("Nepodporovany OAuth poskytovatel."),
 		};
@@ -71,12 +72,14 @@ public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : 
 			"discord" => OAuthProvider.Discord,
 			"github" => OAuthProvider.GitHub,
 			"google" => OAuthProvider.Google,
+			"apple" => OAuthProvider.Apple,
 			"steam" => OAuthProvider.Steam,
 			_ => default,
 		};
 		return value.Equals("discord", StringComparison.OrdinalIgnoreCase)
 			|| value.Equals("github", StringComparison.OrdinalIgnoreCase)
 			|| value.Equals("google", StringComparison.OrdinalIgnoreCase)
+			|| value.Equals("apple", StringComparison.OrdinalIgnoreCase)
 			|| value.Equals("steam", StringComparison.OrdinalIgnoreCase);
 	}
 

@@ -36,6 +36,7 @@ export const AccountSchema = z.object({
     githubUsername: z.string().nullish(),
     githubProfileUrl: z.string().url().nullish(),
     googleName: z.string().nullish(),
+	appleName: z.string().nullish(),
 	steamUsername: z.string().nullish(),
 	steamProfileUrl: z.string().url().nullish(),
     avatarSyncPlatform: AvatarSyncPlatformSchema.nullish(),

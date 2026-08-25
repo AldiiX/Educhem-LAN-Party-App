@@ -199,6 +199,12 @@
                                 }
                             }
 
+                            &[data-platform="apple"] {
+                                :global(html[data-theme='dark']) & {
+                                    background: #f0f6fc;
+                                }
+                            }
+
                             &[data-platform="github"] {
                                 :global(html[data-theme='light']) & {
                                     background: #24292f;

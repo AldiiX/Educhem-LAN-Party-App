@@ -48,6 +48,7 @@ export function AccountSettings({state}: {state: AccountPageState}) {
 		discord: account.discordUsername ?? undefined,
 		github: account.githubUsername ?? undefined,
 		google: account.googleName ?? undefined,
+		apple: account.appleName ?? undefined,
 		steam: account.steamUsername ?? undefined,
 	};
 
@@ -57,7 +58,7 @@ export function AccountSettings({state}: {state: AccountPageState}) {
             <div className={styles.platforms}>
                 {platforms.map(platform => (
                     <button key={platform.id} type="button" className={`${platform.disabled ? styles.disabled : ""} ${connectedPlatforms[platform.id] ? styles.connected : ""}`} disabled={platform.disabled || state.platformLoading} onClick={() => {
-                        if(platform.id === "instagram") return;
+						if(platform.disabled) return;
                         if(connectedPlatforms[platform.id]) {
                             state.disconnectPlatform(platform.id);
                         } else {

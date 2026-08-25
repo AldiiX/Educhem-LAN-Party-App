@@ -20,7 +20,7 @@ public class AttendanceEntry : AuditableEntity<Guid> {
 	[StringEnum]
 	public required AttendanceEntryType Type { get; set; }
 
-	[MaxLength(256)]
+	[MaxLength(64)]
 	public string? Reason { get; set; }
 
 	[ForeignKey(nameof(CreatedBy))]
