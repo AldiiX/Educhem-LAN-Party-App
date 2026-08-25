@@ -51,6 +51,9 @@ public sealed class AuthService(
         if (acc.OAuthConnections.Any(connection => connection.Provider == OAuthProvider.Discord)) {
             await oauth.EnsureDiscordConnectionAsync(acc.Id, true, ct);
         }
+        if (acc.OAuthConnections.Any(connection => connection.Provider == OAuthProvider.Steam)) {
+            await oauth.EnsureSteamConnectionAsync(acc.Id, true, ct);
+        }
 
         var accountForSession = await db.AccountsEf()
             .AsNoTracking()
@@ -95,8 +98,16 @@ public sealed class AuthService(
             .FirstOrDefaultAsync(a => a.Id == sessionAcc.Id, ct);
         if (accLight == null || accLight.PasswordHash != sessionAcc.PasswordHash) return null;
 
+        var refreshConnections = false;
         if (accLight.OAuthConnections.Any(connection => connection.Provider == OAuthProvider.Discord)) {
             await oauth.EnsureDiscordConnectionAsync(accLight.Id, false, ct);
+            refreshConnections = true;
+        }
+        if (accLight.OAuthConnections.Any(connection => connection.Provider == OAuthProvider.Steam)) {
+            await oauth.EnsureSteamConnectionAsync(accLight.Id, false, ct);
+            refreshConnections = true;
+        }
+        if (refreshConnections) {
             accLight = await db.Accounts
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == sessionAcc.Id, ct);

@@ -7,6 +7,7 @@ public interface IOAuthService {
 	Task<OAuthCompletion> CompleteAuthorizationAsync(HttpRequest request, OAuthProvider provider, string? state, string? code, string? error, CancellationToken ct = default);
 	Task<Account?> DisconnectAsync(Guid accountId, OAuthProvider provider, CancellationToken ct = default);
 	Task EnsureDiscordConnectionAsync(Guid accountId, bool forceValidation, CancellationToken ct = default);
+	Task EnsureSteamConnectionAsync(Guid accountId, bool forceValidation, CancellationToken ct = default);
 	Task<Account?> SetAvatarSyncPlatformAsync(Guid accountId, OAuthProvider? platform, CancellationToken ct = default);
 }
 

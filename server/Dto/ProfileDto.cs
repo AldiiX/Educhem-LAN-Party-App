@@ -16,6 +16,8 @@ public class ProfileDto : EntityDto<Guid> {
 	[JsonPropertyName("githubProfileUrl")]
 	public string? GitHubProfileUrl { get; set; }
 	public string? GoogleName { get; set; }
+	public string? SteamUsername { get; set; }
+	public string? SteamProfileUrl { get; set; }
 	public required Gender? Gender { get; set; }
 	public required DateTime CreatedAtUtc { get; set; }
 	public required AccountType AccountType { get; set; }

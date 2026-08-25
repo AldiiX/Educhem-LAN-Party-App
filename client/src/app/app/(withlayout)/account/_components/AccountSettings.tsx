@@ -48,6 +48,7 @@ export function AccountSettings({state}: {state: AccountPageState}) {
 		discord: account.discordUsername ?? undefined,
 		github: account.githubUsername ?? undefined,
 		google: account.googleName ?? undefined,
+		steam: account.steamUsername ?? undefined,
 	};
 
     return <section className={styles.settings}>

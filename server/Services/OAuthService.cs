@@ -22,6 +22,9 @@ public sealed class OAuthService(
 	IDbLoggerService dbLogger
 ) : IOAuthService {
 	private const string StateCookieName = "educhemlanparty_oauth_state";
+	private const string SteamOpenIdEndpoint = "https://steamcommunity.com/openid/login";
+	private const string SteamClaimedIdPrefix = "https://steamcommunity.com/openid/id/";
+	private const string SteamProfileEndpoint = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/";
 	private static readonly TimeSpan StateLifetime = TimeSpan.FromMinutes(10);
 	private static readonly TimeSpan ValidationInterval = TimeSpan.FromMinutes(15);
 	private readonly IDataProtector discordTokenProtector = dataProtectionProvider.CreateProtector("discord-oauth-tokens");
@@ -29,15 +32,21 @@ public sealed class OAuthService(
 	#region Spolecny OAuth flow
 
 	public async Task<Uri?> CreateAuthorizationUrlAsync(Guid? accountId, OAuthProvider provider, OAuthFlow flow, HttpRequest request, CancellationToken ct = default) {
-		var config = GetProviderConfig(provider);
 		var frontendOrigin = GetFrontendOrigin();
-		if (config == null || frontendOrigin == null) return null;
+		if (frontendOrigin == null) return null;
 		if (flow == OAuthFlow.Connect && accountId == null) return null;
+		var routeSegment = GetRouteSegment(provider);
+		if (routeSegment == null) return null;
+
+		var config = provider == OAuthProvider.Steam ? null : GetProviderConfig(provider);
+		if (provider != OAuthProvider.Steam && config == null) return null;
+		if (provider == OAuthProvider.Steam && GetSteamWebApiKey() == null) return null;
 
 		var state = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
 		var codeVerifier = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
 		var codeChallenge = WebEncoders.Base64UrlEncode(SHA256.HashData(Encoding.UTF8.GetBytes(codeVerifier)));
-		var callbackUri = $"{frontendOrigin}/api/v1/{config.RouteSegment}/callback";
+		var callbackUri = $"{frontendOrigin}/api/v1/{routeSegment}/callback";
+		if (provider == OAuthProvider.Steam) callbackUri = QueryHelpers.AddQueryString(callbackUri, "state", state);
 		var payload = new OAuthState(accountId, provider, flow, callbackUri, frontendOrigin, codeVerifier);
 		await cache.SetStringAsync(GetStateCacheKey(state), JsonSerializer.Serialize(payload), new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = StateLifetime }, ct);
 
@@ -50,7 +59,18 @@ public sealed class OAuthService(
 			Path = "/api/v1",
 		});
 
-		return new Uri(QueryHelpers.AddQueryString(config.AuthorizationEndpoint, new Dictionary<string, string?> {
+		if (provider == OAuthProvider.Steam) {
+			return new Uri(QueryHelpers.AddQueryString(SteamOpenIdEndpoint, new Dictionary<string, string?> {
+				["openid.ns"] = "http://specs.openid.net/auth/2.0",
+				["openid.mode"] = "checkid_setup",
+				["openid.return_to"] = callbackUri,
+				["openid.realm"] = $"{frontendOrigin}/",
+				["openid.identity"] = "http://specs.openid.net/auth/2.0/identifier_select",
+				["openid.claimed_id"] = "http://specs.openid.net/auth/2.0/identifier_select",
+			}));
+		}
+
+		return new Uri(QueryHelpers.AddQueryString(config!.AuthorizationEndpoint, new Dictionary<string, string?> {
 			["client_id"] = config.ClientId,
 			["response_type"] = "code",
 			["redirect_uri"] = callbackUri,
@@ -74,6 +94,7 @@ public sealed class OAuthService(
 
 		var oauthState = JsonSerializer.Deserialize<OAuthState>(serializedState);
 		if (oauthState == null || oauthState.Provider != provider) return new OAuthCompletion(OAuthCompletionKind.InvalidState);
+		if (provider == OAuthProvider.Steam) return await CompleteSteamAuthorizationAsync(request, oauthState, ct);
 		if (!string.IsNullOrWhiteSpace(error) || string.IsNullOrWhiteSpace(code)) return new OAuthCompletion(OAuthCompletionKind.Cancelled, oauthState.ReturnOrigin);
 
 		var config = GetProviderConfig(provider);
@@ -198,6 +219,148 @@ public sealed class OAuthService(
 		ApplyConnection(connection.Account, connection, profileResult.Profile, null);
 		connection.LastValidatedUtc = nowUtc;
 		await db.SaveChangesAsync(ct);
+	}
+
+	#endregion
+
+	#region Steam OpenID a kontrola propojeni
+
+	private async Task<OAuthCompletion> CompleteSteamAuthorizationAsync(HttpRequest request, OAuthState oauthState, CancellationToken ct) {
+		var mode = request.Query["openid.mode"].ToString();
+		if (mode == "cancel") return new OAuthCompletion(OAuthCompletionKind.Cancelled, oauthState.ReturnOrigin);
+		if (mode != "id_res") return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+
+		var steamId = await VerifySteamOpenIdResponseAsync(request, oauthState.CallbackUri, ct);
+		if (steamId == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+		var profileResult = await GetSteamProfileAsync(steamId, ct);
+		var profile = profileResult.Profile;
+
+		if (oauthState.Flow == OAuthFlow.Login) {
+			var connection = await db.OAuthConnections
+				.Include(item => item.Account)
+				.FirstOrDefaultAsync(item => item.Provider == OAuthProvider.Steam && item.ProviderUserId == steamId, ct);
+			if (connection == null) return new OAuthCompletion(OAuthCompletionKind.LoginNotLinked, oauthState.ReturnOrigin);
+
+			if (profile != null) {
+				ApplyConnection(connection.Account, connection, profile, null);
+				connection.LastValidatedUtc = DateTime.UtcNow;
+				await db.SaveChangesAsync(ct);
+			}
+			return new OAuthCompletion(OAuthCompletionKind.LoginSucceeded, oauthState.ReturnOrigin, connection.AccountId);
+		}
+
+		if (oauthState.AccountId == null) return new OAuthCompletion(OAuthCompletionKind.InvalidState, oauthState.ReturnOrigin);
+		if (profile == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+
+		var account = await db.Accounts
+			.Include(item => item.OAuthConnections)
+			.FirstOrDefaultAsync(item => item.Id == oauthState.AccountId.Value, ct);
+		if (account == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+
+		var alreadyConnected = await db.OAuthConnections.AsNoTracking()
+			.FirstOrDefaultAsync(item => item.Provider == OAuthProvider.Steam && item.ProviderUserId == steamId && item.AccountId != account.Id, ct);
+		if (alreadyConnected != null) return new OAuthCompletion(OAuthCompletionKind.AlreadyLinked, oauthState.ReturnOrigin);
+
+		var connectionForAccount = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Steam);
+		var isNewConnection = connectionForAccount == null;
+		if (connectionForAccount == null) {
+			connectionForAccount = new OAuthConnection {
+				AccountId = account.Id,
+				Account = account,
+				Provider = OAuthProvider.Steam,
+				ProviderUserId = steamId,
+				Username = profile.Username,
+			};
+			db.OAuthConnections.Add(connectionForAccount);
+		}
+
+		ApplyConnection(account, connectionForAccount, profile, null);
+		connectionForAccount.LastValidatedUtc = DateTime.UtcNow;
+		await db.SaveChangesAsync(ct);
+		if (isNewConnection) await dbLogger.LogInfoAsync($"Účet {FormatAccount(account)} propojil platformu Steam jako {profile.Username}.", "platform-connect", ct);
+		return new OAuthCompletion(OAuthCompletionKind.Connected, oauthState.ReturnOrigin, account.Id);
+	}
+
+	private async Task<string?> VerifySteamOpenIdResponseAsync(HttpRequest request, string expectedReturnTo, CancellationToken ct) {
+		var values = request.Query
+			.Where(item => item.Key.StartsWith("openid.", StringComparison.Ordinal))
+			.ToDictionary(item => item.Key, item => item.Value.ToString(), StringComparer.Ordinal);
+		if (!values.TryGetValue("openid.op_endpoint", out var endpoint) || endpoint != SteamOpenIdEndpoint) return null;
+		if (!values.TryGetValue("openid.return_to", out var returnTo) || returnTo != expectedReturnTo) return null;
+		if (!values.TryGetValue("openid.claimed_id", out var claimedId) || !values.TryGetValue("openid.identity", out var identity) || identity != claimedId) return null;
+		if (!claimedId.StartsWith(SteamClaimedIdPrefix, StringComparison.Ordinal)) return null;
+
+		var steamId = claimedId[SteamClaimedIdPrefix.Length..];
+		if (!ulong.TryParse(steamId, out var parsedSteamId) || parsedSteamId == 0 || claimedId != $"{SteamClaimedIdPrefix}{parsedSteamId}") return null;
+
+		values["openid.mode"] = "check_authentication";
+		using var verificationRequest = new HttpRequestMessage(HttpMethod.Post, SteamOpenIdEndpoint) {
+			Content = new FormUrlEncodedContent(values),
+		};
+		try {
+			using var response = await httpClient.SendAsync(verificationRequest, ct);
+			if (!response.IsSuccessStatusCode) return null;
+			var body = await response.Content.ReadAsStringAsync(ct);
+			return body.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+				.Any(line => line.Equals("is_valid:true", StringComparison.Ordinal))
+				? steamId
+				: null;
+		} catch (HttpRequestException exception) {
+			logger.LogWarning(exception, "Steam OpenID verification failed");
+			return null;
+		} catch (OperationCanceledException exception) when (!ct.IsCancellationRequested) {
+			logger.LogWarning(exception, "Steam OpenID verification timed out");
+			return null;
+		}
+	}
+
+	public async Task EnsureSteamConnectionAsync(Guid accountId, bool forceValidation, CancellationToken ct = default) {
+		var connection = await db.OAuthConnections
+			.Include(item => item.Account)
+			.FirstOrDefaultAsync(item => item.AccountId == accountId && item.Provider == OAuthProvider.Steam, ct);
+		if (connection == null || GetSteamWebApiKey() == null) return;
+
+		var nowUtc = DateTime.UtcNow;
+		if (!forceValidation && connection.LastValidatedUtc is { } lastValidated && lastValidated >= nowUtc - ValidationInterval) return;
+
+		var profileResult = await GetSteamProfileAsync(connection.ProviderUserId, ct);
+		if (profileResult.Profile == null || profileResult.Profile.UserId != connection.ProviderUserId) return;
+
+		ApplyConnection(connection.Account, connection, profileResult.Profile, null);
+		connection.LastValidatedUtc = nowUtc;
+		await db.SaveChangesAsync(ct);
+	}
+
+	private async Task<OAuthProfileResult> GetSteamProfileAsync(string steamId, CancellationToken ct) {
+		var apiKey = GetSteamWebApiKey();
+		if (apiKey == null) return new OAuthProfileResult(null, false);
+
+		var endpoint = QueryHelpers.AddQueryString(SteamProfileEndpoint, "steamids", steamId);
+		using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+		request.Headers.TryAddWithoutValidation("x-webapi-key", apiKey);
+		request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+		try {
+			using var response = await httpClient.SendAsync(request, ct);
+			if (!response.IsSuccessStatusCode) return new OAuthProfileResult(null, false);
+			var result = await response.Content.ReadFromJsonAsync<SteamPlayerSummariesResponse>(cancellationToken: ct);
+			var user = result?.Response?.Players.FirstOrDefault(item => item.SteamId == steamId);
+			if (user == null) return new OAuthProfileResult(null, false);
+
+			var username = string.IsNullOrWhiteSpace(user.PersonaName) ? "Steam účet" : user.PersonaName;
+			var profileUrl = string.IsNullOrWhiteSpace(user.ProfileUrl) ? $"https://steamcommunity.com/profiles/{steamId}/" : user.ProfileUrl;
+			var avatarUrl = user.AvatarFull ?? user.AvatarMedium ?? user.Avatar;
+			return new OAuthProfileResult(new OAuthProfile(steamId, username, avatarUrl, profileUrl), false);
+		} catch (HttpRequestException exception) {
+			logger.LogWarning(exception, "Steam profile request failed");
+			return new OAuthProfileResult(null, false);
+		} catch (JsonException exception) {
+			logger.LogWarning(exception, "Steam profile response was invalid");
+			return new OAuthProfileResult(null, false);
+		} catch (OperationCanceledException exception) when (!ct.IsCancellationRequested) {
+			logger.LogWarning(exception, "Steam profile request timed out");
+			return new OAuthProfileResult(null, false);
+		}
 	}
 
 	#endregion
@@ -409,6 +572,18 @@ public sealed class OAuthService(
 
 	#region Konfigurace a helpery
 
+	private static string? GetRouteSegment(OAuthProvider provider) => provider switch {
+		OAuthProvider.Discord => "discord",
+		OAuthProvider.GitHub => "github",
+		OAuthProvider.Google => "google",
+		OAuthProvider.Steam => "steam",
+		_ => null,
+	};
+
+	private static string? GetSteamWebApiKey() => Program.ENV.TryGetValue("STEAM_WEB_API_KEY", out var apiKey) && !string.IsNullOrWhiteSpace(apiKey)
+		? apiKey
+		: null;
+
 	private static ProviderConfig? GetProviderConfig(OAuthProvider provider) {
 		var prefix = provider switch {
 			OAuthProvider.Discord => "DISCORD",
@@ -504,6 +679,40 @@ public sealed class OAuthService(
 
 		[JsonPropertyName("picture")]
 		public string? Picture { get; init; }
+	}
+
+	#endregion
+
+	#region Steam modely
+
+	private sealed class SteamPlayerSummariesResponse {
+		[JsonPropertyName("response")]
+		public SteamPlayerSummariesBody? Response { get; init; }
+	}
+
+	private sealed class SteamPlayerSummariesBody {
+		[JsonPropertyName("players")]
+		public List<SteamUser> Players { get; init; } = [];
+	}
+
+	private sealed class SteamUser {
+		[JsonPropertyName("steamid")]
+		public string? SteamId { get; init; }
+
+		[JsonPropertyName("personaname")]
+		public string? PersonaName { get; init; }
+
+		[JsonPropertyName("profileurl")]
+		public string? ProfileUrl { get; init; }
+
+		[JsonPropertyName("avatar")]
+		public string? Avatar { get; init; }
+
+		[JsonPropertyName("avatarmedium")]
+		public string? AvatarMedium { get; init; }
+
+		[JsonPropertyName("avatarfull")]
+		public string? AvatarFull { get; init; }
 	}
 
 	#endregion

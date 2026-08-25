@@ -2,7 +2,7 @@
 
 import style from "./client.module.scss"
 import Link from "next/link";
-import {useEffect, useState} from "react";
+import {type CSSProperties, useEffect, useState} from "react";
 import {useRouter, useSearchParams} from "next/navigation";
 import toast from "react-hot-toast";
 import useLogin from "@/app/app/login/_hooks/useLogin";
@@ -22,11 +22,11 @@ export default function() {
     const [loginLoading, setLoginLoading] = useState(false);
 
     useEffect(() => {
-        const socialProvider = (["discord", "github", "google"] as const).find(provider => searchParams.get(provider) != null);
+        const socialProvider = (["discord", "github", "google", "steam"] as const).find(provider => searchParams.get(provider) != null);
         if(!socialProvider) return;
 
         const socialStatus = searchParams.get(socialProvider);
-        const platformName = socialProvider === "github" ? "GitHub" : socialProvider === "google" ? "Google" : "Discord";
+		const platformName = platforms.find(platform => platform.id === socialProvider)?.name ?? socialProvider;
         const message = {
             "not-linked": `${platformName} účet není propojený s Educhem LAN Party účtem. Přihlas se e-mailem a propoj ho v nastavení.`,
             cancelled: `Přihlášení přes ${platformName} bylo zrušeno.`,
@@ -92,7 +92,10 @@ export default function() {
                             {platforms.map(platform => <button key={platform.id} type="button" className={style.socialLogin} disabled={platform.disabled} aria-label={`Přihlásit se přes ${platform.name}`} title={platform.disabled ? `${platform.name} zatím není dostupný` : `Přihlásit se přes ${platform.name}`} onClick={() => {
                                 if(platform.id !== "instagram") window.location.assign(`/api/v1/${platform.id}/login`);
                             }}>
-                                <span style={{maskImage: `url(${platform.icon})`, background: platform.iconBackground}}></span>
+                                <span data-platform={platform.id} style={{
+                                    maskImage: `url(${platform.icon})`,
+                                    "--platform-icon-background": platform.iconBackground,
+                                } as CSSProperties}></span>
                             </button>)}
                         </div>
                     </div>

@@ -36,6 +36,7 @@ public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : 
 			OAuthProvider.Discord => "discord",
 			OAuthProvider.GitHub => "github",
 			OAuthProvider.Google => "google",
+			OAuthProvider.Steam => "steam",
 			_ => throw new InvalidOperationException("Nepodporovany OAuth poskytovatel."),
 		};
 		switch (completion.Kind) {
@@ -70,11 +71,13 @@ public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : 
 			"discord" => OAuthProvider.Discord,
 			"github" => OAuthProvider.GitHub,
 			"google" => OAuthProvider.Google,
+			"steam" => OAuthProvider.Steam,
 			_ => default,
 		};
 		return value.Equals("discord", StringComparison.OrdinalIgnoreCase)
 			|| value.Equals("github", StringComparison.OrdinalIgnoreCase)
-			|| value.Equals("google", StringComparison.OrdinalIgnoreCase);
+			|| value.Equals("google", StringComparison.OrdinalIgnoreCase)
+			|| value.Equals("steam", StringComparison.OrdinalIgnoreCase);
 	}
 
 	private static string BuildRedirect(string origin, string pathAndQuery) => new Uri(new Uri(origin), pathAndQuery).ToString();

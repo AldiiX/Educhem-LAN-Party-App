@@ -46,6 +46,11 @@ export default function({ account }: { account: Account }) {
                         <a className={style.githubLink} href={profile.githubProfileUrl ?? undefined} target="_blank" rel="noreferrer">{ profile.githubUsername }</a>
                     </If>
 
+					<If condition={profile.steamUsername != null && profile.steamProfileUrl != null} as="div" className={style.item} title="Steam">
+						<div className={style.icon} style={{ maskImage: "url(/icons/steam.svg)" }}></div>
+						<a className={style.githubLink} href={profile.steamProfileUrl ?? undefined} target="_blank" rel="noreferrer">{ profile.steamUsername }</a>
+					</If>
+
                     <If condition={profile.createdAtUtc != null} as="div" className={style.item} title={`Datum registrace: ${profile.createdAtUtc.toLocaleDateString()}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/login.svg)` }}></div>
                         <p>{ profile.createdAtUtc.toLocaleDateString() }</p>

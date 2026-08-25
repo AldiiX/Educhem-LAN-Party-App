@@ -292,6 +292,8 @@ REDIS_PASSWORD=
 
 WEB_URL=http://localhost:3547
 
+STEAM_WEB_API_KEY=change-me
+
 SMTP_HOST=smtp.example.com
 SMTP_PORT=465
 SMTP_EMAIL_USERNAME=lanparty@example.com
@@ -347,6 +349,7 @@ Backend načítá proměnné z `server/.env` přes `dotenv.net`.
 | `REDIS_PORT` | Port Redis serveru |
 | `REDIS_PASSWORD` | Redis heslo, může být prázdné |
 | `WEB_URL` | Veřejná URL aplikace pro emailové odkazy |
+| `STEAM_WEB_API_KEY` | Steam Web API klíč pro načtení jména a avataru propojeného Steam účtu |
 | `SMTP_HOST` | SMTP server |
 | `SMTP_PORT` | SMTP port, typicky `465` |
 | `SMTP_EMAIL_USERNAME` | Odesílací email a SMTP login |

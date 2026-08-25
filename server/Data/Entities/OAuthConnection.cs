@@ -46,4 +46,5 @@ public enum OAuthProvider {
 	Discord,
 	GitHub,
 	Google,
+	Steam,
 }

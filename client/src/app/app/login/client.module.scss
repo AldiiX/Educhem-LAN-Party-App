@@ -188,9 +188,22 @@
                         >span {
                             width: 22px;
                             height: 22px;
+                            background: var(--platform-icon-background);
                             mask-position: center;
                             mask-repeat: no-repeat;
                             mask-size: contain;
+
+                            &[data-platform="steam"] {
+                                :global(html[data-theme='dark']) & {
+                                    background: #f0f6fc;
+                                }
+                            }
+
+                            &[data-platform="github"] {
+                                :global(html[data-theme='light']) & {
+                                    background: #24292f;
+                                }
+                            }
                         }
                     }
                 }

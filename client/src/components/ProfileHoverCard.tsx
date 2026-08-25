@@ -285,6 +285,7 @@ function ProfileHoverCardContent({account, closing, position, onMouseEnter, onMo
                 { /* propojene platformy */ }
                 {account.discordUsername && <InfoItem icon="/icons/discord.svg" label="Discord" value={account.discordUsername} />}
                 {account.githubUsername && <InfoItem icon="/icons/github.svg" label="GitHub" value={account.githubUsername} href={account.githubProfileUrl} />}
+				{account.steamUsername && <InfoItem icon="/icons/steam.svg" label="Steam" value={account.steamUsername} href={account.steamProfileUrl} />}
             </div>
 
             <Link href={`/app/profile/${account.id}`} className={styles.profileLink}>Otevřít profil</Link>
