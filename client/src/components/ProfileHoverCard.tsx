@@ -280,8 +280,11 @@ function ProfileHoverCardContent({account, closing, position, onMouseEnter, onMo
                 <InfoItem icon="/icons/class.svg" label="Třída" value={classText} />
                 <InfoItem icon="/icons/organization.svg" label="Škola" value={schoolText} image={account.enrollment?.school.iconUrl} title={account.enrollment?.school.displayName ?? "Bez školy"} />
                 {account.gender && <InfoItem icon="/icons/gender.svg" label="Pohlaví" value={genderLabel(account.gender)} />}
-                {account.discordUsername && <InfoItem icon="/icons/discord.svg" label="Discord" value={account.discordUsername} />}
                 <InfoItem icon="/icons/login.svg" label="Registrace" value={account.createdAtUtc.toLocaleDateString("cs-CZ")} />
+
+                { /* propojene platformy */ }
+                {account.discordUsername && <InfoItem icon="/icons/discord.svg" label="Discord" value={account.discordUsername} />}
+                {account.githubUsername && <InfoItem icon="/icons/github.svg" label="GitHub" value={account.githubUsername} href={account.githubProfileUrl} />}
             </div>
 
             <Link href={`/app/profile/${account.id}`} className={styles.profileLink}>Otevřít profil</Link>
@@ -289,12 +292,16 @@ function ProfileHoverCardContent({account, closing, position, onMouseEnter, onMo
     </div>;
 }
 
-function InfoItem({icon, label, value, image, title}: {icon: string; label: string; value: string; image?: string | null, title?: string | null}) {
-    return <div className={styles.infoItem} title={title ?? ""}>
+function InfoItem({icon, label, value, image, title, href}: {icon: string; label: string; value: string; image?: string | null; title?: string | null; href?: string | null}) {
+    const content = <>
         {image ? <img src={image} alt="" /> : <span style={{maskImage: `url(${icon})`}} />}
         <div>
             <small>{label}</small>
             <p>{value}</p>
         </div>
-    </div>;
+    </>;
+
+    return href
+        ? <a className={`${styles.infoItem} ${styles.infoLink}`} href={href} target="_blank" rel="noopener noreferrer" title={title ?? `Otevřít ${label} profil`}>{content}</a>
+        : <div className={styles.infoItem} title={title ?? ""}>{content}</div>;
 }
