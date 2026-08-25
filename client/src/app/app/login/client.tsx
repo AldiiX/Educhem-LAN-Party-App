@@ -2,19 +2,36 @@
 
 import style from "./client.module.scss"
 import Link from "next/link";
-import { useState } from "react";
+import {useEffect, useState} from "react";
+import {useRouter, useSearchParams} from "next/navigation";
+import toast from "react-hot-toast";
 import useLogin from "@/app/app/login/_hooks/useLogin";
 import {Modal} from "@/components/Modal";
 import {Button} from "@/components/Button";
 
 export default function() {
     const { login, resetPassword } = useLogin();
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [resetEmail, setResetEmail] = useState("");
     const [resetOpen, setResetOpen] = useState(false);
     const [resetLoading, setResetLoading] = useState(false);
     const [loginLoading, setLoginLoading] = useState(false);
+
+    useEffect(() => {
+        const discordStatus = searchParams.get("discord");
+        if(!discordStatus) return;
+
+        const message = {
+            "not-linked": "Discord účet není propojený s Educhem LAN Party účtem. Přihlas se e-mailem a propoj ho v nastavení.",
+            cancelled: "Přihlášení přes Discord bylo zrušeno.",
+            error: "Přihlášení přes Discord se nepodařilo.",
+        }[discordStatus];
+        if(message) toast.error(message);
+        router.replace("/app/login");
+    }, [router, searchParams]);
 
     async function submitLogin() {
         if(loginLoading) return;
@@ -59,6 +76,11 @@ export default function() {
                         <input type="password" placeholder="•••••••" onChange={(e) => setPassword(e.currentTarget.value)} />
                     </div>
                     <Button type="primary" text="Přihlásit se" buttonType="submit" className={style.submitBtn} disabled={loginLoading} loading={loginLoading} />
+
+                    <button type="button" className={style.discordLogin} onClick={() => window.location.assign("/api/v1/discord/login")}>
+                        <span style={{maskImage: "url(/icons/discord.svg)"}}></span>
+                        Přihlásit se přes Discord
+                    </button>
 
                     <button type="button" className={style.forgotPassword} onClick={() => {
                         setResetEmail(email);

@@ -9,6 +9,7 @@ public class ProfileDto : EntityDto<Guid> {
 	public required EnrollmentDto? Enrollment { get; set; }
 	public required string? AvatarUrl { get; set; }
 	public required string? BannerUrl { get; set; }
+	public string? DiscordUsername { get; set; }
 	public required Gender? Gender { get; set; }
 	public required DateTime CreatedAtUtc { get; set; }
 	public required AccountType AccountType { get; set; }

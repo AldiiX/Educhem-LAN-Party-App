@@ -8,4 +8,5 @@ public class AccountDto : ProfileDto, IAuditable {
 	public required string Email { get; set; }
 	public required bool EnableReservations { get; set; }
 	public required CommunicationStyle CommunicationStyle { get; set; }
+	public AvatarSyncPlatform? AvatarSyncPlatform { get; set; }
 }

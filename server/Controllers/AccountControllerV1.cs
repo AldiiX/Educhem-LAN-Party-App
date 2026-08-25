@@ -30,7 +30,8 @@ public sealed class AccountControllerV1(
 	IDataProtectionProvider dataProtectionProvider,
 	IDistributedCache distributedCache,
 	ReservationCacheService reservationCache,
-	IDbLoggerService dbLogger
+	IDbLoggerService dbLogger,
+	IDiscordOAuthService discordOAuth
 ) : Controller {
 
 	private readonly IDataProtector passwordResetProtector = dataProtectionProvider.CreateProtector("account-password-reset");
@@ -199,7 +200,7 @@ public sealed class AccountControllerV1(
 
 		account.Gender = request.Gender;
 		account.AccountType = requestedAccountType;
-		account.AvatarUrl = NormalizeOptional(request.AvatarUrl);
+		if (account.AvatarSyncPlatform == null) account.AvatarUrl = NormalizeOptional(request.AvatarUrl);
 		account.BannerUrl = NormalizeOptional(request.BannerUrl);
 		account.EnableReservations = request.EnableReservations ?? account.EnableReservations;
 		account.CommunicationStyle = request.CommunicationStyle ?? account.CommunicationStyle;
@@ -365,7 +366,7 @@ public sealed class AccountControllerV1(
 
 		account.Gender = request.Gender;
 		account.CommunicationStyle = request.CommunicationStyle ?? account.CommunicationStyle;
-		account.AvatarUrl = NormalizeOptional(request.AvatarUrl);
+		if (account.AvatarSyncPlatform == null) account.AvatarUrl = NormalizeOptional(request.AvatarUrl);
 		account.BannerUrl = NormalizeOptional(request.BannerUrl);
 
 		await db.SaveChangesAsync(ct);
@@ -373,6 +374,15 @@ public sealed class AccountControllerV1(
 
 		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == account.Id, ct);
 		return Ok(updated.ToDto());
+	}
+
+	[HttpPut("avatar-sync-platform")]
+	public async Task<IActionResult> SetAvatarSyncPlatform([FromBody] AvatarSyncPlatformRequest request, CancellationToken ct = default) {
+		var acc = await auth.ReAuthAsync(ct);
+		if (acc == null) return new UnauthorizedResult();
+
+		var updated = await discordOAuth.SetAvatarSyncPlatformAsync(acc.Id, request.Platform, ct);
+		return updated == null ? NotFound() : Ok(updated.ToDto());
 	}
 
 	[HttpPost("me/password")]
@@ -532,6 +542,7 @@ public sealed class AccountControllerV1(
 	);
 	public sealed record DashboardClassStat(SchoolDto School, string Class, int Count);
 	public sealed record MyAccountMutationRequest(Gender? Gender, CommunicationStyle? CommunicationStyle, string? AvatarUrl, string? BannerUrl);
+	public sealed record AvatarSyncPlatformRequest(AvatarSyncPlatform? Platform);
 	public sealed record ChangeMyPasswordRequest(string OldPassword, string NewPassword);
 	public sealed record ForgotPasswordRequest(string Email);
 	public sealed record ConfirmPasswordResetRequest(string Token, string NewPassword);

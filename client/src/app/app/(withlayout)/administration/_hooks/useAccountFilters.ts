@@ -87,6 +87,7 @@ export function useAccountFilters(accounts: Account[]) {
                 const matchesSearch = query.length === 0 || [
                     account.fullName,
                     account.email,
+                    account.discordUsername,
                     account.enrollment?.class,
                     account.enrollment?.school.displayName,
                     accountTypeLabel(account.accountType, account.gender),

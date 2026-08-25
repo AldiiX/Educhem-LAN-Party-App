@@ -8,6 +8,7 @@ namespace server.Data;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options) {
 
 	public DbSet<Account> Accounts { get; set; }
+	public DbSet<DiscordConnection> DiscordConnections { get; set; }
 	public DbSet<Enrollment> Enrollments { get; set; }
 	public DbSet<School> Schools { get; set; }
 
@@ -53,6 +54,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 			.HasOne(account => account.Enrollment)
 			.WithOne(enrollment => enrollment.Account)
 			.HasForeignKey<Enrollment>(enrollment => enrollment.AccountId)
+			.OnDelete(DeleteBehavior.Cascade);
+
+		modelBuilder.Entity<Account>()
+			.HasOne(account => account.DiscordConnection)
+			.WithOne(connection => connection.Account)
+			.HasForeignKey<DiscordConnection>(connection => connection.AccountId)
 			.OnDelete(DeleteBehavior.Cascade);
 
 		modelBuilder.Entity<Enrollment>()

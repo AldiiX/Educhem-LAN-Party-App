@@ -7,6 +7,8 @@ export const AccountTypeSchema = z.enum(["Student", "Teacher", "TeacherOrg", "Ad
 
 export const AccountCommunicationStyleSchema = z.enum(["Informal", "Formal"]);
 
+export const AvatarSyncPlatformSchema = z.enum(["Discord", "GitHub", "Google", "Instagram"]);
+
 export const SchoolSchema = z.object({
     id: z.uint32(),
     slug: z.string(),
@@ -28,6 +30,8 @@ export const AccountSchema = z.object({
     email: z.string().nullish(),
     avatarUrl: z.string().nullish(),
     bannerUrl: z.string().nullish(),
+    discordUsername: z.string().nullish(),
+    avatarSyncPlatform: AvatarSyncPlatformSchema.nullish(),
     accountType: AccountTypeSchema.nullish(),
     createdAtUtc: z.coerce.date(),
     updatedAtUtc: z.coerce.date().nullish(),
@@ -44,3 +48,4 @@ export type Account = z.infer<typeof AccountSchema>;
 export type AccountGender = z.infer<typeof AccountGenderSchema>;
 export type AccountType = z.infer<typeof AccountTypeSchema>;
 export type AccountCommunicationStyle = z.infer<typeof AccountCommunicationStyleSchema>;
+export type AvatarSyncPlatform = z.infer<typeof AvatarSyncPlatformSchema>;

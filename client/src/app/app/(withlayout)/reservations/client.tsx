@@ -247,7 +247,13 @@ export default function Client({
                                             <If condition={Boolean(reservation.profile.bannerUrl)} as="span" className={style.bannerBackdrop} style={{backgroundImage: `url(${reservation.profile.bannerUrl})`}} />
                                             <Avatar name={reservation.profile.fullName} size="40px" src={reservation.profile.avatarUrl} />
                                             <span>
-                                                <strong>{ reservation.profile.fullName }<If as="small" condition={reservation.profile.enrollment?.class != null}>{ reservation.profile.enrollment?.class}</If></strong>
+                                                <strong>
+                                                    { reservation.profile.fullName }
+                                                    <span className={style.enrollment}>
+                                                        <If as="small" condition={reservation.profile.enrollment?.class != null}>{ reservation.profile.enrollment?.class}</If>
+                                                        {reservation.profile.enrollment?.school.iconUrl && <img className={style.schoolAvatar} src={reservation.profile.enrollment.school.iconUrl} alt="" title={reservation.profile.enrollment.school.displayName} />}
+                                                    </span>
+                                                </strong>
                                                 <If condition={reservation.computer !== null} as="span">{ reservation.computer?.label } - {reservation.computer?.room?.id}</If>
                                                 <If condition={reservation.room !== null} as="span">{ reservation.room?.label }</If>
                                                 <time>{ (reservation.createdAtUtc as Date).toLocaleString() }</time>

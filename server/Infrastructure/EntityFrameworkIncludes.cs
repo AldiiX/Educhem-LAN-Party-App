@@ -10,6 +10,7 @@ public static class EntityFrameworkIncludes {
 		return db.Accounts
 			.Include(a => a.Enrollment)
 				.ThenInclude(e => e!.School)
+			.Include(a => a.DiscordConnection)
 			.Include(a => a.AccountAchievements)
 				.ThenInclude(x => x.Achievement)
 			.Include(a => a.AccountBadges)

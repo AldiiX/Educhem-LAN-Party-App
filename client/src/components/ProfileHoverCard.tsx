@@ -33,7 +33,7 @@ type ProfileHoverSnapshot = {
 };
 
 const CARD_WIDTH = 300;
-const CARD_HEIGHT = 400;
+const CARD_HEIGHT = 454;
 const GAP = 12;
 const CLOSE_ANIMATION_MS = 150;
 
@@ -280,6 +280,7 @@ function ProfileHoverCardContent({account, closing, position, onMouseEnter, onMo
                 <InfoItem icon="/icons/class.svg" label="Třída" value={classText} />
                 <InfoItem icon="/icons/organization.svg" label="Škola" value={schoolText} image={account.enrollment?.school.iconUrl} title={account.enrollment?.school.displayName ?? "Bez školy"} />
                 {account.gender && <InfoItem icon="/icons/gender.svg" label="Pohlaví" value={genderLabel(account.gender)} />}
+                {account.discordUsername && <InfoItem icon="/icons/discord.svg" label="Discord" value={account.discordUsername} />}
                 <InfoItem icon="/icons/login.svg" label="Registrace" value={account.createdAtUtc.toLocaleDateString("cs-CZ")} />
             </div>
 

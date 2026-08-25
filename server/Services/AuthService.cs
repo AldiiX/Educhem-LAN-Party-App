@@ -17,6 +17,7 @@ public sealed class AuthService(
     AppDbContext db,
     IHttpContextAccessor http,
     IServiceScopeFactory scopeFactory,
+    IDiscordOAuthService discordOAuth,
     ILogger<AuthService> logger
 ) : IAuthService {
 
@@ -45,20 +46,24 @@ public sealed class AuthService(
             .FirstOrDefaultAsync(a => a.Email.ToLower() == identifier.ToLower(), ct);
         if (acc == null) return null;
 
-        var dto = acc.ToSessionDto();
-
-        //Console.WriteLine("Login attempt for json: " + json);
-
         if (!VerifyPassword(plainPassword, acc.PasswordHash)) return null;
-        http.HttpContext!.Session.SetString("loggedaccount", JsonSerializer.Serialize(dto));
-        http.HttpContext.Items["loggedaccount"] = dto;
-        QueueLastActiveUpdate(acc.Id);
-        
-        // Load full account with relationships for the response
-        return await db.AccountsEf()
+
+        if (acc.DiscordConnection != null) {
+            await discordOAuth.EnsureConnectionAsync(acc.Id, true, ct);
+        }
+
+        var accountForSession = await db.AccountsEf()
             .AsNoTracking()
             .AsSplitQuery()
             .FirstOrDefaultAsync(a => a.Id == acc.Id, ct);
+        if (accountForSession == null) return null;
+
+        var dto = accountForSession.ToSessionDto();
+        http.HttpContext!.Session.SetString("loggedaccount", JsonSerializer.Serialize(dto));
+        http.HttpContext.Items["loggedaccount"] = dto;
+        QueueLastActiveUpdate(accountForSession.Id);
+
+        return accountForSession;
     }
 
     public async Task<Account?> SignInAsAsync(Guid accountId, CancellationToken ct = default) {
@@ -89,6 +94,14 @@ public sealed class AuthService(
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Id == sessionAcc.Id, ct);
         if (accLight == null || accLight.PasswordHash != sessionAcc.PasswordHash) return null;
+
+        if (accLight.DiscordConnection != null) {
+            await discordOAuth.EnsureConnectionAsync(accLight.Id, false, ct);
+            accLight = await db.Accounts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == sessionAcc.Id, ct);
+            if (accLight == null || accLight.PasswordHash != sessionAcc.PasswordHash) return null;
+        }
 
         // Keep session data consistent by storing AccountSessionDto instead of full Account
         var sessionDto = accLight.ToSessionDto();

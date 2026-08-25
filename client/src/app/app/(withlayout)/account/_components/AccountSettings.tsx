@@ -2,15 +2,24 @@ import styles from "./AccountSettings.module.scss";
 import {Avatar} from "@/components/Avatar";
 import {Button} from "@/components/Button";
 import {communicationStyleLabel, genderLabel} from "@/lib/enumLabels";
+import {AvatarSyncPlatform} from "@/schemas/AccountSchema";
 import {AccountPageState} from "../_hooks/types";
 
 
 const platforms = [
-    {id: "discord", name: "Discord", icon: "/icons/discord.svg", disabled: true},
+    {id: "discord", name: "Discord", icon: "/icons/discord.svg", disabled: false},
     {id: "github", name: "GitHub", icon: "/icons/github.svg", disabled: true},
     {id: "google", name: "Google", icon: "/icons/google.svg", disabled: true},
     {id: "instagram", name: "Instagram", icon: "/icons/instagram.svg", disabled: true},
 ];
+
+const avatarSyncPlatforms = [
+    {value: "", label: "Nesynchronizovat"},
+    {value: "Discord", label: "Discord"},
+    {value: "GitHub", label: "GitHub"},
+    {value: "Google", label: "Google"},
+    {value: "Instagram", label: "Instagram"},
+] as const;
 
 const genderOptions = [
     {value: "Male", label: "Muž", disabled: false},
@@ -56,10 +65,20 @@ export function AccountSettings({state}: {state: AccountPageState}) {
             <h2>Propojení</h2>
             <div className={styles.platforms}>
                 {platforms.map(platform => (
-                    <button key={platform.id} type="button" className={platform.disabled ? styles.disabled : ""} disabled={platform.disabled}>
+                    <button key={platform.id} type="button" className={`${platform.disabled ? styles.disabled : ""} ${platform.id === "discord" && account.discordUsername ? styles.connected : ""}`} disabled={platform.disabled || state.discordLoading} onClick={() => {
+                        if(platform.id !== "discord") return;
+                        if(account.discordUsername) {
+                            state.disconnectDiscord();
+                        } else {
+                            state.connectDiscord();
+                        }
+                    }}>
                         <span className={styles.platformIcon} style={{maskImage: `url(${platform.icon})`}}></span>
-                        <span>{platform.name}</span>
-                        <span className={styles.platformAction}>+</span>
+                        <span className={styles.platformName}>
+                            <span>{platform.name}</span>
+                            {platform.id === "discord" && account.discordUsername && <small>{account.discordUsername}</small>}
+                        </span>
+                        <span className={styles.platformAction}>{platform.id === "discord" && account.discordUsername ? "Odpojit" : "+"}</span>
                     </button>
                 ))}
             </div>
@@ -138,7 +157,15 @@ export function AccountSettings({state}: {state: AccountPageState}) {
             <div className={styles.media}>
                 <div className={styles.avatarEdit}>
                     <Avatar name={account.fullName} src={profileDraft.avatarUrl} size="168px" className={styles.avatarPreview} />
-                    <MediaButtons onEdit={() => state.setModal("avatar-info")} onDelete={() => state.setModal("remove-avatar")} />
+                    <div className={styles.avatarControls}>
+                        <MediaButtons disabled={account.avatarSyncPlatform != null} onEdit={() => state.setModal("avatar-info")} onDelete={() => state.setModal("remove-avatar")} />
+                        <label className={styles.avatarSyncPlatform}>
+                            <span>Synchronizace avataru</span>
+                            <select value={account.avatarSyncPlatform ?? ""} disabled={state.discordLoading} onChange={event => state.setAvatarSyncPlatform(event.target.value ? event.target.value as AvatarSyncPlatform : null)}>
+                                {avatarSyncPlatforms.map(platform => <option key={platform.value} value={platform.value}>{platform.label}</option>)}
+                            </select>
+                        </label>
+                    </div>
                 </div>
 
                 <div className={styles.bannerEdit}>
@@ -150,12 +177,12 @@ export function AccountSettings({state}: {state: AccountPageState}) {
     </section>;
 }
 
-function MediaButtons({onEdit, onDelete}: {onEdit: () => void; onDelete: () => void}) {
+function MediaButtons({disabled = false, onEdit, onDelete}: {disabled?: boolean; onEdit: () => void; onDelete: () => void}) {
     return <div className={styles.mediaButtons}>
-        <button type="button" aria-label="Upravit" title="Upravit" onClick={onEdit}>
+        <button type="button" aria-label="Upravit" title={disabled ? "Avatar se synchronizuje z vybraného zdroje" : "Upravit"} onClick={onEdit} disabled={disabled}>
             <span style={{maskImage: "url(/icons/edit.svg)"}}></span>
         </button>
-        <button type="button" aria-label="Smazat" title="Smazat" onClick={onDelete}>
+        <button type="button" aria-label="Smazat" title={disabled ? "Avatar se synchronizuje z vybraného zdroje" : "Smazat"} onClick={onDelete} disabled={disabled}>
             <span style={{maskImage: "url(/icons/trash.svg)"}}></span>
         </button>
     </div>;

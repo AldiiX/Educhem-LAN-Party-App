@@ -21,6 +21,7 @@ public static class AccountMapper {
 				Enrollment = account.Enrollment?.ToDto(),
 				AvatarUrl = account.AvatarUrl,
 				BannerUrl = account.BannerUrl,
+				DiscordUsername = account.DiscordConnection?.Username,
 				Gender = account.Gender,
 				CreatedAtUtc = account.CreatedAtUtc,
 				AccountType = account.AccountType,
@@ -44,6 +45,7 @@ public static class AccountMapper {
 				Enrollment = account.Enrollment?.ToDto(),
 				AvatarUrl = account.AvatarUrl,
 				BannerUrl = account.BannerUrl,
+				DiscordUsername = account.DiscordConnection?.Username,
 				UpdatedAtUtc = account.UpdatedAtUtc,
 				CreatedAtUtc = account.CreatedAtUtc,
 				LastActiveUtc = account.LastActiveUtc,
@@ -54,6 +56,7 @@ public static class AccountMapper {
 				Achievements = achievements,
 				Badges = badges,
 				CommunicationStyle = account.CommunicationStyle,
+				AvatarSyncPlatform = account.AvatarSyncPlatform,
 			};
 		}
 

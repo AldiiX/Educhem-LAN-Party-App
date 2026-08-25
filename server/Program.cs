@@ -97,7 +97,11 @@ public static class Program {
 
         builder.Services.AddControllers();
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddHttpClient();
+        builder.Services.AddHttpClient<IDiscordOAuthService, DiscordOAuthService>(client => {
+            client.BaseAddress = new Uri("https://discord.com/api/v10/");
+            client.Timeout = TimeSpan.FromSeconds(10);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("EduchemLANPartyApp/4.1");
+        });
         builder.Services.AddMemoryCache(); // pro pripad, ze bych chtel nekdy skalovat (asi ne) je lepsi vyuzit redis pokud mam multiistance app coz pro lanku asi mit stejne nikdy nebudu
 
         builder.Services.AddSingleton<AppCacheService>();

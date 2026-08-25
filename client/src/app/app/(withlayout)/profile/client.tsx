@@ -36,6 +36,11 @@ export default function({ account }: { account: Account }) {
                         <p>{ genderLabel(profile.gender) }</p>
                     </If>
 
+                    <If condition={profile.discordUsername != null} as="div" className={style.item} title="Discord">
+                        <div className={style.icon} style={{ maskImage: "url(/icons/discord.svg)" }}></div>
+                        <p>{ profile.discordUsername }</p>
+                    </If>
+
                     <If condition={profile.createdAtUtc != null} as="div" className={style.item} title={`Datum registrace: ${profile.createdAtUtc.toLocaleDateString()}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/login.svg)` }}></div>
                         <p>{ profile.createdAtUtc.toLocaleDateString() }</p>

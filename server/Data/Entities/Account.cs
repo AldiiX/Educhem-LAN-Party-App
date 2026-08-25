@@ -38,8 +38,14 @@ public class Account : AuditableEntity<Guid> {
 	[MaxLength(512)]
 	public string? AvatarUrl  { get; set; }
 
+	[StringEnum]
+	public AvatarSyncPlatform? AvatarSyncPlatform { get; set; }
+
 	[MaxLength(512)]
 	public string? BannerUrl  { get; set; }
+
+	[AutoInclude]
+	public DiscordConnection? DiscordConnection { get; set; }
 
 	[DefaultValue(false)]
 	public bool EnableReservations { get; set; } = false;
@@ -71,4 +77,12 @@ public enum AccountType {
 public enum CommunicationStyle {
 	Formal = 0,
 	Informal = 1
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum AvatarSyncPlatform {
+	Discord,
+	GitHub,
+	Google,
+	Instagram,
 }

@@ -50,7 +50,7 @@
             >button {
                 min-height: 64px;
                 display: grid;
-                grid-template-columns: 48px 1fr 20px;
+                grid-template-columns: 48px 1fr auto;
                 align-items: center;
                 gap: 16px;
                 padding: 8px 16px;
@@ -68,6 +68,15 @@
                     opacity: .42;
                 }
 
+                &.connected {
+                    border: 1px solid var(--accent-line);
+
+                    .platformAction {
+                        color: var(--error-color);
+                        font-size: 14px;
+                    }
+                }
+
                 .platformIcon {
                     width: 48px;
                     height: 48px;
@@ -79,6 +88,17 @@
                     mask-size: 28px;
                 }
 
+                .platformName {
+                    display: grid;
+                    gap: 3px;
+
+                    >small {
+                        color: var(--text-color-secondary);
+                        font-size: 12px;
+                        font-weight: 500;
+                    }
+                }
+
                 .platformAction {
                     justify-self: end;
                     color: var(--text-color-darker);
@@ -87,6 +107,7 @@
                 }
             }
         }
+
     }
 
     .password {
@@ -159,6 +180,44 @@
                 gap: 14px;
             }
 
+            .avatarEdit {
+                display: grid;
+                grid-template-columns: 168px minmax(208px, 1fr);
+                gap: 20px;
+
+                .avatarControls {
+                    min-width: 208px;
+                    display: grid;
+                    align-content: center;
+                    gap: 16px;
+                }
+
+                .mediaButtons {
+                    display: flex;
+                    gap: 8px;
+                }
+
+                .avatarSyncPlatform {
+                    display: grid;
+                    gap: 8px;
+
+                    >span {
+                        color: var(--text-color-secondary);
+                        font-size: 13px;
+                        font-weight: 700;
+                    }
+
+                    >select {
+                        font-size: 15px;
+                        font-weight: 700;
+                    }
+                }
+            }
+
+            .bannerEdit {
+                justify-self: start;
+            }
+
             .avatarPreview {
                 box-shadow: 0 16px 34px var(--shadow-color);
             }
@@ -194,6 +253,11 @@
                     &:hover {
                         border-color: var(--accent-line);
                         background: var(--accent-soft);
+                    }
+
+                    &:disabled {
+                        cursor: not-allowed;
+                        opacity: .45;
                     }
 
                     >span {
@@ -233,6 +297,25 @@
             .media {
                 justify-items: start;
                 order: -1;
+
+                .avatarEdit {
+                    .avatarControls {
+                        min-width: 0;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 560px) {
+    .settings {
+        .profile {
+            .media {
+                .avatarEdit {
+                    grid-template-columns: 1fr;
+                    justify-items: start;
+                }
             }
         }
     }

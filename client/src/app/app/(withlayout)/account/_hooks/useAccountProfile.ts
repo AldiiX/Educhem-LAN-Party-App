@@ -1,6 +1,6 @@
 "use client";
 
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import toast from "react-hot-toast";
 import {Account, AccountSchema} from "@/schemas/AccountSchema";
 import {ProfileDraft} from "./types";
@@ -8,6 +8,10 @@ import {ProfileDraft} from "./types";
 export function useAccountProfile(account: Account, setAccount: (account: Account) => void, closeModal: () => void) {
     const [savingProfile, setSavingProfile] = useState(false);
     const [profileDraft, setProfileDraft] = useState<ProfileDraft>(() => createProfileDraft(account));
+
+    useEffect(() => {
+        setProfileDraft(createProfileDraft(account));
+    }, [account]);
 
     function resetProfileDraft() {
         setProfileDraft(createProfileDraft(account));
