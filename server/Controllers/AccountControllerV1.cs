@@ -66,12 +66,20 @@ public sealed class AccountControllerV1(
 			.Select(a => a.ToProfileDto())
 			.ToList();
 		var classBreakdown = accounts
-			.Where(a => a.EnableReservations && !string.IsNullOrWhiteSpace(a.Class))
-			.GroupBy(a => a.Class!)
-			.OrderByDescending(group => group.Count())
-			.ThenBy(group => group.Key)
+			.Where(a => a.EnableReservations && a.Enrollment?.Class != null)
+			.GroupBy(a => new {
+				a.Enrollment!.SchoolId,
+				a.Enrollment.Class,
+			})
+			.Select(group => new DashboardClassStat(
+				group.First().Enrollment!.School.ToDto(false),
+				group.Key.Class!,
+				group.Count()
+			))
+			.OrderByDescending(item => item.Count)
+			.ThenBy(item => item.School.ShortName)
+			.ThenBy(item => item.Class)
 			.Take(6)
-			.Select(group => new DashboardClassStat(group.Key, group.Count()))
 			.ToList();
 
 		return Ok(new DashboardResponse(
@@ -116,11 +124,8 @@ public sealed class AccountControllerV1(
 		if(!CanManageRole(acc, requestedAccountType))
 			return Forbid();
 
-		School? school = null;
-		if(request.SchoolId != null) {
-			school = await db.Set<School>().FirstOrDefaultAsync(s => s.Id == request.SchoolId, ct);
-			if(school == null) return BadRequest("Unknown school.");
-		}
+		var enrollmentResult = await ResolveEnrollmentEntitiesAsync(request.Enrollment, ct);
+		if(enrollmentResult.Error != null) return BadRequest(enrollmentResult.Error);
 
 		var password = string.IsNullOrWhiteSpace(request.Password) ? GenerateRandomPassword() : request.Password;
 		var account = new Account {
@@ -129,15 +134,20 @@ public sealed class AccountControllerV1(
 			LastName = request.LastName.Trim(),
 			Email = request.Email.Trim(),
 			PasswordHash = AuthService.HashPassword(password),
-			Class = NormalizeOptional(request.Class),
 			Gender = request.Gender,
-			School = school,
 			AccountType = requestedAccountType,
 			AvatarUrl = NormalizeOptional(request.AvatarUrl),
 			BannerUrl = NormalizeOptional(request.BannerUrl),
 			EnableReservations = request.EnableReservations ?? false,
 			CommunicationStyle = request.CommunicationStyle ?? (requestedAccountType >= AccountType.Teacher ? CommunicationStyle.Formal : CommunicationStyle.Informal),
 		};
+		if(enrollmentResult.School != null) {
+			account.Enrollment = new Enrollment {
+				Account = account,
+				School = enrollmentResult.School,
+				Class = enrollmentResult.Class,
+			};
+		}
 
 		db.Accounts.Add(account);
 		await db.SaveChangesAsync(ct);
@@ -187,7 +197,6 @@ public sealed class AccountControllerV1(
 		if(!string.IsNullOrWhiteSpace(request.LastName)) account.LastName = request.LastName.Trim();
 		if(!string.IsNullOrWhiteSpace(request.Email)) account.Email = request.Email.Trim();
 
-		account.Class = NormalizeOptional(request.Class);
 		account.Gender = request.Gender;
 		account.AccountType = requestedAccountType;
 		account.AvatarUrl = NormalizeOptional(request.AvatarUrl);
@@ -195,12 +204,21 @@ public sealed class AccountControllerV1(
 		account.EnableReservations = request.EnableReservations ?? account.EnableReservations;
 		account.CommunicationStyle = request.CommunicationStyle ?? account.CommunicationStyle;
 
-		if(request.SchoolId != null) {
-			var school = await db.Set<School>().FirstOrDefaultAsync(s => s.Id == request.SchoolId, ct);
-			if(school == null) return BadRequest("Unknown school.");
-			account.School = school;
-		} else if(request.SchoolId == null) {
-			account.School = null;
+		var enrollmentResult = await ResolveEnrollmentEntitiesAsync(request.Enrollment, ct);
+		if(enrollmentResult.Error != null) return BadRequest(enrollmentResult.Error);
+		if(enrollmentResult.School == null) {
+			if(account.Enrollment != null) db.Enrollments.Remove(account.Enrollment);
+			account.Enrollment = null;
+		} else if(account.Enrollment == null) {
+			account.Enrollment = new Enrollment {
+				AccountId = account.Id,
+				Account = account,
+				School = enrollmentResult.School,
+				Class = enrollmentResult.Class,
+			};
+		} else {
+			account.Enrollment.School = enrollmentResult.School;
+			account.Enrollment.Class = enrollmentResult.Class;
 		}
 
 		string? passwordForEmail = null;
@@ -489,9 +507,8 @@ public sealed class AccountControllerV1(
 		string? FirstName,
 		string? LastName,
 		string? Email,
-		string? Class,
+		EnrollmentMutationRequest? Enrollment,
 		Gender? Gender,
-		ushort? SchoolId,
 		AccountType? AccountType,
 		string? AvatarUrl,
 		string? BannerUrl,
@@ -500,6 +517,7 @@ public sealed class AccountControllerV1(
 		string? Password,
 		CommunicationStyle? CommunicationStyle
 	);
+	public sealed record EnrollmentMutationRequest(ushort? SchoolId, string? Class);
 
 	public sealed record AccountMutationResponse(AccountDto Account, bool LoginCredentialsEmailSent = false);
 	public sealed record PasswordResetResponse(bool LoginCredentialsEmailSent);
@@ -512,7 +530,7 @@ public sealed class AccountControllerV1(
 		IReadOnlyList<ProfileDto> LatestAccounts,
 		IReadOnlyList<DashboardClassStat> ClassBreakdown
 	);
-	public sealed record DashboardClassStat(string Class, int Count);
+	public sealed record DashboardClassStat(SchoolDto School, string Class, int Count);
 	public sealed record MyAccountMutationRequest(Gender? Gender, CommunicationStyle? CommunicationStyle, string? AvatarUrl, string? BannerUrl);
 	public sealed record ChangeMyPasswordRequest(string OldPassword, string NewPassword);
 	public sealed record ForgotPasswordRequest(string Email);
@@ -523,6 +541,21 @@ public sealed class AccountControllerV1(
 	private static string? NormalizeOptional(string? value) {
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 	}
+
+	private async Task<EnrollmentEntitiesResult> ResolveEnrollmentEntitiesAsync(EnrollmentMutationRequest? request, CancellationToken ct) {
+		var className = NormalizeOptional(request?.Class);
+		var schoolId = request?.SchoolId;
+
+		if(schoolId == null && className == null) return new EnrollmentEntitiesResult(null, null, null);
+		if(schoolId == null) return new EnrollmentEntitiesResult(null, null, "School must be provided when class is set.");
+
+		var school = await db.Schools.FirstOrDefaultAsync(item => item.Id == schoolId, ct);
+		if(school == null) return new EnrollmentEntitiesResult(null, null, "Unknown school.");
+
+		return new EnrollmentEntitiesResult(school, className, null);
+	}
+
+	private sealed record EnrollmentEntitiesResult(School? School, string? Class, string? Error);
 
 	private static bool HasRoleAtLeast(Account account, AccountType accountType) {
 		return account.AccountType >= accountType;

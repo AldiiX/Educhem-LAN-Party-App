@@ -242,8 +242,8 @@ function ProfileHoverCardContent({account, closing, position, onMouseEnter, onMo
 }) {
     const achievements = (account.achievements ?? []).filter(entry => !entry.isHidden);
     const badges = (account.badges ?? []).filter(entry => entry.isTakenOut).slice(0, 3);
-    const classText = account.class ?? "Bez třídy";
-    const schoolText = account.school?.shortName || account.school?.displayName || "Bez školy";
+    const classText = account.enrollment?.class ?? "Bez třídy";
+    const schoolText = account.enrollment?.school.shortName || account.enrollment?.school.displayName || "Bez školy";
 
     return <div
         className={`${styles.card} ${styles[position.placement]} ${closing ? styles.closing : ""}`}
@@ -278,7 +278,7 @@ function ProfileHoverCardContent({account, closing, position, onMouseEnter, onMo
 
             <div className={styles.infoGrid}>
                 <InfoItem icon="/icons/class.svg" label="Třída" value={classText} />
-                <InfoItem icon="/icons/organization.svg" label="Škola" value={schoolText} image={account.school?.iconUrl} title={account.school?.displayName ?? "Bez školy"} />
+                <InfoItem icon="/icons/organization.svg" label="Škola" value={schoolText} image={account.enrollment?.school.iconUrl} title={account.enrollment?.school.displayName ?? "Bez školy"} />
                 {account.gender && <InfoItem icon="/icons/gender.svg" label="Pohlaví" value={genderLabel(account.gender)} />}
                 <InfoItem icon="/icons/login.svg" label="Registrace" value={account.createdAtUtc.toLocaleDateString("cs-CZ")} />
             </div>

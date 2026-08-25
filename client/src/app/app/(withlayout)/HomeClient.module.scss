@@ -280,20 +280,33 @@
 
                 .barRow {
                     display: grid;
-                    grid-template-columns: minmax(0, 58px) minmax(0, 1fr) 34px;
+                    grid-template-columns: minmax(0, 90px) minmax(0, 1fr) 34px;
                     gap: 14px;
                     align-items: center;
                     min-width: 0;
 
-                    >span,
-                    >strong {
-                        color: var(--text-color-secondary);
-                        font-size: 15px;
-                        line-height: 1;
-                        font-weight: 800;
+                    .barLabel {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        min-width: 0;
+
+                        .schoolAvatar {
+                            flex: 0 0 auto;
+                        }
+
+                        >span {
+                            overflow: hidden;
+                            color: var(--text-color-secondary);
+                            font-size: 15px;
+                            line-height: 1;
+                            font-weight: 800;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                        }
                     }
 
-                    >div {
+                    .barTrack {
                         min-width: 0;
                         height: 12px;
                         overflow: hidden;
@@ -309,6 +322,10 @@
                     }
 
                     >strong {
+                        color: var(--text-color-secondary);
+                        font-size: 15px;
+                        line-height: 1;
+                        font-weight: 800;
                         text-align: right;
                     }
                 }

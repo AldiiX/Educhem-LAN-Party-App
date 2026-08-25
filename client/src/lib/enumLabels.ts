@@ -48,7 +48,9 @@ export function communicationStyleLabel(style?: AccountCommunicationStyle | null
     }
 }
 
-export function schoolLabel(school?: Account["school"] | null) {
+type AccountSchool = NonNullable<Account["enrollment"]>["school"];
+
+export function schoolLabel(school?: AccountSchool | null) {
     if(!school) return "";
     return school.displayName.length > 28 ? school.shortName : school.displayName;
 }

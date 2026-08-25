@@ -11,6 +11,7 @@ type AvatarProps = {
     background?: string,
     fallbackOnImageError?: boolean,
     onClick?: () => void,
+    title?: string,
 }
 
 // vypocet stabilniho hashe podle jmena
@@ -53,7 +54,8 @@ export function Avatar({
                            background,
                            fallbackOnImageError = true,
                            name,
-                           onClick
+                           onClick,
+                           title
                        }: AvatarProps
 ) {
     const [imageFailed, setImageFailed] = useState(false);
@@ -75,6 +77,7 @@ export function Avatar({
     return (
         <div
             onClick={onClick}
+            title={title}
             className={style.avatar + (className ? " " + className : "")}
             style={{
                 background: showImage ? "transparent" : avatarBackground,

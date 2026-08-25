@@ -26,9 +26,9 @@ export default function({ account }: { account: Account }) {
                 <p>{ accountTypeLabel(profile.accountType, profile.gender) }</p>
 
                 <div className={style.items}>
-                    <If condition={profile.class != null} as="div" className={style.item} title={`Třída: ${profile.class}`}>
+                    <If condition={profile.enrollment?.class != null} as="div" className={style.item} title={`Třída: ${profile.enrollment?.class}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/class.svg)` }}></div>
-                        <p>{ profile.class }</p>
+                        <p>{ profile.enrollment?.class }</p>
                     </If>
 
                     <If condition={profile.gender != null} as="div" className={style.item} title={`Pohlaví: ${translateGender(profile.gender)}`}>
@@ -58,9 +58,9 @@ export default function({ account }: { account: Account }) {
                             ))
                         }
                     </If>
-                    <If condition={profile.school != null} as="div" className={style.school}>
-                        <div className={style.img} style={{ backgroundImage: `url(${profile.school?.iconUrl})` }}></div>
-                        <p>{ profile.school?.displayName }</p>
+                    <If condition={profile.enrollment != null} as="div" className={style.school}>
+                        <div className={style.img} style={{ backgroundImage: `url(${profile.enrollment?.school.iconUrl})` }}></div>
+                        <p>{ profile.enrollment?.school.displayName }</p>
                     </If>
                 </div>
 

@@ -12,4 +12,11 @@ public static class Mapper {
 			IconUrl = school.IconUrl,
 		};
 	}
+
+	public static EnrollmentDto ToDto(this Enrollment enrollment) {
+		return new EnrollmentDto {
+			School = enrollment.School.ToDto(false),
+			Class = enrollment.Class,
+		};
+	}
 }

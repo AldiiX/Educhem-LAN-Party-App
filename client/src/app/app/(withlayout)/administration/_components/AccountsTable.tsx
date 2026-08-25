@@ -50,8 +50,8 @@ export function AccountsTable({accounts, loggedAccountId, sort, onSort, onOpenDe
                         </td>
                         <td>{account.email}</td>
                         <td>{genderLabel(account.gender)}</td>
-                        <td title={account.school?.displayName}>{schoolLabel(account.school)}</td>
-                        <td>{account.class}</td>
+                        <td title={account.enrollment?.school.displayName}>{schoolLabel(account.enrollment?.school)}</td>
+                        <td>{account.enrollment?.class}</td>
                         <td>{accountTypeLabel(account.accountType, account.gender)}</td>
                         <td title={formatDate(account.createdAtUtc)}>{formatDate(account.createdAtUtc)}</td>
                         <td title={formatDate(account.updatedAtUtc)}>{formatDate(account.updatedAtUtc)}</td>

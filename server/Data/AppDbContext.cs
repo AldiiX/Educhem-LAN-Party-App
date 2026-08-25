@@ -8,6 +8,8 @@ namespace server.Data;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options) {
 
 	public DbSet<Account> Accounts { get; set; }
+	public DbSet<Enrollment> Enrollments { get; set; }
+	public DbSet<School> Schools { get; set; }
 
 	public DbSet<Achievement> Achievements { get; set; }
 	public DbSet<Badge> Badges { get; set; }
@@ -46,6 +48,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);
+
+		modelBuilder.Entity<Account>()
+			.HasOne(account => account.Enrollment)
+			.WithOne(enrollment => enrollment.Account)
+			.HasForeignKey<Enrollment>(enrollment => enrollment.AccountId)
+			.OnDelete(DeleteBehavior.Cascade);
+
+		modelBuilder.Entity<Enrollment>()
+			.HasOne(enrollment => enrollment.School)
+			.WithMany()
+			.HasForeignKey(enrollment => enrollment.SchoolId)
+			.OnDelete(DeleteBehavior.Restrict);
 
 		foreach (var entityType in modelBuilder.Model.GetEntityTypes()) {
 			var clrType = entityType.ClrType;

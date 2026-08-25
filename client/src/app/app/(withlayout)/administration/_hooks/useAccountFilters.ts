@@ -8,7 +8,9 @@ import {FilterKey, SchoolOption, SortKey} from "./types";
 function getSortValue(account: Account, key: SortKey) {
     switch (key) {
         case "school":
-            return account.school?.displayName ?? "";
+            return account.enrollment?.school.displayName ?? "";
+        case "class":
+            return account.enrollment?.class ?? "";
         case "accountType":
             return accountTypeLabel(account.accountType, account.gender);
         case "gender":
@@ -54,13 +56,13 @@ export function useAccountFilters(accounts: Account[]) {
         const schools = new Map<number, SchoolOption>();
 
         accounts.forEach(account => {
-            if(!account.school) return;
+            if(!account.enrollment) return;
 
-            const current = schools.get(account.school.id);
-            schools.set(account.school.id, {
-                id: account.school.id,
-                label: account.school.displayName,
-                shortName: account.school.shortName,
+            const current = schools.get(account.enrollment.school.id);
+            schools.set(account.enrollment.school.id, {
+                id: account.enrollment.school.id,
+                label: account.enrollment.school.displayName,
+                shortName: account.enrollment.school.shortName,
                 count: (current?.count ?? 0) + 1,
             });
         });
@@ -71,7 +73,7 @@ export function useAccountFilters(accounts: Account[]) {
     const filterOptions = useMemo(() => ({
         accountType: uniqueOptions(accounts, account => account.accountType, accountTypeFilterLabel, accountTypeOrder),
         gender: uniqueOptions(accounts, account => account.gender, value => genderLabel(value as AccountGender), genderOrder),
-        class: uniqueOptions(accounts, account => account.class),
+        class: uniqueOptions(accounts, account => account.enrollment?.class),
         school: schoolOptions.map(school => ({value: String(school.id), label: school.label.length > 28 ? school.shortName : school.label, count: school.count})),
     }), [accounts, schoolOptions]);
 
@@ -85,15 +87,15 @@ export function useAccountFilters(accounts: Account[]) {
                 const matchesSearch = query.length === 0 || [
                     account.fullName,
                     account.email,
-                    account.class,
-                    account.school?.displayName,
+                    account.enrollment?.class,
+                    account.enrollment?.school.displayName,
                     accountTypeLabel(account.accountType, account.gender),
                 ].some(value => value?.toLowerCase().includes(query));
 
                 const matchesType = filters.accountType.length === 0 || filters.accountType.includes(account.accountType ?? "");
                 const matchesGender = filters.gender.length === 0 || filters.gender.includes(account.gender ?? "");
-                const matchesClass = filters.class.length === 0 || filters.class.includes(account.class ?? "");
-                const matchesSchool = filters.school.length === 0 || filters.school.includes(String(account.school?.id ?? ""));
+                const matchesClass = filters.class.length === 0 || filters.class.includes(account.enrollment?.class ?? "");
+                const matchesSchool = filters.school.length === 0 || filters.school.includes(String(account.enrollment?.school.id ?? ""));
                 const matchesReservations = filters.reservations.includes("all")
                     || (filters.reservations.includes("enabled") && account.enableReservations)
                     || (filters.reservations.includes("disabled") && !account.enableReservations);

@@ -58,7 +58,7 @@ export default function AttendanceClient() {
                             <option value="">Já</option>
                             {attendance.data?.participants.map(participant => (
                                 <option key={participant.profile.id} value={participant.profile.id}>
-                                    {participant.profile.fullName}{participant.profile.class ? `, ${participant.profile.class}` : ""}
+                                    {participant.profile.fullName}{participant.profile.enrollment?.class ? `, ${participant.profile.enrollment.class}` : ""}
                                 </option>
                             ))}
                         </select>
@@ -239,7 +239,7 @@ function ParticipantRow({participant}: {participant: AttendanceParticipant}) {
             <Avatar name={participant.profile.fullName} src={participant.profile.avatarUrl} size="36px" />
             <span>
                 <strong>{participant.profile.fullName}</strong>
-                <small>{participant.profile.class ?? "Bez třídy"}</small>
+                <small>{participant.profile.enrollment?.class ?? "Bez třídy"}</small>
             </span>
             <em className={isPresent ? styles.arrival : styles.departure}>{isPresent ? "Na akci" : "Pryč"}</em>
         </Link>
@@ -255,7 +255,7 @@ function AttendanceEntryRow({entry}: {entry: AttendanceEntry}) {
                 <Avatar name={entry.profile.fullName} src={entry.profile.avatarUrl} size="42px" />
                 <span>
                     <strong>{entry.profile.fullName}</strong>
-                    <small>{entry.profile.class ?? "Bez třídy"}</small>
+                    <small>{entry.profile.enrollment?.class ?? "Bez třídy"}</small>
                 </span>
             </Link>
         </ProfileHoverCard>

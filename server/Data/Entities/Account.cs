@@ -23,13 +23,10 @@ public class Account : AuditableEntity<Guid> {
 	[MaxLength(512)]
 	public required string PasswordHash { get; set; }
 
-	[MaxLength(16)]
-	public string? Class { get; set; }
-
 	public Gender? Gender { get; set; }
 
 	[AutoInclude]
-	public School? School { get; set; }
+	public Enrollment? Enrollment { get; set; }
 
 	[Column(TypeName = "timestamp with time zone")]
 	[DefaultValueSql("now()")]
