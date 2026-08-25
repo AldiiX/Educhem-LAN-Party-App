@@ -128,15 +128,22 @@
                 }
             }
 
-            .forgotPassword {
-                justify-self: center;
-                width: fit-content;
-                color: var(--text-color-secondary);
-                font-size: 15px;
-                transition: color .2s ease;
+            .passwordHeader {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
 
-                &:hover {
-                    color: var(--accent-color);
+                .forgotPassword {
+                    color: var(--text-color-secondary);
+                    opacity: 0.5;
+                    font-size: 12px;
+                    transition: color .2s ease;
+                    font-weight: lighter;
+
+                    &:hover {
+                        color: var(--accent-color);
+                    }
                 }
             }
 

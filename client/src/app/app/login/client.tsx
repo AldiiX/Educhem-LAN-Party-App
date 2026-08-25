@@ -73,7 +73,13 @@ export default function() {
                     </div>
 
                     <div>
-                        <p>Heslo</p>
+                        <div className={style.passwordHeader}>
+                            <p>Heslo</p>
+                            <button type="button" className={style.forgotPassword} onClick={() => {
+                                setResetEmail(email);
+                                setResetOpen(true);
+                            }}>Zapomenuté heslo?</button>
+                        </div>
                         <input type="password" placeholder="•••••••" onChange={(e) => setPassword(e.currentTarget.value)} />
                     </div>
                     <Button type="primary" text="Přihlásit se" buttonType="submit" className={style.submitBtn} disabled={loginLoading} loading={loginLoading} />
@@ -88,11 +94,6 @@ export default function() {
                             </button>)}
                         </div>
                     </div>
-
-                    <button type="button" className={style.forgotPassword} onClick={() => {
-                        setResetEmail(email);
-                        setResetOpen(true);
-                    }}>Zapoměl/a jsem heslo</button>
 
                 </form>
             </div>
