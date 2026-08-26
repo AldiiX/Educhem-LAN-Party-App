@@ -2,7 +2,7 @@ using server.Data.Entities;
 
 namespace server.Dto.Mappers;
 
-public static class AttendanceMapper {
+internal static class AttendanceMapper {
 	extension(AttendanceEntry entry) {
 		public AttendanceEntryDto ToDto(bool deep = true) {
 			return new AttendanceEntryDto {

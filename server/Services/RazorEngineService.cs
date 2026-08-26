@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 
 namespace server.Services;
 
-public static class RazorEngineService {
+internal static class RazorEngineService {
 	public static async Task<string> RenderViewToStringAsync<TModel>(IServiceProvider requestServices, string viewName, TModel model) {
 		var viewEngine = requestServices.GetRequiredService<IRazorViewEngine>();
 		var viewEngineResult = viewEngine.GetView(null, viewName, false);

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using server.Data;
 using server.Data.Entities;
@@ -12,8 +12,7 @@ namespace server.Controllers;
 public sealed class AdminLogsControllerV1(
     IAuthService auth,
     AppDbContext db
-) : Controller
-{
+) : Controller {
     [HttpGet("logs")]
     public async Task<IActionResult> GetLogs(CancellationToken ct = default) {
         var acc = await auth.ReAuthFromContextOrNullAsync(ct);

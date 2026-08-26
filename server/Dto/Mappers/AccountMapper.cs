@@ -2,7 +2,7 @@
 
 namespace server.Dto.Mappers;
 
-public static class AccountMapper {
+internal static class AccountMapper {
 	extension(Account account) {
 		public ProfileDto ToProfileDto(bool deep = true) {
 			var achievements = account.AccountAchievements

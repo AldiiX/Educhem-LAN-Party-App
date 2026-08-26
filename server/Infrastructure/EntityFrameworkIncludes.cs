@@ -4,7 +4,7 @@ using server.Data.Entities;
 
 namespace server.Infrastructure;
 
-public static class EntityFrameworkIncludes {
+internal static class EntityFrameworkIncludes {
 
 	public static IQueryable<Account> AccountsEf(this AppDbContext db) {
 		return db.Accounts

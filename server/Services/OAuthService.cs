@@ -1,841 +1,315 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.IdentityModel.JsonWebTokens;
-using Microsoft.IdentityModel.Tokens;
 using server.Data;
 using server.Data.Entities;
+using server.Services.OAuth;
+using static server.Services.OAuth.ExternalAuthProviderBase.Models;
+using static server.Services.OAuth.OAuthProviderBase.Models;
+using static server.Services.OAuth.OAuthStateService.Models;
 
 namespace server.Services;
 
-public sealed class OAuthService(
-	AppDbContext db,
-	HttpClient httpClient,
-	IDistributedCache cache,
-	IDataProtectionProvider dataProtectionProvider,
-	ILogger<OAuthService> logger,
-	IDbLoggerService dbLogger
+/// <summary>
+/// funguje jako oauth flow orchestrator mezi controllerem, bezpecnostnim state ulozistem, databazi a provider implementacemi
+/// spolecna pravidla pro login, connect, disconnect a validaci drzi na jednom miste, zatimco provider-specific komunikaci deleguje konkretnim providerum
+/// </summary>
+/// <param name="db">databazovy context pro ucty a jejich oauth spojeni</param>
+/// <param name="providerImplementations">kolekce implementaci registrovanych pro jednotlive providery</param>
+/// <param name="stateService">service pro vytvareni, ulozeni a jednorazove overeni oauth state</param>
+/// <param name="dbLogger">service pro zapis udalosti o propojeni a odpojeni platformy</param>
+internal sealed class OAuthService(
+    AppDbContext db,
+    IEnumerable<ExternalAuthProviderBase> providerImplementations,
+    OAuthStateService stateService,
+    IDbLoggerService dbLogger
 ) : IOAuthService {
-	private const string StateCookieName = "educhemlanparty_oauth_state";
-	private const string SteamOpenIdEndpoint = "https://steamcommunity.com/openid/login";
-	private const string SteamClaimedIdPrefix = "https://steamcommunity.com/openid/id/";
-	private const string SteamProfileEndpoint = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/";
-	private const string AppleIssuer = "https://appleid.apple.com";
-	private const string AppleJwksEndpoint = "https://appleid.apple.com/auth/keys";
-	private static readonly TimeSpan StateLifetime = TimeSpan.FromMinutes(10);
-	private static readonly TimeSpan ValidationInterval = TimeSpan.FromMinutes(15);
-	private readonly IDataProtector discordTokenProtector = dataProtectionProvider.CreateProtector("discord-oauth-tokens");
-
-	#region Spolecny OAuth flow
-
-	public async Task<Uri?> CreateAuthorizationUrlAsync(Guid? accountId, OAuthProvider provider, OAuthFlow flow, HttpRequest request, CancellationToken ct = default) {
-		var frontendOrigin = GetFrontendOrigin();
-		if (frontendOrigin == null) return null;
-		if (provider == OAuthProvider.Apple && !IsHttps(frontendOrigin)) return null;
-		if (flow == OAuthFlow.Connect && accountId == null) return null;
-		var routeSegment = GetRouteSegment(provider);
-		if (routeSegment == null) return null;
-
-		var config = provider == OAuthProvider.Steam ? null : GetProviderConfig(provider);
-		if (provider != OAuthProvider.Steam && config == null) return null;
-		if (provider == OAuthProvider.Steam && GetSteamWebApiKey() == null) return null;
-
-		var state = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
-		var codeVerifier = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
-		var codeChallenge = WebEncoders.Base64UrlEncode(SHA256.HashData(Encoding.UTF8.GetBytes(codeVerifier)));
-		var nonce = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
-		var callbackUri = $"{frontendOrigin}/api/v1/{routeSegment}/callback";
-		if (provider == OAuthProvider.Steam) callbackUri = QueryHelpers.AddQueryString(callbackUri, "state", state);
-		var payload = new OAuthState(accountId, provider, flow, callbackUri, frontendOrigin, codeVerifier, nonce);
-		await cache.SetStringAsync(GetStateCacheKey(state), JsonSerializer.Serialize(payload), new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = StateLifetime }, ct);
-
-		request.HttpContext.Response.Cookies.Append(StateCookieName, state, new CookieOptions {
-			HttpOnly = true,
-			IsEssential = true,
-			SameSite = SameSiteMode.Lax,
-			Secure = IsHttps(frontendOrigin),
-			MaxAge = StateLifetime,
-			Path = "/api/v1",
-		});
-
-		if (provider == OAuthProvider.Steam) {
-			return new Uri(QueryHelpers.AddQueryString(SteamOpenIdEndpoint, new Dictionary<string, string?> {
-				["openid.ns"] = "http://specs.openid.net/auth/2.0",
-				["openid.mode"] = "checkid_setup",
-				["openid.return_to"] = callbackUri,
-				["openid.realm"] = $"{frontendOrigin}/",
-				["openid.identity"] = "http://specs.openid.net/auth/2.0/identifier_select",
-				["openid.claimed_id"] = "http://specs.openid.net/auth/2.0/identifier_select",
-			}));
-		}
-		if (provider == OAuthProvider.Apple) {
-			return new Uri(QueryHelpers.AddQueryString(config!.AuthorizationEndpoint, new Dictionary<string, string?> {
-				["client_id"] = config.ClientId,
-				["response_type"] = "code",
-				["response_mode"] = "query",
-				["redirect_uri"] = callbackUri,
-				["state"] = state,
-				["nonce"] = nonce,
-			}));
-		}
-
-		return new Uri(QueryHelpers.AddQueryString(config!.AuthorizationEndpoint, new Dictionary<string, string?> {
-			["client_id"] = config.ClientId,
-			["response_type"] = "code",
-			["redirect_uri"] = callbackUri,
-			["state"] = state,
-			["scope"] = config.Scope,
-			["code_challenge"] = codeChallenge,
-			["code_challenge_method"] = "S256",
-		}));
-	}
-
-	public async Task<OAuthCompletion> CompleteAuthorizationAsync(HttpRequest request, OAuthProvider provider, string? state, string? code, string? error, CancellationToken ct = default) {
-		if (string.IsNullOrWhiteSpace(state)) return new OAuthCompletion(OAuthCompletionKind.InvalidState);
-		if (!request.Cookies.TryGetValue(StateCookieName, out var cookieState) || !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(state), Encoding.UTF8.GetBytes(cookieState))) {
-			return new OAuthCompletion(OAuthCompletionKind.InvalidState);
-		}
-
-		var serializedState = await cache.GetStringAsync(GetStateCacheKey(state), ct);
-		await cache.RemoveAsync(GetStateCacheKey(state), ct);
-		request.HttpContext.Response.Cookies.Delete(StateCookieName, new CookieOptions { Path = "/api/v1" });
-		if (string.IsNullOrWhiteSpace(serializedState)) return new OAuthCompletion(OAuthCompletionKind.InvalidState);
-
-		var oauthState = JsonSerializer.Deserialize<OAuthState>(serializedState);
-		if (oauthState == null || oauthState.Provider != provider) return new OAuthCompletion(OAuthCompletionKind.InvalidState);
-		if (provider == OAuthProvider.Steam) return await CompleteSteamAuthorizationAsync(request, oauthState, ct);
-		if (!string.IsNullOrWhiteSpace(error) || string.IsNullOrWhiteSpace(code)) return new OAuthCompletion(OAuthCompletionKind.Cancelled, oauthState.ReturnOrigin);
-
-		var config = GetProviderConfig(provider);
-		if (config == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
-		var tokenContent = new Dictionary<string, string> {
-			["grant_type"] = "authorization_code",
-			["code"] = code,
-			["redirect_uri"] = oauthState.CallbackUri,
-		};
-		if (provider != OAuthProvider.Apple) tokenContent["code_verifier"] = oauthState.CodeVerifier;
-		var tokenResult = await RequestTokenAsync(config, tokenContent, ct);
-		OAuthProfileResult profileResult;
-		if (provider == OAuthProvider.Apple) {
-			if (tokenResult.Tokens?.IdToken is not { Length: > 0 } idToken) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
-			profileResult = await GetAppleProfileAsync(config, idToken, oauthState.Nonce, ct);
-		} else {
-			if (tokenResult.Tokens?.AccessToken is not { Length: > 0 } accessToken) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
-			profileResult = await GetProfileAsync(config, accessToken, ct);
-		}
-		if (profileResult.Profile == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
-		var profile = profileResult.Profile;
-
-		if (oauthState.Flow == OAuthFlow.Login) {
-			var connection = await db.OAuthConnections
-				.Include(item => item.Account)
-				.FirstOrDefaultAsync(item => item.Provider == provider && item.ProviderUserId == profile.UserId, ct);
-			if (connection == null) return new OAuthCompletion(OAuthCompletionKind.LoginNotLinked, oauthState.ReturnOrigin);
-
-			ApplyConnection(connection.Account, connection, profile, tokenResult.Tokens);
-			await db.SaveChangesAsync(ct);
-			return new OAuthCompletion(OAuthCompletionKind.LoginSucceeded, oauthState.ReturnOrigin, connection.AccountId);
-		}
-
-		if (oauthState.AccountId == null) return new OAuthCompletion(OAuthCompletionKind.InvalidState, oauthState.ReturnOrigin);
-		var account = await db.Accounts
-			.Include(item => item.OAuthConnections)
-			.FirstOrDefaultAsync(item => item.Id == oauthState.AccountId.Value, ct);
-		if (account == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
-
-		var alreadyConnected = await db.OAuthConnections.AsNoTracking()
-			.FirstOrDefaultAsync(item => item.Provider == provider && item.ProviderUserId == profile.UserId && item.AccountId != account.Id, ct);
-		if (alreadyConnected != null) return new OAuthCompletion(OAuthCompletionKind.AlreadyLinked, oauthState.ReturnOrigin);
-
-		var connectionForAccount = account.OAuthConnections.FirstOrDefault(item => item.Provider == provider);
-		var isNewConnection = connectionForAccount == null;
-		if (connectionForAccount == null) {
-			connectionForAccount = new OAuthConnection {
-				AccountId = account.Id,
-				Account = account,
-				Provider = provider,
-				ProviderUserId = profile.UserId,
-				Username = profile.Username,
-			};
-			db.OAuthConnections.Add(connectionForAccount);
-		}
-
-		ApplyConnection(account, connectionForAccount, profile, tokenResult.Tokens);
-		await db.SaveChangesAsync(ct);
-		if (isNewConnection) await dbLogger.LogInfoAsync($"Účet {FormatAccount(account)} propojil platformu {provider} jako {profile.Username}.", "platform-connect", ct);
-		return new OAuthCompletion(OAuthCompletionKind.Connected, oauthState.ReturnOrigin, account.Id);
-	}
-
-	public async Task<Account?> DisconnectAsync(Guid accountId, OAuthProvider provider, CancellationToken ct = default) {
-		var connection = await db.OAuthConnections
-			.Include(item => item.Account)
-			.FirstOrDefaultAsync(item => item.AccountId == accountId && item.Provider == provider, ct);
-		if (connection == null) return await db.Accounts.FirstOrDefaultAsync(item => item.Id == accountId, ct);
-
-		if (provider == OAuthProvider.Discord) {
-			var refreshToken = UnprotectDiscordToken(connection.RefreshToken);
-			if (!string.IsNullOrWhiteSpace(refreshToken)) await RevokeDiscordTokenAsync(refreshToken, ct);
-		}
-
-		await RemoveConnectionAsync(connection, false, ct);
-		return connection.Account;
-	}
-
-	#endregion
-
-	#region Discord kontrola propojeni
-
-	public async Task EnsureDiscordConnectionAsync(Guid accountId, bool forceValidation, CancellationToken ct = default) {
-		var connection = await db.OAuthConnections
-			.Include(item => item.Account)
-			.FirstOrDefaultAsync(item => item.AccountId == accountId && item.Provider == OAuthProvider.Discord, ct);
-		if (connection == null || GetProviderConfig(OAuthProvider.Discord) == null) return;
-
-		var nowUtc = DateTime.UtcNow;
-		if (!forceValidation && connection.LastValidatedUtc is { } lastValidated && lastValidated >= nowUtc - ValidationInterval) return;
-
-		var accessToken = UnprotectDiscordToken(connection.AccessToken);
-		var refreshToken = UnprotectDiscordToken(connection.RefreshToken);
-		if (string.IsNullOrWhiteSpace(accessToken) || string.IsNullOrWhiteSpace(refreshToken)) {
-			await RemoveConnectionAsync(connection, true, ct);
-			return;
-		}
-
-		var usedRefresh = false;
-		if ((connection.AccessTokenExpiresAtUtc ?? DateTime.MinValue) <= nowUtc.AddMinutes(1)) {
-			var refreshResult = await RefreshDiscordTokenAsync(refreshToken, ct);
-			if (refreshResult.Tokens == null) {
-				if (refreshResult.Invalid) await RemoveConnectionAsync(connection, true, ct);
-				return;
-			}
-			ApplyDiscordTokens(connection, refreshResult.Tokens);
-			accessToken = refreshResult.Tokens.AccessToken;
-			usedRefresh = true;
-		}
-
-		var config = GetProviderConfig(OAuthProvider.Discord)!;
-		var profileResult = await GetProfileAsync(config, accessToken!, ct);
-		if (profileResult.TokenInvalid && !usedRefresh) {
-			var refreshResult = await RefreshDiscordTokenAsync(refreshToken, ct);
-			if (refreshResult.Tokens != null) {
-				ApplyDiscordTokens(connection, refreshResult.Tokens);
-				profileResult = await GetProfileAsync(config, refreshResult.Tokens.AccessToken!, ct);
-			} else {
-				if (refreshResult.Invalid) await RemoveConnectionAsync(connection, true, ct);
-				return;
-			}
-		}
-
-		if (profileResult.TokenInvalid || (profileResult.Profile != null && profileResult.Profile.UserId != connection.ProviderUserId)) {
-			await RemoveConnectionAsync(connection, true, ct);
-			return;
-		}
-		if (profileResult.Profile == null) return;
-
-		ApplyConnection(connection.Account, connection, profileResult.Profile, null);
-		connection.LastValidatedUtc = nowUtc;
-		await db.SaveChangesAsync(ct);
-	}
-
-	#endregion
-
-	#region Steam OpenID a kontrola propojeni
-
-	private async Task<OAuthCompletion> CompleteSteamAuthorizationAsync(HttpRequest request, OAuthState oauthState, CancellationToken ct) {
-		var mode = request.Query["openid.mode"].ToString();
-		if (mode == "cancel") return new OAuthCompletion(OAuthCompletionKind.Cancelled, oauthState.ReturnOrigin);
-		if (mode != "id_res") return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
-
-		var steamId = await VerifySteamOpenIdResponseAsync(request, oauthState.CallbackUri, ct);
-		if (steamId == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
-		var profileResult = await GetSteamProfileAsync(steamId, ct);
-		var profile = profileResult.Profile;
-
-		if (oauthState.Flow == OAuthFlow.Login) {
-			var connection = await db.OAuthConnections
-				.Include(item => item.Account)
-				.FirstOrDefaultAsync(item => item.Provider == OAuthProvider.Steam && item.ProviderUserId == steamId, ct);
-			if (connection == null) return new OAuthCompletion(OAuthCompletionKind.LoginNotLinked, oauthState.ReturnOrigin);
-
-			if (profile != null) {
-				ApplyConnection(connection.Account, connection, profile, null);
-				connection.LastValidatedUtc = DateTime.UtcNow;
-				await db.SaveChangesAsync(ct);
-			}
-			return new OAuthCompletion(OAuthCompletionKind.LoginSucceeded, oauthState.ReturnOrigin, connection.AccountId);
-		}
-
-		if (oauthState.AccountId == null) return new OAuthCompletion(OAuthCompletionKind.InvalidState, oauthState.ReturnOrigin);
-		if (profile == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
-
-		var account = await db.Accounts
-			.Include(item => item.OAuthConnections)
-			.FirstOrDefaultAsync(item => item.Id == oauthState.AccountId.Value, ct);
-		if (account == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
-
-		var alreadyConnected = await db.OAuthConnections.AsNoTracking()
-			.FirstOrDefaultAsync(item => item.Provider == OAuthProvider.Steam && item.ProviderUserId == steamId && item.AccountId != account.Id, ct);
-		if (alreadyConnected != null) return new OAuthCompletion(OAuthCompletionKind.AlreadyLinked, oauthState.ReturnOrigin);
-
-		var connectionForAccount = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Steam);
-		var isNewConnection = connectionForAccount == null;
-		if (connectionForAccount == null) {
-			connectionForAccount = new OAuthConnection {
-				AccountId = account.Id,
-				Account = account,
-				Provider = OAuthProvider.Steam,
-				ProviderUserId = steamId,
-				Username = profile.Username,
-			};
-			db.OAuthConnections.Add(connectionForAccount);
-		}
-
-		ApplyConnection(account, connectionForAccount, profile, null);
-		connectionForAccount.LastValidatedUtc = DateTime.UtcNow;
-		await db.SaveChangesAsync(ct);
-		if (isNewConnection) await dbLogger.LogInfoAsync($"Účet {FormatAccount(account)} propojil platformu Steam jako {profile.Username}.", "platform-connect", ct);
-		return new OAuthCompletion(OAuthCompletionKind.Connected, oauthState.ReturnOrigin, account.Id);
-	}
-
-	private async Task<string?> VerifySteamOpenIdResponseAsync(HttpRequest request, string expectedReturnTo, CancellationToken ct) {
-		var values = request.Query
-			.Where(item => item.Key.StartsWith("openid.", StringComparison.Ordinal))
-			.ToDictionary(item => item.Key, item => item.Value.ToString(), StringComparer.Ordinal);
-		if (!values.TryGetValue("openid.op_endpoint", out var endpoint) || endpoint != SteamOpenIdEndpoint) return null;
-		if (!values.TryGetValue("openid.return_to", out var returnTo) || returnTo != expectedReturnTo) return null;
-		if (!values.TryGetValue("openid.claimed_id", out var claimedId) || !values.TryGetValue("openid.identity", out var identity) || identity != claimedId) return null;
-		if (!claimedId.StartsWith(SteamClaimedIdPrefix, StringComparison.Ordinal)) return null;
-
-		var steamId = claimedId[SteamClaimedIdPrefix.Length..];
-		if (!ulong.TryParse(steamId, out var parsedSteamId) || parsedSteamId == 0 || claimedId != $"{SteamClaimedIdPrefix}{parsedSteamId}") return null;
-
-		values["openid.mode"] = "check_authentication";
-		using var verificationRequest = new HttpRequestMessage(HttpMethod.Post, SteamOpenIdEndpoint) {
-			Content = new FormUrlEncodedContent(values),
-		};
-		try {
-			using var response = await httpClient.SendAsync(verificationRequest, ct);
-			if (!response.IsSuccessStatusCode) return null;
-			var body = await response.Content.ReadAsStringAsync(ct);
-			return body.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-				.Any(line => line.Equals("is_valid:true", StringComparison.Ordinal))
-				? steamId
-				: null;
-		} catch (HttpRequestException exception) {
-			logger.LogWarning(exception, "Steam OpenID verification failed");
-			return null;
-		} catch (OperationCanceledException exception) when (!ct.IsCancellationRequested) {
-			logger.LogWarning(exception, "Steam OpenID verification timed out");
-			return null;
-		}
-	}
-
-	public async Task EnsureSteamConnectionAsync(Guid accountId, bool forceValidation, CancellationToken ct = default) {
-		var connection = await db.OAuthConnections
-			.Include(item => item.Account)
-			.FirstOrDefaultAsync(item => item.AccountId == accountId && item.Provider == OAuthProvider.Steam, ct);
-		if (connection == null || GetSteamWebApiKey() == null) return;
-
-		var nowUtc = DateTime.UtcNow;
-		if (!forceValidation && connection.LastValidatedUtc is { } lastValidated && lastValidated >= nowUtc - ValidationInterval) return;
-
-		var profileResult = await GetSteamProfileAsync(connection.ProviderUserId, ct);
-		if (profileResult.Profile == null || profileResult.Profile.UserId != connection.ProviderUserId) return;
-
-		ApplyConnection(connection.Account, connection, profileResult.Profile, null);
-		connection.LastValidatedUtc = nowUtc;
-		await db.SaveChangesAsync(ct);
-	}
-
-	private async Task<OAuthProfileResult> GetSteamProfileAsync(string steamId, CancellationToken ct) {
-		var apiKey = GetSteamWebApiKey();
-		if (apiKey == null) return new OAuthProfileResult(null, false);
-
-		var endpoint = QueryHelpers.AddQueryString(SteamProfileEndpoint, "steamids", steamId);
-		using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
-		request.Headers.TryAddWithoutValidation("x-webapi-key", apiKey);
-		request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-		try {
-			using var response = await httpClient.SendAsync(request, ct);
-			if (!response.IsSuccessStatusCode) return new OAuthProfileResult(null, false);
-			var result = await response.Content.ReadFromJsonAsync<SteamPlayerSummariesResponse>(cancellationToken: ct);
-			var user = result?.Response?.Players.FirstOrDefault(item => item.SteamId == steamId);
-			if (user == null) return new OAuthProfileResult(null, false);
-
-			var username = string.IsNullOrWhiteSpace(user.PersonaName) ? "Steam účet" : user.PersonaName;
-			var profileUrl = string.IsNullOrWhiteSpace(user.ProfileUrl) ? $"https://steamcommunity.com/profiles/{steamId}/" : user.ProfileUrl;
-			var avatarUrl = user.AvatarFull ?? user.AvatarMedium ?? user.Avatar;
-			return new OAuthProfileResult(new OAuthProfile(steamId, username, avatarUrl, profileUrl), false);
-		} catch (HttpRequestException exception) {
-			logger.LogWarning(exception, "Steam profile request failed");
-			return new OAuthProfileResult(null, false);
-		} catch (JsonException exception) {
-			logger.LogWarning(exception, "Steam profile response was invalid");
-			return new OAuthProfileResult(null, false);
-		} catch (OperationCanceledException exception) when (!ct.IsCancellationRequested) {
-			logger.LogWarning(exception, "Steam profile request timed out");
-			return new OAuthProfileResult(null, false);
-		}
-	}
-
-	#endregion
-
-	#region Synchronizace avataru
-
-	public async Task<Account?> SetAvatarSyncPlatformAsync(Guid accountId, OAuthProvider? platform, CancellationToken ct = default) {
-		if (platform == OAuthProvider.Apple) return null;
-		var account = await db.Accounts
-			.Include(item => item.OAuthConnections)
-			.FirstOrDefaultAsync(item => item.Id == accountId, ct);
-		if (account == null) return null;
-
-		account.AvatarSyncPlatform = platform;
-		account.AvatarUrl = null;
-		if (platform is { } provider && provider != OAuthProvider.Discord) {
-			account.AvatarUrl = account.OAuthConnections.FirstOrDefault(item => item.Provider == provider)?.AvatarUrl;
-		}
-		await db.SaveChangesAsync(ct);
-
-		if (platform != OAuthProvider.Discord || !account.OAuthConnections.Any(item => item.Provider == OAuthProvider.Discord)) return account;
-		await EnsureDiscordConnectionAsync(account.Id, true, ct);
-		return await db.Accounts.FirstOrDefaultAsync(item => item.Id == accountId, ct);
-	}
-
-	#endregion
-
-	#region Spolecne OAuth requesty
-
-	private async Task<OAuthTokenResult> RequestTokenAsync(ProviderConfig config, Dictionary<string, string> content, CancellationToken ct) {
-		switch (config.Provider) {
-			case OAuthProvider.Discord: {
-				using var request = new HttpRequestMessage(HttpMethod.Post, config.TokenEndpoint) {
-					Content = new FormUrlEncodedContent(content),
-				};
-				request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-				request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{config.ClientId}:{config.ClientSecret}")));
-				return await SendTokenRequestAsync(request, config.Provider, ct);
-			}
-			
-			default: {
-				content["client_id"] = config.ClientId;
-				content["client_secret"] = config.ClientSecret;
-				using var request = new HttpRequestMessage(HttpMethod.Post, config.TokenEndpoint) {
-					Content = new FormUrlEncodedContent(content),
-				};
-				request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-				return await SendTokenRequestAsync(request, config.Provider, ct);
-			}
-		}
-	}
-
-	private async Task<OAuthTokenResult> SendTokenRequestAsync(HttpRequestMessage request, OAuthProvider provider, CancellationToken ct) {
-		try {
-			using var response = await httpClient.SendAsync(request, ct);
-			if (!response.IsSuccessStatusCode) return new OAuthTokenResult(null, response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden);
-			return new OAuthTokenResult(await response.Content.ReadFromJsonAsync<OAuthTokenResponse>(cancellationToken: ct), false);
-		} catch (HttpRequestException exception) {
-			logger.LogWarning(exception, "{Provider} token request failed", provider);
-			return new OAuthTokenResult(null, false);
-		}
-	}
-
-	private async Task<OAuthProfileResult> GetProfileAsync(ProviderConfig config, string accessToken, CancellationToken ct) {
-		using var request = new HttpRequestMessage(HttpMethod.Get, config.UserEndpoint);
-		request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-		request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-		try {
-			using var response = await httpClient.SendAsync(request, ct);
-			if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden) return new OAuthProfileResult(null, true);
-			if (!response.IsSuccessStatusCode) return new OAuthProfileResult(null, false);
-			var profile = config.Provider switch {
-				OAuthProvider.Discord => ToProfile(await response.Content.ReadFromJsonAsync<DiscordUser>(cancellationToken: ct)),
-				OAuthProvider.GitHub => ToProfile(await response.Content.ReadFromJsonAsync<GitHubUser>(cancellationToken: ct)),
-				OAuthProvider.Google => ToProfile(await response.Content.ReadFromJsonAsync<GoogleUser>(cancellationToken: ct)),
-				_ => null,
-			};
-			return new OAuthProfileResult(profile, false);
-		} catch (HttpRequestException exception) {
-			logger.LogWarning(exception, "{Provider} profile request failed", config.Provider);
-			return new OAuthProfileResult(null, false);
-		}
-	}
-
-	#endregion
-
-	#region Discord tokeny
-
-	private async Task<OAuthTokenResult> RefreshDiscordTokenAsync(string refreshToken, CancellationToken ct) {
-		var config = GetProviderConfig(OAuthProvider.Discord);
-		return config == null
-			? new OAuthTokenResult(null, false)
-			: await RequestTokenAsync(config, new Dictionary<string, string> {
-				["grant_type"] = "refresh_token",
-				["refresh_token"] = refreshToken,
-			}, ct);
-	}
-
-	private async Task RevokeDiscordTokenAsync(string refreshToken, CancellationToken ct) {
-		var config = GetProviderConfig(OAuthProvider.Discord);
-		if (config == null) return;
-		using var request = new HttpRequestMessage(HttpMethod.Post, "https://discord.com/api/oauth2/token/revoke") {
-			Content = new FormUrlEncodedContent(new Dictionary<string, string> {
-				["token"] = refreshToken,
-				["token_type_hint"] = "refresh_token",
-			}),
-		};
-		request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{config.ClientId}:{config.ClientSecret}")));
-
-		try {
-			await httpClient.SendAsync(request, ct);
-		} catch (HttpRequestException exception) {
-			logger.LogWarning(exception, "Discord token revocation failed");
-		}
-	}
-
-	#endregion
-
-	#region Spolecna data propojeni
-
-	private async Task RemoveConnectionAsync(OAuthConnection connection, bool automatic, CancellationToken ct) {
-		var account = connection.Account;
-		var provider = connection.Provider;
-		var username = connection.Username;
-		db.OAuthConnections.Remove(connection);
-		if (!automatic && account.AvatarSyncPlatform == provider) {
-			account.AvatarSyncPlatform = null;
-			account.AvatarUrl = null;
-		}
-		await db.SaveChangesAsync(ct);
-		var mode = automatic ? "automaticky odpojena" : "odpojena";
-		await dbLogger.LogInfoAsync($"Platforma {provider} ({username}) byla {mode} u účtu {FormatAccount(account)}.", "platform-disconnect", ct);
-	}
-
-	private void ApplyConnection(Account account, OAuthConnection connection, OAuthProfile profile, OAuthTokenResponse? tokens) {
-		connection.ProviderUserId = profile.UserId;
-		connection.Username = profile.Username;
-		connection.ProfileUrl = profile.ProfileUrl;
-		if (!string.IsNullOrWhiteSpace(profile.AvatarUrl)) {
-			connection.AvatarUrl = profile.AvatarUrl;
-			if (account.AvatarSyncPlatform == connection.Provider) account.AvatarUrl = profile.AvatarUrl;
-		}
-		if (connection.Provider == OAuthProvider.Discord && tokens != null) {
-			ApplyDiscordTokens(connection, tokens);
-			connection.LastValidatedUtc = DateTime.UtcNow;
-		}
-	}
-
-	#endregion
-
-	#region Discord profil
-
-	private void ApplyDiscordTokens(OAuthConnection connection, OAuthTokenResponse tokens) {
-		if (string.IsNullOrWhiteSpace(tokens.AccessToken) || string.IsNullOrWhiteSpace(tokens.RefreshToken) || tokens.ExpiresIn == null) return;
-		connection.AccessToken = discordTokenProtector.Protect(tokens.AccessToken);
-		connection.RefreshToken = discordTokenProtector.Protect(tokens.RefreshToken);
-		connection.AccessTokenExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokens.ExpiresIn.Value);
-	}
-
-	private string? UnprotectDiscordToken(string? protectedToken) {
-		if (string.IsNullOrWhiteSpace(protectedToken)) return null;
-		try {
-			return discordTokenProtector.Unprotect(protectedToken);
-		} catch (CryptographicException exception) {
-			logger.LogWarning(exception, "Discord token could not be decrypted");
-			return null;
-		}
-	}
-
-	private static OAuthProfile? ToProfile(DiscordUser? user) => user == null || string.IsNullOrWhiteSpace(user.Id) || string.IsNullOrWhiteSpace(user.Username)
-		? null
-		: new OAuthProfile(user.Id, user.Username, GetDiscordAvatarUrl(user), null);
-
-	private static string? GetDiscordAvatarUrl(DiscordUser user) {
-		if (string.IsNullOrWhiteSpace(user.Avatar)) return null;
-		var extension = user.Avatar.StartsWith("a_", StringComparison.Ordinal) ? "gif" : "png";
-		return $"https://cdn.discordapp.com/avatars/{user.Id}/{user.Avatar}.{extension}?size=256";
-	}
-
-	#endregion
-
-	#region GitHub profil
-
-	private static OAuthProfile? ToProfile(GitHubUser? user) => user == null || string.IsNullOrWhiteSpace(user.Login)
-		? null
-		: new OAuthProfile(user.Id.ToString(), user.Login, user.AvatarUrl, user.HtmlUrl);
-
-	#endregion
-
-	#region Google profil
-
-	private const int GoogleAvatarSize = 512;
-
-	private static OAuthProfile? ToProfile(GoogleUser? user) => user == null || string.IsNullOrWhiteSpace(user.Sub)
-		? null
-		: new OAuthProfile(user.Sub, string.IsNullOrWhiteSpace(user.Name) ? "Google účet" : user.Name, GetGoogleAvatarUrl(user.Picture), null);
-
-	private static string? GetGoogleAvatarUrl(string? pictureUrl) {
-		if (string.IsNullOrWhiteSpace(pictureUrl) || !Uri.TryCreate(pictureUrl, UriKind.Absolute, out var uri)) return pictureUrl;
-		if (uri.Scheme != "https" || !uri.Host.EndsWith(".googleusercontent.com", StringComparison.OrdinalIgnoreCase)) return pictureUrl;
-
-		var baseUrl = uri.GetLeftPart(UriPartial.Path);
-		var parameterIndex = baseUrl.LastIndexOf('=');
-		if (parameterIndex > baseUrl.LastIndexOf('/')) baseUrl = baseUrl[..parameterIndex];
-		return $"{baseUrl}=s{GoogleAvatarSize}-c";
-	}
-
-	#endregion
-
-	#region Apple profil
-
-	private async Task<OAuthProfileResult> GetAppleProfileAsync(ProviderConfig config, string idToken, string expectedNonce, CancellationToken ct) {
-		try {
-			using var request = new HttpRequestMessage(HttpMethod.Get, AppleJwksEndpoint);
-			request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-			using var response = await httpClient.SendAsync(request, ct);
-			if (!response.IsSuccessStatusCode) return new OAuthProfileResult(null, false);
-
-			var keySet = new JsonWebKeySet(await response.Content.ReadAsStringAsync(ct));
-			var validation = await new JsonWebTokenHandler().ValidateTokenAsync(idToken, new TokenValidationParameters {
-				ValidateIssuerSigningKey = true,
-				IssuerSigningKeys = keySet.Keys,
-				ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
-				ValidateIssuer = true,
-				ValidIssuer = AppleIssuer,
-				ValidateAudience = true,
-				ValidAudience = config.ClientId,
-				ValidateLifetime = true,
-				RequireExpirationTime = true,
-				RequireSignedTokens = true,
-				ClockSkew = TimeSpan.FromMinutes(2),
-			});
-			if (!validation.IsValid) {
-				logger.LogWarning(validation.Exception, "Apple identity token validation failed");
-				return new OAuthProfileResult(null, true);
-			}
-
-			var userId = validation.Claims.TryGetValue("sub", out var subject) ? subject?.ToString() : null;
-			var nonce = validation.Claims.TryGetValue("nonce", out var nonceClaim) ? nonceClaim?.ToString() : null;
-			if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(nonce)) return new OAuthProfileResult(null, true);
-			if (!CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(nonce), Encoding.UTF8.GetBytes(expectedNonce))) return new OAuthProfileResult(null, true);
-
-			return new OAuthProfileResult(new OAuthProfile(userId, "Apple účet", null, null), false);
-		} catch (HttpRequestException exception) {
-			logger.LogWarning(exception, "Apple public key request failed");
-			return new OAuthProfileResult(null, false);
-		} catch (JsonException exception) {
-			logger.LogWarning(exception, "Apple public key response was invalid");
-			return new OAuthProfileResult(null, false);
-		} catch (ArgumentException exception) {
-			logger.LogWarning(exception, "Apple public key response was invalid");
-			return new OAuthProfileResult(null, false);
-		} catch (SecurityTokenException exception) {
-			logger.LogWarning(exception, "Apple identity token was invalid");
-			return new OAuthProfileResult(null, true);
-		} catch (OperationCanceledException exception) when (!ct.IsCancellationRequested) {
-			logger.LogWarning(exception, "Apple identity token validation timed out");
-			return new OAuthProfileResult(null, false);
-		}
-	}
-
-	#endregion
-
-	#region Konfigurace a helpery
-
-	private static string? GetRouteSegment(OAuthProvider provider) => provider switch {
-		OAuthProvider.Discord => "discord",
-		OAuthProvider.GitHub => "github",
-		OAuthProvider.Google => "google",
-		OAuthProvider.Apple => "apple",
-		OAuthProvider.Steam => "steam",
-		_ => null,
-	};
-
-	private static string? GetSteamWebApiKey() => Program.ENV.TryGetValue("STEAM_WEB_API_KEY", out var apiKey) && !string.IsNullOrWhiteSpace(apiKey)
-		? apiKey
-		: null;
-
-	private static ProviderConfig? GetProviderConfig(OAuthProvider provider) {
-		if (provider == OAuthProvider.Apple) {
-			// apple je ted vypnuty, az se ti bude chtit resit portal, tak tohle odkomentuj
-			/*
-			// sign in with apple profilovku neposila, takze avatar zustava null a synchronizovat ho nejde
-			if (!Program.ENV.TryGetValue("APPLE_CLIENT_ID", out var appleClientId) || string.IsNullOrWhiteSpace(appleClientId)) return null;
-			var appleClientSecret = CreateAppleClientSecret(appleClientId);
-			return appleClientSecret == null
-				? null
-				: new ProviderConfig(provider, appleClientId, appleClientSecret, "apple", "https://appleid.apple.com/auth/authorize", "https://appleid.apple.com/auth/token", "", "");
-			*/
-			return null;
-		}
-
-		var prefix = provider switch {
-			OAuthProvider.Discord => "DISCORD",
-			OAuthProvider.GitHub => "GITHUB",
-			OAuthProvider.Google => "GOOGLE",
-			_ => null,
-		};
-		if (prefix == null || !Program.ENV.TryGetValue($"{prefix}_CLIENT_ID", out var clientId) || string.IsNullOrWhiteSpace(clientId)) return null;
-		if (!Program.ENV.TryGetValue($"{prefix}_CLIENT_SECRET", out var clientSecret) || string.IsNullOrWhiteSpace(clientSecret)) return null;
-
-		return provider switch {
-			OAuthProvider.Discord => new ProviderConfig(provider, clientId, clientSecret, "discord", "https://discord.com/oauth2/authorize", "https://discord.com/api/oauth2/token", "https://discord.com/api/v10/users/@me", "identify"),
-			OAuthProvider.GitHub => new ProviderConfig(provider, clientId, clientSecret, "github", "https://github.com/login/oauth/authorize", "https://github.com/login/oauth/access_token", "https://api.github.com/user", "read:user"),
-			OAuthProvider.Google => new ProviderConfig(provider, clientId, clientSecret, "google", "https://accounts.google.com/o/oauth2/v2/auth", "https://oauth2.googleapis.com/token", "https://openidconnect.googleapis.com/v1/userinfo", "openid profile"),
-			_ => null,
-		};
-	}
-
-	private static string? CreateAppleClientSecret(string clientId) {
-		if (!Program.ENV.TryGetValue("APPLE_TEAM_ID", out var teamId) || string.IsNullOrWhiteSpace(teamId)) return null;
-		if (!Program.ENV.TryGetValue("APPLE_KEY_ID", out var keyId) || string.IsNullOrWhiteSpace(keyId)) return null;
-		if (!Program.ENV.TryGetValue("APPLE_PRIVATE_KEY_BASE64", out var encodedPrivateKey) || string.IsNullOrWhiteSpace(encodedPrivateKey)) return null;
-
-		try {
-			var privateKey = Encoding.UTF8.GetString(Convert.FromBase64String(encodedPrivateKey));
-			using var ecdsa = ECDsa.Create();
-			ecdsa.ImportFromPem(privateKey);
-			var now = DateTime.UtcNow;
-			return new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor {
-				Issuer = teamId,
-				Audience = AppleIssuer,
-				Claims = new Dictionary<string, object> { ["sub"] = clientId },
-				IssuedAt = now,
-				Expires = now.AddMinutes(5),
-				SigningCredentials = new SigningCredentials(new ECDsaSecurityKey(ecdsa) { KeyId = keyId }, SecurityAlgorithms.EcdsaSha256),
-			});
-		} catch (FormatException) {
-			return null;
-		} catch (CryptographicException) {
-			return null;
-		} catch (ArgumentException) {
-			return null;
-		}
-	}
-
-	private static string? GetFrontendOrigin() {
-		if (!Program.ENV.TryGetValue("WEB_URL", out var webUrl) || !Uri.TryCreate(webUrl, UriKind.Absolute, out var uri)) return null;
-		if (uri.Scheme is not ("http" or "https") || !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment)) return null;
-		return uri.GetLeftPart(UriPartial.Authority);
-	}
-
-	private static bool IsHttps(string origin) => Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.Scheme == "https";
-	private static string GetStateCacheKey(string state) => $"oauth-state:{state}";
-	private static string FormatAccount(Account account) => $"{account.FirstName} {account.LastName} ({account.Id})";
-
-	#endregion
-
-	#region Spolecne interni modely
-
-	private sealed record ProviderConfig(OAuthProvider Provider, string ClientId, string ClientSecret, string RouteSegment, string AuthorizationEndpoint, string TokenEndpoint, string UserEndpoint, string Scope);
-	private sealed record OAuthState(Guid? AccountId, OAuthProvider Provider, OAuthFlow Flow, string CallbackUri, string ReturnOrigin, string CodeVerifier, string Nonce);
-	private sealed record OAuthProfile(string UserId, string Username, string? AvatarUrl, string? ProfileUrl);
-	private sealed record OAuthTokenResult(OAuthTokenResponse? Tokens, bool Invalid);
-	private sealed record OAuthProfileResult(OAuthProfile? Profile, bool TokenInvalid);
-
-	private sealed class OAuthTokenResponse {
-		[JsonPropertyName("access_token")]
-		public string? AccessToken { get; init; }
-
-		[JsonPropertyName("refresh_token")]
-		public string? RefreshToken { get; init; }
-
-		[JsonPropertyName("expires_in")]
-		public int? ExpiresIn { get; init; }
-
-		[JsonPropertyName("id_token")]
-		public string? IdToken { get; init; }
-	}
-
-	#endregion
-
-	#region Discord modely
-
-	private sealed class DiscordUser {
-		[JsonPropertyName("id")]
-		public string? Id { get; init; }
-
-		[JsonPropertyName("username")]
-		public string? Username { get; init; }
-
-		[JsonPropertyName("avatar")]
-		public string? Avatar { get; init; }
-	}
-
-	#endregion
-
-	#region GitHub modely
-
-	private sealed class GitHubUser {
-		[JsonPropertyName("id")]
-		public long Id { get; init; }
-
-		[JsonPropertyName("login")]
-		public string? Login { get; init; }
-
-		[JsonPropertyName("avatar_url")]
-		public string? AvatarUrl { get; init; }
-
-		[JsonPropertyName("html_url")]
-		public string? HtmlUrl { get; init; }
-	}
-
-	#endregion
-
-	#region Google modely
-
-	private sealed class GoogleUser {
-		[JsonPropertyName("sub")]
-		public string? Sub { get; init; }
-
-		[JsonPropertyName("name")]
-		public string? Name { get; init; }
-
-		[JsonPropertyName("picture")]
-		public string? Picture { get; init; }
-	}
-
-	#endregion
-
-	#region Steam modely
-
-	private sealed class SteamPlayerSummariesResponse {
-		[JsonPropertyName("response")]
-		public SteamPlayerSummariesBody? Response { get; init; }
-	}
-
-	private sealed class SteamPlayerSummariesBody {
-		[JsonPropertyName("players")]
-		public List<SteamUser> Players { get; init; } = [];
-	}
-
-	private sealed class SteamUser {
-		[JsonPropertyName("steamid")]
-		public string? SteamId { get; init; }
-
-		[JsonPropertyName("personaname")]
-		public string? PersonaName { get; init; }
-
-		[JsonPropertyName("profileurl")]
-		public string? ProfileUrl { get; init; }
-
-		[JsonPropertyName("avatar")]
-		public string? Avatar { get; init; }
-
-		[JsonPropertyName("avatarmedium")]
-		public string? AvatarMedium { get; init; }
-
-		[JsonPropertyName("avatarfull")]
-		public string? AvatarFull { get; init; }
-	}
-
-	#endregion
+    private static readonly TimeSpan ValidationInterval = TimeSpan.FromMinutes(15);
+    /// <summary>
+    /// mapuje provider enum na odpovidajici implementaci a odstranuje potrebu velkeho provider switchu ve spolecnem flow
+    /// </summary>
+    private readonly IReadOnlyDictionary<OAuthProvider, ExternalAuthProviderBase> providers = providerImplementations.ToDictionary(provider => provider.Provider);
+
+    /// <summary>
+    /// overi dostupnost providera a frontend origin, vytvori jednorazovy bezpecnostni state a vrati authorization url
+    /// </summary>
+    /// <param name="accountId">id prihlaseneho uctu pro connect flow; pri login flow zustava null</param>
+    /// <param name="provider">provider pouzity pro zahajeni flow</param>
+    /// <param name="flow">login nebo connect varianta oauth flow</param>
+    /// <param name="request">aktualni request pouzity pro ulozeni state cookie</param>
+    /// <param name="ct">token pro zruseni asynchronni operace</param>
+    /// <returns>authorization url, nebo null pokud flow nesplni konfiguracni ci bezpecnostni podminky</returns>
+    public async Task<Uri?> CreateAuthorizationUrlAsync(Guid? accountId, OAuthProvider provider, OAuthFlow flow, HttpRequest request, CancellationToken ct = default) {
+        if (!providers.TryGetValue(provider, out var providerImplementation) || !providerImplementation.IsConfigured) return null;
+        if (flow == OAuthFlow.Connect && accountId == null) return null;
+
+        // provider s pozadavkem na https se nespusti nad nezabezpecenym frontend originem
+        var frontendOrigin = stateService.GetFrontendOrigin();
+        if (frontendOrigin == null || (providerImplementation.RequiresHttps && !OAuthStateService.IsHttps(frontendOrigin))) return null;
+
+        var parameters = OAuthStateService.CreateParameters();
+        var callbackUri = providerImplementation.BuildCallbackUri(frontendOrigin, parameters.State);
+        var payload = new StatePayload(accountId, provider, flow, callbackUri, frontendOrigin, parameters.CodeVerifier, parameters.Nonce);
+        await stateService.StoreAsync(request, parameters.State, payload, ct);
+
+        return providerImplementation.CreateAuthorizationUri(new AuthorizationContext(
+            callbackUri,
+            frontendOrigin,
+            parameters.State,
+            parameters.CodeVerifier,
+            parameters.CodeChallenge,
+            parameters.Nonce
+        ));
+    }
+
+    /// <summary>
+    /// spotrebuje a overi state, necha provider zpracovat callback a potom dokonci login nebo connect flow
+    /// </summary>
+    /// <param name="request">callback request s provider-specific query parametry</param>
+    /// <param name="provider">provider, jehoz implementace callback zpracuje</param>
+    /// <param name="state">state vraceny providerem</param>
+    /// <param name="code">authorization code vraceny oauth providerem</param>
+    /// <param name="error">chyba nebo zruseni vracene providerem</param>
+    /// <param name="ct">token pro zruseni asynchronni operace</param>
+    /// <returns>normalizovany completion vysledek vcetne overeneho frontend originu</returns>
+    public async Task<OAuthCompletion> CompleteAuthorizationAsync(HttpRequest request, OAuthProvider provider, string? state, string? code, string? error, CancellationToken ct = default) {
+        var oauthState = await stateService.ConsumeAsync(request, provider, state, ct);
+        if (oauthState == null) return new OAuthCompletion(OAuthCompletionKind.InvalidState);
+        if (!providers.TryGetValue(provider, out var providerImplementation)) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+
+        var providerResult = await providerImplementation.CompleteAuthorizationAsync(request, oauthState, code, error, ct);
+        if (providerResult.Status == AuthorizationStatus.Cancelled) return new OAuthCompletion(OAuthCompletionKind.Cancelled, oauthState.ReturnOrigin);
+        if (providerResult.Status != AuthorizationStatus.Succeeded || string.IsNullOrWhiteSpace(providerResult.ProviderUserId)) {
+            return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+        }
+
+        return oauthState.Flow == OAuthFlow.Login
+            ? await CompleteLoginAsync(providerImplementation, oauthState, providerResult, ct)
+            : await CompleteConnectionAsync(providerImplementation, oauthState, providerResult, ct);
+    }
+
+    /// <summary>
+    /// nacte lokalni spojeni, umozni provider implementaci zrusit dlouhodoby token a potom spojeni odstrani
+    /// </summary>
+    /// <param name="accountId">id uctu s odpojovanou platformou</param>
+    /// <param name="provider">provider odpojovane platformy</param>
+    /// <param name="ct">token pro zruseni asynchronni operace</param>
+    /// <returns>aktualizovany ucet, nebo null pokud ucet neexistuje</returns>
+    public async Task<Account?> DisconnectAsync(Guid accountId, OAuthProvider provider, CancellationToken ct = default) {
+        var connection = await db.OAuthConnections
+            .Include(item => item.Account)
+            .FirstOrDefaultAsync(item => item.AccountId == accountId && item.Provider == provider, ct);
+        if (connection == null) return await db.Accounts.FirstOrDefaultAsync(item => item.Id == accountId, ct);
+
+        if (providers.TryGetValue(provider, out var providerImplementation)) {
+            await providerImplementation.RevokeConnectionAsync(connection, ct);
+        }
+
+        await RemoveConnectionAsync(connection, false, ct);
+        return connection.Account;
+    }
+
+    /// <summary>
+    /// spusti spolecnou kontrolu spojeni pro discord a podle potreby obnovi token i profil
+    /// </summary>
+    /// <param name="accountId">id uctu s kontrolovanym spojenim</param>
+    /// <param name="forceValidation">urcuje, zda se ma ignorovat bezny interval mezi validacemi</param>
+    /// <param name="ct">token pro zruseni asynchronni operace</param>
+    /// <returns>ukol reprezentujici dokonceni validace</returns>
+    public Task EnsureDiscordConnectionAsync(Guid accountId, bool forceValidation, CancellationToken ct = default) =>
+        EnsureConnectionAsync(accountId, OAuthProvider.Discord, forceValidation, ct);
+
+    /// <summary>
+    /// spusti spolecnou kontrolu spojeni pro steam a podle dostupnosti aktualizuje verejny profil
+    /// </summary>
+    /// <param name="accountId">id uctu s kontrolovanym spojenim</param>
+    /// <param name="forceValidation">urcuje, zda se ma ignorovat bezny interval mezi validacemi</param>
+    /// <param name="ct">token pro zruseni asynchronni operace</param>
+    /// <returns>ukol reprezentujici dokonceni validace</returns>
+    public Task EnsureSteamConnectionAsync(Guid accountId, bool forceValidation, CancellationToken ct = default) =>
+        EnsureConnectionAsync(accountId, OAuthProvider.Steam, forceValidation, ct);
+
+    /// <summary>
+    /// ulozi zdroj profilove fotky, vycisti puvodni override a nacte avatar z vybraneho spojeni
+    /// </summary>
+    /// <param name="accountId">id uctu, kteremu se meni zdroj profilove fotky</param>
+    /// <param name="platform">provider pouzity jako zdroj avataru, nebo null pro vypnuti synchronizace</param>
+    /// <param name="ct">token pro zruseni asynchronni operace</param>
+    /// <returns>aktualizovany ucet, nebo null pri neexistujicim uctu ci apple provideru bez avatar podpory</returns>
+    public async Task<Account?> SetAvatarSyncPlatformAsync(Guid accountId, OAuthProvider? platform, CancellationToken ct = default) {
+        if (platform == OAuthProvider.Apple) return null;
+        var account = await db.Accounts
+            .Include(item => item.OAuthConnections)
+            .FirstOrDefaultAsync(item => item.Id == accountId, ct);
+        if (account == null) return null;
+
+        account.AvatarSyncPlatform = platform;
+        account.AvatarUrl = null;
+        if (platform is { } provider && provider != OAuthProvider.Discord) {
+            account.AvatarUrl = account.OAuthConnections.FirstOrDefault(item => item.Provider == provider)?.AvatarUrl;
+        }
+        await db.SaveChangesAsync(ct);
+
+        if (platform != OAuthProvider.Discord || !account.OAuthConnections.Any(item => item.Provider == OAuthProvider.Discord)) return account;
+        // discord se znovu overi, aby se ulozil aktualni avatar a pripadne obnovene tokeny
+        await EnsureDiscordConnectionAsync(account.Id, true, ct);
+        return await db.Accounts.FirstOrDefaultAsync(item => item.Id == accountId, ct);
+    }
+
+    /// <summary>
+    /// dokonci login pouze pro ucet, ktery uz ma stejnou externi identitu ulozenou v oauth spojeni
+    /// </summary>
+    /// <param name="providerImplementation">implementace providera, ktera callback uspesne overila</param>
+    /// <param name="oauthState">overeny state s navratovym originem a typem flow</param>
+    /// <param name="providerResult">normalizovana identita a profil vraceny providerem</param>
+    /// <param name="ct">token pro zruseni asynchronni operace</param>
+    /// <returns>uspesny login completion nebo stav oznamujici, ze identita neni propojena</returns>
+    private async Task<OAuthCompletion> CompleteLoginAsync(ExternalAuthProviderBase providerImplementation, StatePayload oauthState, AuthorizationResult providerResult, CancellationToken ct) {
+        var providerUserId = providerResult.ProviderUserId;
+        if (string.IsNullOrWhiteSpace(providerUserId)) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+        var connection = await db.OAuthConnections
+            .Include(item => item.Account)
+            .FirstOrDefaultAsync(item => item.Provider == providerImplementation.Provider && item.ProviderUserId == providerUserId, ct);
+        if (connection == null) return new OAuthCompletion(OAuthCompletionKind.LoginNotLinked, oauthState.ReturnOrigin);
+
+        if (providerResult.Profile != null) {
+            ApplyConnection(connection.Account, connection, providerImplementation, providerResult.Profile, providerResult.Credentials, providerResult.MarkValidated);
+            await db.SaveChangesAsync(ct);
+        }
+
+        return new OAuthCompletion(OAuthCompletionKind.LoginSucceeded, oauthState.ReturnOrigin, connection.AccountId);
+    }
+
+    /// <summary>
+    /// pripoji externi identitu k prihlasenemu uctu a zabrani jejimu sdileni mezi vice ucty
+    /// </summary>
+    /// <param name="providerImplementation">implementace providera, ktera callback uspesne overila</param>
+    /// <param name="oauthState">overeny state obsahujici id prihlaseneho uctu</param>
+    /// <param name="providerResult">normalizovana identita, profil a pripadne credentials</param>
+    /// <param name="ct">token pro zruseni asynchronni operace</param>
+    /// <returns>completion popisujici uspesne propojeni, konflikt identity nebo chybu</returns>
+    private async Task<OAuthCompletion> CompleteConnectionAsync(ExternalAuthProviderBase providerImplementation, StatePayload oauthState, AuthorizationResult providerResult, CancellationToken ct) {
+        if (oauthState.AccountId == null) return new OAuthCompletion(OAuthCompletionKind.InvalidState, oauthState.ReturnOrigin);
+        if (providerResult.Profile == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+        var providerUserId = providerResult.ProviderUserId;
+        if (string.IsNullOrWhiteSpace(providerUserId)) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+
+        var account = await db.Accounts
+            .Include(item => item.OAuthConnections)
+            .FirstOrDefaultAsync(item => item.Id == oauthState.AccountId.Value, ct);
+        if (account == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+
+        var alreadyConnected = await db.OAuthConnections.AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Provider == providerImplementation.Provider && item.ProviderUserId == providerUserId && item.AccountId != account.Id, ct);
+        if (alreadyConnected != null) return new OAuthCompletion(OAuthCompletionKind.AlreadyLinked, oauthState.ReturnOrigin);
+
+        var connection = account.OAuthConnections.FirstOrDefault(item => item.Provider == providerImplementation.Provider);
+        var isNewConnection = connection == null;
+        if (connection == null) {
+            connection = new OAuthConnection {
+                AccountId = account.Id,
+                Account = account,
+                Provider = providerImplementation.Provider,
+                ProviderUserId = providerUserId,
+                Username = providerResult.Profile.Username,
+            };
+            db.OAuthConnections.Add(connection);
+        }
+
+        ApplyConnection(account, connection, providerImplementation, providerResult.Profile, providerResult.Credentials, providerResult.MarkValidated);
+        await db.SaveChangesAsync(ct);
+        // auditni udalost se zapisuje az po uspesnem ulozeni noveho spojeni
+        if (isNewConnection) {
+            await dbLogger.LogInfoAsync($"Účet {FormatAccount(account)} propojil platformu {providerImplementation.Provider} jako {providerResult.Profile.Username}.", "platform-connect", ct);
+        }
+
+        return new OAuthCompletion(OAuthCompletionKind.Connected, oauthState.ReturnOrigin, account.Id);
+    }
+
+    /// <summary>
+    /// podle casoveho intervalu spusti provider validator a zpracuje platne, neplatne i docasne nedostupne spojeni
+    /// </summary>
+    /// <param name="accountId">id uctu s kontrolovanym spojenim</param>
+    /// <param name="provider">provider, jehoz spojeni se validuje</param>
+    /// <param name="forceValidation">urcuje, zda se ma validace provest bez ohledu na posledni kontrolu</param>
+    /// <param name="ct">token pro zruseni asynchronni operace</param>
+    /// <returns>ukol reprezentujici dokonceni kontroly a pripadne aktualizace spojeni</returns>
+    private async Task EnsureConnectionAsync(Guid accountId, OAuthProvider provider, bool forceValidation, CancellationToken ct) {
+        if (!providers.TryGetValue(provider, out var providerImplementation) || !providerImplementation.IsConfigured) return;
+
+        var connection = await db.OAuthConnections
+            .Include(item => item.Account)
+            .FirstOrDefaultAsync(item => item.AccountId == accountId && item.Provider == provider, ct);
+        if (connection == null) return;
+
+        var nowUtc = DateTime.UtcNow;
+        if (!forceValidation && connection.LastValidatedUtc is { } lastValidated && lastValidated >= nowUtc - ValidationInterval) return;
+
+        var result = await providerImplementation.ValidateConnectionAsync(connection, ct);
+        // docasna nedostupnost zachova lokalni spojeni, potvrzena neplatnost ho odstrani
+        if (result.Status == ConnectionValidationStatus.Invalid) {
+            await RemoveConnectionAsync(connection, true, ct);
+            return;
+        }
+        if (result.Status != ConnectionValidationStatus.Valid || result.Profile == null) return;
+
+        ApplyConnection(connection.Account, connection, providerImplementation, result.Profile, result.Credentials, true);
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// prenese normalizovany profil a credentials do databazove entity bez znalosti zdrojoveho provider api
+    /// </summary>
+    /// <param name="account">ucet vlastnici aktualizovane oauth spojeni</param>
+    /// <param name="connection">databazove spojeni, do ktereho se profil zapisuje</param>
+    /// <param name="providerImplementation">implementace pouzita pro provider-specific ulozeni credentials</param>
+    /// <param name="profile">normalizovany profil vraceny providerem</param>
+    /// <param name="credentials">nove tokeny nebo jine credentials, pokud je provider vratil</param>
+    /// <param name="markValidated">urcuje, zda se ma aktualizovat cas posledni uspesne validace</param>
+    private static void ApplyConnection(
+        Account account,
+        OAuthConnection connection,
+        ExternalAuthProviderBase providerImplementation,
+        Profile profile,
+        TokenResponse? credentials,
+        bool markValidated
+    ) {
+        connection.ProviderUserId = profile.UserId;
+        connection.Username = profile.Username;
+        connection.ProfileUrl = profile.ProfileUrl;
+        if (!string.IsNullOrWhiteSpace(profile.AvatarUrl)) {
+            connection.AvatarUrl = profile.AvatarUrl;
+            if (account.AvatarSyncPlatform == connection.Provider) account.AvatarUrl = profile.AvatarUrl;
+        }
+        if (credentials != null) {
+            providerImplementation.ApplyCredentials(connection, credentials);
+        }
+        if (markValidated) connection.LastValidatedUtc = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// odstrani lokalni oauth spojeni, upravi avatar sync a zapise auditni udalost
+    /// </summary>
+    /// <param name="connection">spojeni urcene k odstraneni</param>
+    /// <param name="automatic">urcuje, zda odstraneni vyvolala validace misto uzivatelske akce</param>
+    /// <param name="ct">token pro zruseni asynchronni operace</param>
+    /// <returns>ukol reprezentujici ulozeni zmen a auditniho zaznamu</returns>
+    private async Task RemoveConnectionAsync(OAuthConnection connection, bool automatic, CancellationToken ct) {
+        var account = connection.Account;
+        var provider = connection.Provider;
+        var username = connection.Username;
+        db.OAuthConnections.Remove(connection);
+        if (!automatic && account.AvatarSyncPlatform == provider) {
+            account.AvatarSyncPlatform = null;
+            account.AvatarUrl = null;
+        }
+        await db.SaveChangesAsync(ct);
+        var mode = automatic ? "automaticky odpojena" : "odpojena";
+        await dbLogger.LogInfoAsync($"Platforma {provider} ({username}) byla {mode} u účtu {FormatAccount(account)}.", "platform-disconnect", ct);
+    }
+
+    /// <summary>
+    /// sestavi kratky a jednoznacny popis uctu pro auditni log
+    /// </summary>
+    /// <param name="account">ucet zapisovany do logu</param>
+    /// <returns>cele jmeno doplnene internim id uctu</returns>
+    private static string FormatAccount(Account account) => $"{account.FirstName} {account.LastName} ({account.Id})";
 }

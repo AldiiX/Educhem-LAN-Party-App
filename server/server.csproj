@@ -41,6 +41,24 @@
       </Compile>
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Update="Services\OAuth\AppleOAuthProvider.cs">
+        <DependentUpon>OAuthProviderBase.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\OAuth\DiscordOAuthProvider.cs">
+        <DependentUpon>OAuthProviderBase.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\OAuth\GitHubOAuthProvider.cs">
+        <DependentUpon>OAuthProviderBase.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\OAuth\GoogleOAuthProvider.cs">
+        <DependentUpon>OAuthProviderBase.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\OAuth\SteamOpenIdProvider.cs">
+        <DependentUpon>ExternalAuthProviderBase.cs</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
     <!-- definice DEBUG a RELEASE promennych -->
     <PropertyGroup Condition="'$(Configuration)'=='Debug'">
         <DefineConstants>DEBUG;TRACE;DEVELOPMENT</DefineConstants>

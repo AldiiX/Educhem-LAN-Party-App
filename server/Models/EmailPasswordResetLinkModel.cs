@@ -3,7 +3,7 @@ using server.Services;
 
 namespace server.Models;
 
-public class EmailPasswordResetLinkModel(string resetLink, string email, string? firstName = null, string? lastName = null, Gender? gender = null, CommunicationStyle communicationStyle = CommunicationStyle.Formal) {
+public sealed class EmailPasswordResetLinkModel(string resetLink, string email, string? firstName = null, string? lastName = null, Gender? gender = null, CommunicationStyle communicationStyle = CommunicationStyle.Formal) {
 	public string ResetLink { get; set; } = resetLink;
 	public string Email { get; set; } = email;
 	public string FirstName { get; set; } = firstName ?? "";

@@ -9,7 +9,7 @@ namespace server.Data.Entities;
 
 [Table("ProblemReports", Schema = "public")]
 [UuidV7]
-public class ProblemReport : AuditableEntity<Guid> {
+public sealed class ProblemReport : AuditableEntity<Guid> {
 	[ForeignKey(nameof(Reporter))]
 	public required Guid ReporterId { get; set; }
 

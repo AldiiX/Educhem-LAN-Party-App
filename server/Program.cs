@@ -8,6 +8,7 @@ using server.Data;
 using server.Data.Entities;
 using server.Hubs;
 using server.Services;
+using server.Services.OAuth;
 using StackExchange.Redis;
 using server.Data.Seeders;
 
@@ -97,10 +98,18 @@ public static class Program {
 
         builder.Services.AddControllers();
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddHttpClient<IOAuthService, OAuthService>(client => {
+        // provideri se registruji jako kolekce a oauth service je vybere podle typu platformy
+        builder.Services.AddHttpClient(ExternalAuthProviderBase.HttpClientName, client => {
             client.Timeout = TimeSpan.FromSeconds(10);
             client.DefaultRequestHeaders.UserAgent.ParseAdd("EduchemLANPartyApp/4.1");
         });
+        builder.Services.AddScoped<OAuthStateService>();
+        builder.Services.AddScoped<ExternalAuthProviderBase, DiscordOAuthProvider>();
+        builder.Services.AddScoped<ExternalAuthProviderBase, GitHubOAuthProvider>();
+        builder.Services.AddScoped<ExternalAuthProviderBase, GoogleOAuthProvider>();
+        builder.Services.AddScoped<ExternalAuthProviderBase, AppleOAuthProvider>();
+        builder.Services.AddScoped<ExternalAuthProviderBase, SteamOpenIdProvider>();
+        builder.Services.AddScoped<IOAuthService, OAuthService>();
         builder.Services.AddMemoryCache(); // pro pripad, ze bych chtel nekdy skalovat (asi ne) je lepsi vyuzit redis pokud mam multiistance app coz pro lanku asi mit stejne nikdy nebudu
 
         builder.Services.AddSingleton<AppCacheService>();

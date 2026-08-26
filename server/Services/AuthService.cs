@@ -13,7 +13,7 @@ namespace server.Services;
 
 
 
-public sealed class AuthService(
+internal sealed class AuthService(
     AppDbContext db,
     IHttpContextAccessor http,
     IServiceScopeFactory scopeFactory,

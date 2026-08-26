@@ -1,9 +1,7 @@
-﻿namespace server.Services;
+namespace server.Services;
 
-public interface IAppSettingsService
-{
-    public enum ReservationStatusType
-    {
+public interface IAppSettingsService {
+    public enum ReservationStatusType {
         UseTimer,
         Open,
         Closed

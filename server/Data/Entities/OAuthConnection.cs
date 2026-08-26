@@ -8,7 +8,7 @@ namespace server.Data.Entities;
 
 [Table("OAuthConnections", Schema = "public")]
 [Index(nameof(Provider), nameof(ProviderUserId), IsUnique = true)]
-public class OAuthConnection {
+public sealed class OAuthConnection {
 	public Guid AccountId { get; set; }
 
 	[StringEnum]

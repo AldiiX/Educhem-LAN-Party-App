@@ -2,7 +2,7 @@ using server.Data.Entities;
 
 namespace server.Dto.Mappers;
 
-public static class ProblemReportMapper {
+internal static class ProblemReportMapper {
 	extension(ProblemReport report) {
 		public ProblemReportDto ToDto(bool deep = true) {
 			return new ProblemReportDto {

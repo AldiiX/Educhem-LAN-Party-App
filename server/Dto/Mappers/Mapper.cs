@@ -2,7 +2,7 @@
 
 namespace server.Dto.Mappers;
 
-public static class Mapper {
+internal static class Mapper {
 	public static SchoolDto ToDto(this School school, bool deep = true) {
 		return new SchoolDto {
 			Id = school.Id,

@@ -1,6 +1,6 @@
 ﻿namespace server.Dto;
 
-public class ComputerDto : EntityDto<string> {
+public sealed class ComputerDto : EntityDto<string> {
 	public required RoomDto? Room { get; set; }
 
 	public required string? ImageUrl {

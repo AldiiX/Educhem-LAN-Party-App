@@ -3,7 +3,7 @@ using MimeKit;
 
 namespace server.Services;
 
-public static class EmailService {
+internal static class EmailService {
 	public static async Task<bool> SendPlainTextEmailAsync(string to, string subject, string body) {
 		try {
 			var message = new MimeMessage();

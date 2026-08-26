@@ -14,17 +14,13 @@ public sealed class AppSettingsControllerV1(
     IAppSettingsService settings,
     AppCacheService cache,
     IDbLoggerService dbLogger
-) : ControllerBase
-{
+) : ControllerBase {
     [HttpGet]
-    public async Task<ActionResult> Get(CancellationToken ct)
-    {
+    public async Task<ActionResult> Get(CancellationToken ct) {
         var acc = await auth.ReAuthFromContextOrNullAsync(ct);
 
-        if (acc == null || acc.AccountType < AccountType.Admin)
-        {
-            return Unauthorized(new
-            {
+        if (acc == null || acc.AccountType < AccountType.Admin) {
+            return Unauthorized(new {
                 success = false,
                 message = Phrase(
                     acc,
@@ -46,8 +42,7 @@ public sealed class AppSettingsControllerV1(
             DateTimeKind.Utc
         );
 
-        return Ok(new AppSettingsResponse
-        {
+        return Ok(new AppSettingsResponse {
             ChatEnabled = await settings.GetChatEnabledAsync(ct),
             ServerNow = DateTime.UtcNow,
             ReservationsEnabledFrom = reservationsEnabledFrom,
@@ -62,14 +57,11 @@ public sealed class AppSettingsControllerV1(
     [HttpPut]
     public async Task<IActionResult> Update(
         [FromBody] UpdateAppSettingsRequest request,
-        CancellationToken ct)
-    {
+        CancellationToken ct) {
         var acc = await auth.ReAuthFromContextOrNullAsync(ct);
 
-        if (acc == null || acc.AccountType < AccountType.Admin)
-        {
-            return Unauthorized(new
-            {
+        if (acc == null || acc.AccountType < AccountType.Admin) {
+            return Unauthorized(new {
                 success = false,
                 message = Phrase(
                     acc,
@@ -83,15 +75,12 @@ public sealed class AppSettingsControllerV1(
 
         await UpdateFeatureSettingsAsync(request, changes, ct);
 
-        if (!string.IsNullOrWhiteSpace(request.ReservationsStatus))
-        {
+        if (!string.IsNullOrWhiteSpace(request.ReservationsStatus)) {
             if (!Enum.TryParse<IAppSettingsService.ReservationStatusType>(
                     request.ReservationsStatus,
                     ignoreCase: true,
-                    out var status))
-            {
-                return BadRequest(new
-                {
+                    out var status)) {
+                return BadRequest(new {
                     success = false,
                     message = "Neplatný status rezervací."
                 });
@@ -102,22 +91,19 @@ public sealed class AppSettingsControllerV1(
             AddChange(changes, "ReservationsStatus", previousValue, status);
         }
 
-        if (request.ReservationsEnabledFrom.HasValue)
-        {
+        if (request.ReservationsEnabledFrom.HasValue) {
             var previousValue = await settings.GetReservationsEnabledFromAsync(ct);
             await settings.SetReservationsEnabledFromAsync(request.ReservationsEnabledFrom.Value, ct);
             AddChange(changes, "ReservationsEnabledFrom", previousValue, request.ReservationsEnabledFrom.Value);
         }
 
-        if (request.ReservationsEnabledTo.HasValue)
-        {
+        if (request.ReservationsEnabledTo.HasValue) {
             var previousValue = await settings.GetReservationsEnabledToAsync(ct);
             await settings.SetReservationsEnabledToAsync(request.ReservationsEnabledTo.Value, ct);
             AddChange(changes, "ReservationsEnabledTo", previousValue, request.ReservationsEnabledTo.Value);
         }
 
-        if (changes.Count > 0)
-        {
+        if (changes.Count > 0) {
             await dbLogger.LogInfoAsync(
                 $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "upravil", "upravila")} časy a nastavení rezervací: {string.Join("; ", changes)}.",
                 "app-settings-edit",
@@ -131,24 +117,20 @@ public sealed class AppSettingsControllerV1(
     private async Task UpdateFeatureSettingsAsync(
         UpdateAppSettingsRequest request,
         ICollection<string> changes,
-        CancellationToken ct)
-    {
-        if (request.ChatEnabled.HasValue)
-        {
+        CancellationToken ct) {
+        if (request.ChatEnabled.HasValue) {
             var previousValue = await settings.GetChatEnabledAsync(ct);
             await settings.SetChatEnabledAsync(request.ChatEnabled.Value, ct);
             AddChange(changes, "ChatEnabled", previousValue, request.ChatEnabled.Value);
         }
 
-        if (request.AttendanceEnabled.HasValue)
-        {
+        if (request.AttendanceEnabled.HasValue) {
             var previousValue = await settings.GetAttendanceEnabledAsync(ct);
             await settings.SetAttendanceEnabledAsync(request.AttendanceEnabled.Value, ct);
             AddChange(changes, "AttendanceEnabled", previousValue, request.AttendanceEnabled.Value);
         }
 
-        if (request.ProblemReportsEnabled.HasValue)
-        {
+        if (request.ProblemReportsEnabled.HasValue) {
             var previousValue = await settings.GetProblemReportsEnabledAsync(ct);
             await settings.SetProblemReportsEnabledAsync(request.ProblemReportsEnabled.Value, ct);
             AddChange(changes, "ProblemReportsEnabled", previousValue, request.ProblemReportsEnabled.Value);
@@ -156,14 +138,11 @@ public sealed class AppSettingsControllerV1(
     }
 
     [HttpPost("cache/clear")]
-    public async Task<IActionResult> ClearCache(CancellationToken ct)
-    {
+    public async Task<IActionResult> ClearCache(CancellationToken ct) {
         var acc = await auth.ReAuthFromContextOrNullAsync(ct);
 
-        if (acc == null || acc.AccountType < AccountType.Admin)
-        {
-            return Unauthorized(new
-            {
+        if (acc == null || acc.AccountType < AccountType.Admin) {
+            return Unauthorized(new {
                 success = false,
                 message = Phrase(
                     acc,
@@ -184,23 +163,19 @@ public sealed class AppSettingsControllerV1(
         return Ok(result);
     }
 
-    private static void AddChange<T>(ICollection<string> changes, string name, T previousValue, T nextValue)
-    {
+    private static void AddChange<T>(ICollection<string> changes, string name, T previousValue, T nextValue) {
         var previous = FormatValue(previousValue);
         var next = FormatValue(nextValue);
 
-        if (previous == next)
-        {
+        if (previous == next) {
             return;
         }
 
         changes.Add($"{FormatChangeName(name)}: {previous} -> {next}");
     }
 
-    private static string FormatChangeName(string name)
-    {
-        return name switch
-        {
+    private static string FormatChangeName(string name) {
+        return name switch {
             "ReservationsEnabledFrom" => "Začátek rezervací",
             "ReservationsEnabledTo" => "Konec rezervací",
             "ReservationsStatus" => "Stav rezervací",
@@ -211,33 +186,27 @@ public sealed class AppSettingsControllerV1(
         };
     }
 
-    private static string FormatValue<T>(T value)
-    {
-        return value switch
-        {
+    private static string FormatValue<T>(T value) {
+        return value switch {
             DateTime date => date.ToLocalTime().ToString("dd. MM. yyyy HH:mm:ss", CultureInfo.GetCultureInfo("cs-CZ")),
             null => "(null)",
             _ => value.ToString() ?? "(null)"
         };
     }
 
-    private static string FormatAccount(Account account)
-    {
+    private static string FormatAccount(Account account) {
         return $"{account.FirstName} {account.LastName} ({account.Email})";
     }
 
-    private static string UserNoun(Account account)
-    {
+    private static string UserNoun(Account account) {
         return account.Gender == Gender.Female ? "Uživatelka" : "Uživatel";
     }
 
-    private static string PastVerb(Account account, string masculine, string feminine)
-    {
+    private static string PastVerb(Account account, string masculine, string feminine) {
         return account.Gender == Gender.Female ? feminine : masculine;
     }
 
-    private static string Phrase(Account? account, string informal, string formal)
-    {
+    private static string Phrase(Account? account, string informal, string formal) {
         return account?.CommunicationStyle == CommunicationStyle.Informal ? informal : formal;
     }
 }

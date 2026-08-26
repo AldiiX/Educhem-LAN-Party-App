@@ -3,7 +3,7 @@ using server.Services;
 
 namespace server.Models;
 
-public class EmailUserRegisterModel(string passwordNonEncrypted, string webLink, string email, string? firstName = null, string? lastName = null, Gender? gender = null, CommunicationStyle communicationStyle = CommunicationStyle.Formal) {
+public sealed class EmailUserRegisterModel(string passwordNonEncrypted, string webLink, string email, string? firstName = null, string? lastName = null, Gender? gender = null, CommunicationStyle communicationStyle = CommunicationStyle.Formal) {
 	public string PasswordNonEncrypted { get; set; } = passwordNonEncrypted;
 	public string WebLink { get; set; } = webLink;
 	public string Email { get; set; } = email;

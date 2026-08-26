@@ -9,7 +9,7 @@ namespace server.Data.Entities;
 [Table("AttendanceEntries", Schema = "attendance")]
 [Index(nameof(AccountId), nameof(CreatedAtUtc))]
 [UuidV7]
-public class AttendanceEntry : AuditableEntity<Guid> {
+public sealed class AttendanceEntry : AuditableEntity<Guid> {
 	[ForeignKey(nameof(Account))]
 	public required Guid AccountId { get; set; }
 

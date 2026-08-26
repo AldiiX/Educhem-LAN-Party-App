@@ -1,9 +1,9 @@
-﻿using server.Data;
+using server.Data;
 using server.Data.Entities;
 
 namespace server.Services;
 
-public class DbLoggerService(AppDbContext db) : IDbLoggerService {
+internal sealed class DbLoggerService(AppDbContext db) : IDbLoggerService {
     private const int MaxExactTypeLength = 32;
     private const int MaxMessageLength = 256;
 
@@ -26,10 +26,8 @@ public class DbLoggerService(AppDbContext db) : IDbLoggerService {
 
     public async Task<bool> LogWarnAsync(string message, string exactType = "basic", CancellationToken ct = default) => await LogAsync(LogType.Warn, message, exactType, ct);
 
-    private static string TrimToMaxLength(string value, int maxLength)
-    {
-        if (value.Length <= maxLength)
-        {
+    private static string TrimToMaxLength(string value, int maxLength) {
+        if (value.Length <= maxLength) {
             return value;
         }
 

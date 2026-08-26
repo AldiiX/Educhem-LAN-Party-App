@@ -10,7 +10,7 @@ namespace server.Data.Entities;
 [Table("Accounts", Schema = "public")]
 [Index(nameof(Email), IsUnique = true)]
 [UuidV7]
-public class Account : AuditableEntity<Guid> {
+public sealed class Account : AuditableEntity<Guid> {
 	[MaxLength(32)]
 	public required string FirstName { get; set; }
 

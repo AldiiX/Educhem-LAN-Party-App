@@ -2,7 +2,7 @@
 
 namespace server.Dto.Mappers;
 
-public static class LogEntryMapper {
+internal static class LogEntryMapper {
     public static LogEntryDto ToDto(this LogEntry log) {
         return new LogEntryDto {
             Id = log.Id,

@@ -5,7 +5,7 @@ using server.Data.Entities;
 
 namespace server.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options) {
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options) {
 
 	public DbSet<Account> Accounts { get; set; }
 	public DbSet<OAuthConnection> OAuthConnections { get; set; }

@@ -4,7 +4,7 @@ using server.Data.Entities;
 
 namespace server.Services;
 
-public static class CzechVocativeService {
+internal static class CzechVocativeService {
 	private static readonly CultureInfo CzechCulture = CultureInfo.GetCultureInfo("cs-CZ");
 	private static readonly Lazy<IReadOnlyDictionary<string, string>> ManSuffixes = new(() => LoadSuffixes("man_suffixes.json"));
 	private static readonly Lazy<IReadOnlyDictionary<string, string>> ManVsWomanSuffixes = new(() => LoadSuffixes("man_vs_woman_suffixes.json"));

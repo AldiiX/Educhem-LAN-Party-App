@@ -32,7 +32,7 @@ export default function() {
             cancelled: `Přihlášení přes ${platformName} bylo zrušeno.`,
             error: `Přihlášení přes ${platformName} se nepodařilo.`,
         }[socialStatus ?? ""];
-        if(message) toast.error(message);
+        if(message) toast.error(message, {id: `oauth-${socialProvider}-${socialStatus}`});
         router.replace("/app/login");
     }, [router, searchParams]);
 

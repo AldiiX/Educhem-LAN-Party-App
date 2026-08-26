@@ -2,7 +2,7 @@
 
 namespace server.Dto.Mappers;
 
-public static class AchievementBadgeMapper {
+internal static class AchievementBadgeMapper {
 	extension(Achievement achievement) {
 		public AchievementDto ToDto() {
 			return new AchievementDto {
