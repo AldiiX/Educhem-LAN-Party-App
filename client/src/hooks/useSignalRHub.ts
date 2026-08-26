@@ -232,10 +232,13 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
             setStatus("error");
         }
 
-        startConnection();
+        const startTimeout = setTimeout(() => {
+            void startConnection();
+        }, 0);
 
         return () => {
             disposed = true;
+            clearTimeout(startTimeout);
 
             for(const registeredHandler of registeredHandlers) {
                 newConnection.off(registeredHandler.eventName, registeredHandler.handler);
