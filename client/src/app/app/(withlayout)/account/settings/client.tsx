@@ -1,10 +1,13 @@
-import styles from "./AccountSettings.module.scss";
+"use client";
+
+import styles from "./client.module.scss";
 import {Avatar} from "@/components/Avatar";
 import {Button} from "@/components/Button";
 import {communicationStyleLabel, genderLabel} from "@/lib/enumLabels";
 import {AvatarSyncPlatform} from "@/schemas/AccountSchema";
 import {AccountPageState} from "../_hooks/types";
 import {avatarSyncPlatforms, platforms} from "@/data/platforms";
+import {useAccountPageContext} from "@/app/app/(withlayout)/account/layoutclient";
 
 const genderOptions = [
     {value: "Male", label: "Muž", disabled: false},
@@ -42,7 +45,8 @@ const genderOptions = [
     {value: "", label: "Neurčeno", disabled: false},
 ];
 
-export function AccountSettings({state}: {state: AccountPageState}) {
+export default function AccountSettings() {
+    const state = useAccountPageContext();
     const {account, profileDraft, setProfileDraft, passwordForm, setPasswordForm} = state;
 	const connectedPlatforms: Record<string, string | undefined> = {
 		discord: account.discordUsername ?? undefined,

@@ -128,4 +128,5 @@ public enum OAuthCompletionKind {
 /// <param name="Kind">normalizovany stav dokonceni flow</param>
 /// <param name="ReturnOrigin">frontend origin nacteny z drive overeneho a jednorazoveho state</param>
 /// <param name="AccountId">id uctu pouzite pri uspesnem prihlaseni nebo propojeni</param>
-public sealed record OAuthCompletion(OAuthCompletionKind Kind, string? ReturnOrigin = null, Guid? AccountId = null);
+/// <param name="Flow">typ flow nacteny z overeneho state</param>
+public sealed record OAuthCompletion(OAuthCompletionKind Kind, string? ReturnOrigin = null, Guid? AccountId = null, OAuthFlow? Flow = null);

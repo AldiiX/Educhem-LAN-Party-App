@@ -1,6 +1,6 @@
 import {z} from "zod";
 import {fetchBackendJson} from "@/lib/backendClient";
-import {getCurrentLoggedAccount} from "@/lib/auth";
+import {getCachedCurrentLoggedAccount, getCurrentLoggedAccount} from "@/lib/auth";
 import HomeClient from "./HomeClient";
 import {AccountSchema, SchoolSchema} from "@/schemas/AccountSchema";
 import {StatusData} from "@/app/app/(withlayout)/_hooks/useStatus";
@@ -22,7 +22,7 @@ const DashboardSchema = z.object({
 export type HomeDashboard = z.infer<typeof DashboardSchema>;
 
 export default async function HomePage() {
-    const account = await getCurrentLoggedAccount();
+    const account = await getCachedCurrentLoggedAccount();
 
     const dashboardPromise = fetchBackendJson<unknown>("/api/v1/account/dashboard", { method: "GET" })
         .then(response => {

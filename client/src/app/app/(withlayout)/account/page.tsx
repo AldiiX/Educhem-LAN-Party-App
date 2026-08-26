@@ -1,12 +1,11 @@
-import type {Metadata} from "next";
-import {requireLoggedAccountOrRedirect} from "@/lib/auth";
-import AccountClient from "./client";
+import type { Metadata } from 'next';
+import AccountOverview from "./client";
+import {useAccountPageContext} from "@/app/app/(withlayout)/account/layoutclient";
 
 export const metadata: Metadata = {
     title: "Můj účet",
 };
 
-export default async function AccountPage() {
-    const account = await requireLoggedAccountOrRedirect();
-    return <AccountClient initialAccount={account} />;
+export default function AccountPage() {
+    return <AccountOverview />;
 }

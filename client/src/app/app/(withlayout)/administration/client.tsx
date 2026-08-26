@@ -1,27 +1,24 @@
 "use client"
 
 import style from "./client.module.scss";
-import {useState} from "react";
-import {UsersTab} from "./_components/tabs/UsersTab";
-import {ReservationsTab} from "./_components/tabs/ReservationsTab";
-import {ForumPostsTab} from "./_components/tabs/ForumPostsTab";
-import {LogsTab} from "./_components/tabs/LogsTab";
-import {AppSettingsTab} from "./_components/tabs/AppSettingsTab";
-import {AchievementsTab} from "./_components/tabs/AchievementsTab";
+import Link from "next/link";
+import type {ReactNode} from "react";
+import {usePathname} from "next/navigation";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {hasRoleAtLeast} from "@/lib/roles";
 
-type AdministrationTabKey = "users" | "reservations" | "forum" | "logs" | "settings" | "achievements";
+type AdministrationTabKey = "overview" | "users" | "reservations" | "forum" | "logs" | "settings" | "achievements";
 type AdministrationTab = {
     key: AdministrationTabKey;
     label: string;
 };
 
-export default function AdministrationClient() {
+export default function AdministrationClient({children}: {children: ReactNode}) {
     const {account} = useAuth();
+    const pathname = usePathname();
     const canManageApp = hasRoleAtLeast(account, "Admin");
-    const [activeTab, setActiveTab] = useState<AdministrationTabKey>("users");
     const tabs: AdministrationTab[] = [
+        //{ key: "overview", label: "Přehled" },
         { key: "users", label: "Uživatelé" },
         // { key: "reservations", label: "Rezervace" },
         // { key: "forum", label: "Forum příspěvky" },
@@ -35,24 +32,21 @@ export default function AdministrationClient() {
     return <main className={style.administration}>
         <h1>Administrace</h1>
 
-        <div className={style.tabs}>
-            {tabs.map(tab => (
-                <button
+        <nav className={style.tabs} aria-label="Sekce administrace">
+            {tabs.map(tab => {
+                const href = tab.key === "overview" ? "/app/administration" : `/app/administration/${tab.key}`;
+
+                return <Link
                     key={tab.key}
-                    type="button"
-                    className={activeTab === tab.key ? style.active : ""}
-                    onClick={() => setActiveTab(tab.key)}
+                    href={href}
+                    className={pathname === href ? style.active : ""}
+                    aria-current={pathname === href ? "page" : undefined}
                 >
                     {tab.label}
-                </button>
-            ))}
-        </div>
+                </Link>;
+            })}
+        </nav>
 
-        {activeTab === "users" && <UsersTab />}
-        {activeTab === "reservations" && <ReservationsTab />}
-        {activeTab === "forum" && <ForumPostsTab />}
-        {activeTab === "logs" && <LogsTab />}
-        {activeTab === "settings" && <AppSettingsTab />}
-        {activeTab === "achievements" && <AchievementsTab />}
+        <div className={style.tabContent}>{children}</div>
     </main>
 }

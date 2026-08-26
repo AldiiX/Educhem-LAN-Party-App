@@ -68,6 +68,7 @@ public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : 
 			OAuthProvider.Steam => "steam",
 			_ => throw new InvalidOperationException("Nepodporovany OAuth poskytovatel."),
 		};
+		var accountSettingsPath = "/app/account/settings";
 		switch (completion.Kind) {
 			case OAuthCompletionKind.LoginSucceeded:
 				if (completion.AccountId == null || await auth.SignInAsAsync(completion.AccountId.Value, ct) == null) return Redirect(BuildRedirect(origin, $"/app/login?{parameter}=error"));
@@ -75,13 +76,17 @@ public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : 
 			case OAuthCompletionKind.LoginNotLinked:
 				return Redirect(BuildRedirect(origin, $"/app/login?{parameter}=not-linked"));
 			case OAuthCompletionKind.Connected:
-				return Redirect(BuildRedirect(origin, $"/app/account?{parameter}=linked"));
+				return Redirect(BuildRedirect(origin, $"{accountSettingsPath}?{parameter}=linked"));
 			case OAuthCompletionKind.AlreadyLinked:
-				return Redirect(BuildRedirect(origin, $"/app/account?{parameter}=already-linked"));
+				return Redirect(BuildRedirect(origin, $"{accountSettingsPath}?{parameter}=already-linked"));
 			case OAuthCompletionKind.Cancelled:
-				return Redirect(BuildRedirect(origin, $"/app/login?{parameter}=cancelled"));
+				return Redirect(BuildRedirect(origin, completion.Flow == OAuthFlow.Connect
+					? $"{accountSettingsPath}?{parameter}=cancelled"
+					: $"/app/login?{parameter}=cancelled"));
 			default:
-				return Redirect(BuildRedirect(origin, $"/app/login?{parameter}=error"));
+				return Redirect(BuildRedirect(origin, completion.Flow == OAuthFlow.Connect
+					? $"{accountSettingsPath}?{parameter}=error"
+					: $"/app/login?{parameter}=error"));
 		}
 	}
 

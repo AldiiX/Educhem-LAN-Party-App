@@ -1,4 +1,4 @@
-import {ModalDestructive, ModalInformative} from "@/components/ModalDialog";
+import {ModalDestructive, ModalError, ModalInformative} from "@/components/ModalDialog";
 import {phrase} from "@/lib/communicationStyle";
 import {AccountPageState} from "../_hooks/types";
 
@@ -6,6 +6,15 @@ export function AccountModals({state}: {state: AccountPageState}) {
     const communicationStyle = state.account.communicationStyle;
 
     return <>
+        <ModalError
+            open={state.modal === "platform-error"}
+            title="Propojení se nezdařilo"
+            description={state.platformErrorMessage ?? "Účet se nepodařilo propojit."}
+            confirmText="Zavřít"
+            onClose={() => state.setModal(null)}
+            onConfirm={() => state.setModal(null)}
+        />
+
         <ModalInformative
             open={state.modal === "avatar-info"}
             title="Změna avataru"

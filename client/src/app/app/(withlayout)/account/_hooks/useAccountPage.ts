@@ -1,8 +1,6 @@
 "use client";
 
-import {useState} from "react";
 import {Account} from "@/schemas/AccountSchema";
-import {AccountTab} from "./types";
 import {useAccountModal} from "./useAccountModal";
 import {useAccountPassword} from "./useAccountPassword";
 import {useAccountProfile} from "./useAccountProfile";
@@ -11,7 +9,6 @@ import {useAccountAchievements} from "./useAccountAchievements";
 import {useAccountPlatforms} from "./useAccountPlatforms";
 
 export function useAccountPage(initialAccount: Account) {
-    const [selectedTab, setSelectedTab] = useState<AccountTab>("overview");
     const session = useAccountSession(initialAccount);
     const modal = useAccountModal();
     const profile = useAccountProfile(session.account, session.setAccount, modal.closeModal);
@@ -21,10 +18,10 @@ export function useAccountPage(initialAccount: Account) {
 
     return {
         account: session.account,
-        selectedTab,
-        setSelectedTab,
         modal: modal.modal,
         setModal: modal.setModal,
+        platformErrorMessage: modal.platformErrorMessage,
+        showPlatformError: modal.showPlatformError,
         logout: session.logout,
         toggleTheme: session.toggleTheme,
         ...achievements,

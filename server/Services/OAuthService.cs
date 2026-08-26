@@ -73,12 +73,12 @@ internal sealed class OAuthService(
     public async Task<OAuthCompletion> CompleteAuthorizationAsync(HttpRequest request, OAuthProvider provider, string? state, string? code, string? error, CancellationToken ct = default) {
         var oauthState = await stateService.ConsumeAsync(request, provider, state, ct);
         if (oauthState == null) return new OAuthCompletion(OAuthCompletionKind.InvalidState);
-        if (!providers.TryGetValue(provider, out var providerImplementation)) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+        if (!providers.TryGetValue(provider, out var providerImplementation)) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin, Flow: oauthState.Flow);
 
         var providerResult = await providerImplementation.CompleteAuthorizationAsync(request, oauthState, code, error, ct);
-        if (providerResult.Status == AuthorizationStatus.Cancelled) return new OAuthCompletion(OAuthCompletionKind.Cancelled, oauthState.ReturnOrigin);
+        if (providerResult.Status == AuthorizationStatus.Cancelled) return new OAuthCompletion(OAuthCompletionKind.Cancelled, oauthState.ReturnOrigin, Flow: oauthState.Flow);
         if (providerResult.Status != AuthorizationStatus.Succeeded || string.IsNullOrWhiteSpace(providerResult.ProviderUserId)) {
-            return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+            return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin, Flow: oauthState.Flow);
         }
 
         return oauthState.Flow == OAuthFlow.Login
@@ -164,18 +164,18 @@ internal sealed class OAuthService(
     /// <returns>uspesny login completion nebo stav oznamujici, ze identita neni propojena</returns>
     private async Task<OAuthCompletion> CompleteLoginAsync(ExternalAuthProviderBase providerImplementation, StatePayload oauthState, AuthorizationResult providerResult, CancellationToken ct) {
         var providerUserId = providerResult.ProviderUserId;
-        if (string.IsNullOrWhiteSpace(providerUserId)) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+        if (string.IsNullOrWhiteSpace(providerUserId)) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin, Flow: oauthState.Flow);
         var connection = await db.OAuthConnections
             .Include(item => item.Account)
             .FirstOrDefaultAsync(item => item.Provider == providerImplementation.Provider && item.ProviderUserId == providerUserId, ct);
-        if (connection == null) return new OAuthCompletion(OAuthCompletionKind.LoginNotLinked, oauthState.ReturnOrigin);
+        if (connection == null) return new OAuthCompletion(OAuthCompletionKind.LoginNotLinked, oauthState.ReturnOrigin, Flow: oauthState.Flow);
 
         if (providerResult.Profile != null) {
             ApplyConnection(connection.Account, connection, providerImplementation, providerResult.Profile, providerResult.Credentials, providerResult.MarkValidated);
             await db.SaveChangesAsync(ct);
         }
 
-        return new OAuthCompletion(OAuthCompletionKind.LoginSucceeded, oauthState.ReturnOrigin, connection.AccountId);
+        return new OAuthCompletion(OAuthCompletionKind.LoginSucceeded, oauthState.ReturnOrigin, connection.AccountId, oauthState.Flow);
     }
 
     /// <summary>
@@ -187,19 +187,19 @@ internal sealed class OAuthService(
     /// <param name="ct">token pro zruseni asynchronni operace</param>
     /// <returns>completion popisujici uspesne propojeni, konflikt identity nebo chybu</returns>
     private async Task<OAuthCompletion> CompleteConnectionAsync(ExternalAuthProviderBase providerImplementation, StatePayload oauthState, AuthorizationResult providerResult, CancellationToken ct) {
-        if (oauthState.AccountId == null) return new OAuthCompletion(OAuthCompletionKind.InvalidState, oauthState.ReturnOrigin);
-        if (providerResult.Profile == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+        if (oauthState.AccountId == null) return new OAuthCompletion(OAuthCompletionKind.InvalidState, oauthState.ReturnOrigin, Flow: oauthState.Flow);
+        if (providerResult.Profile == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin, Flow: oauthState.Flow);
         var providerUserId = providerResult.ProviderUserId;
-        if (string.IsNullOrWhiteSpace(providerUserId)) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+        if (string.IsNullOrWhiteSpace(providerUserId)) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin, Flow: oauthState.Flow);
 
         var account = await db.Accounts
             .Include(item => item.OAuthConnections)
             .FirstOrDefaultAsync(item => item.Id == oauthState.AccountId.Value, ct);
-        if (account == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin);
+        if (account == null) return new OAuthCompletion(OAuthCompletionKind.Failed, oauthState.ReturnOrigin, Flow: oauthState.Flow);
 
         var alreadyConnected = await db.OAuthConnections.AsNoTracking()
             .FirstOrDefaultAsync(item => item.Provider == providerImplementation.Provider && item.ProviderUserId == providerUserId && item.AccountId != account.Id, ct);
-        if (alreadyConnected != null) return new OAuthCompletion(OAuthCompletionKind.AlreadyLinked, oauthState.ReturnOrigin);
+        if (alreadyConnected != null) return new OAuthCompletion(OAuthCompletionKind.AlreadyLinked, oauthState.ReturnOrigin, Flow: oauthState.Flow);
 
         var connection = account.OAuthConnections.FirstOrDefault(item => item.Provider == providerImplementation.Provider);
         var isNewConnection = connection == null;
@@ -221,7 +221,7 @@ internal sealed class OAuthService(
             await dbLogger.LogInfoAsync($"Účet {FormatAccount(account)} propojil platformu {providerImplementation.Provider} jako {providerResult.Profile.Username}.", "platform-connect", ct);
         }
 
-        return new OAuthCompletion(OAuthCompletionKind.Connected, oauthState.ReturnOrigin, account.Id);
+        return new OAuthCompletion(OAuthCompletionKind.Connected, oauthState.ReturnOrigin, account.Id, oauthState.Flow);
     }
 
     /// <summary>

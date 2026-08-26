@@ -1,4 +1,4 @@
-﻿import styles from "./AccountAchievements.module.scss";
+﻿import styles from "./BadgeCard.module.scss";
 import { AccountBadge } from "@/schemas/AchievementBadgeSchema";
 
 type BadgeCardProps = {

@@ -58,6 +58,12 @@ const nextConfig: NextConfig = {
     async redirects() {
         return [
             {
+                source: "/app/administration",
+                destination: "/app/administration/users",
+                permanent: false
+            },
+            
+            {
                 source: "/app/reservation",
                 destination: "/app/reservations",
                 permanent: true,
@@ -85,23 +91,34 @@ const nextConfig: NextConfig = {
 
     // set reverse proxy for api calls - pouze v devu
     async rewrites() {
-        return [
-            ...trapRedirectSources.map((source) => ({
-                source,
-                destination: "/__nice-try",
-            })),
+        return {
+            beforeFiles: [
+                /*{
+                    source: "/app/administration",
+                    destination: "/app/administration/users",
+                },*/
 
-            {
-                source: '/api/:path*',
-                destination: 'http://localhost:8080/api/:path*' // Proxy to Backend
-            },
+                ...trapRedirectSources.map((source) => ({
+                    source,
+                    destination: "/__nice-try",
+                })),
+            ],
 
-            {
-                source: '/hubs/:path*',
-                destination: 'http://localhost:8080/hubs/:path*' // Proxy to Backend
-            }
-        ]
-    },
+            afterFiles: [
+                {
+                    source: "/api/:path*",
+                    destination: "http://localhost:8080/api/:path*",
+                },
+
+                {
+                    source: "/hubs/:path*",
+                    destination: "http://localhost:8080/hubs/:path*",
+                },
+            ],
+
+            fallback: [],
+        };
+    }
 
     //reactStrictMode: false, // pouze pro dev test
 };

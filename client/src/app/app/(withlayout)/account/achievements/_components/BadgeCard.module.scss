@@ -1,0 +1,68 @@
+﻿.badgeItem {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.badgeFull {
+    display: flex;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--element-bg);
+    min-height: 96px;
+}
+
+.badgeCompact {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+}
+
+.icon,
+.iconPlaceholder {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: var(--accent-soft);
+    color: var(--accent-color);
+    font-weight: 700;
+}
+
+.icon {
+    object-fit: cover;
+}
+
+.cardContent {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    > h3 {
+        font-size: 16px;
+    }
+
+    > p {
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+}
+
+.cardActions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.badgeActions {
+    display: flex;
+    justify-content: flex-end;
+}

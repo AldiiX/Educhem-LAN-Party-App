@@ -100,6 +100,14 @@
                 margin-top: 18px;
             }
         }
+
+        &.errorDialog {
+            .content {
+                .actions {
+                    grid-template-columns: 1fr;
+                }
+            }
+        }
     }
 }
 

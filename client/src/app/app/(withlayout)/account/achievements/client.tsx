@@ -1,15 +1,18 @@
-﻿import styles from "./AccountAchievements.module.scss";
+﻿"use client";
+
+import styles from "./client.module.scss";
 import { Account } from "@/schemas/AccountSchema";
 import { AccountPageState } from "../_hooks/types";
-import { BadgeCard } from "./BadgeCard";
+import { BadgeCard } from "./_components/BadgeCard";
+import {useAccountPageContext} from "@/app/app/(withlayout)/account/layoutclient";
 
 type AccountAchievementsProps = {
     account: Account;
-    state: AccountPageState;
 };
 
-export function AccountAchievements({ account, state }: AccountAchievementsProps) {
-    const { achievementUpdatingIds, badgeUpdatingIds } = state;
+export default function Client() {
+    const state = useAccountPageContext();
+    const { achievementUpdatingIds, badgeUpdatingIds, account } = state;
     const achievements = account.achievements ?? [];
     const badges = account.badges ?? [];
     const takenOutCount = badges.filter((entry) => entry.isTakenOut).length;
