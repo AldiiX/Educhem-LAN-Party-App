@@ -24,8 +24,6 @@ internal static class AccountMapper {
 				DiscordUsername = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Discord)?.Username,
 				GitHubUsername = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.GitHub)?.Username,
 				GitHubProfileUrl = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.GitHub)?.ProfileUrl,
-				GoogleName = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Google)?.Username,
-				AppleName = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Apple)?.Username,
 				SteamUsername = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Steam)?.Username,
 				SteamProfileUrl = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Steam)?.ProfileUrl,
 				Gender = account.Gender,
