@@ -28,6 +28,12 @@ export const AttendanceOverviewSchema = z.object({
         total: z.number(),
     }),
     attendanceEnabled: z.boolean(),
+    pagination: z.object({
+        page: z.number(),
+        pageSize: z.number(),
+        totalEntries: z.number(),
+        totalPages: z.number(),
+    }),
 });
 
 export const AttendanceDeltaSchema = z.object({

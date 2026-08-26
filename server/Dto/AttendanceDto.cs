@@ -21,11 +21,19 @@ public sealed record AttendanceStatsDto(
 	int Total
 );
 
+public sealed record AttendancePaginationDto(
+	int Page,
+	int PageSize,
+	int TotalEntries,
+	int TotalPages
+);
+
 public sealed record AttendanceOverviewDto(
 	IReadOnlyList<AttendanceEntryDto> Entries,
 	IReadOnlyList<AttendanceParticipantDto> Participants,
 	AttendanceStatsDto Stats,
-	bool AttendanceEnabled
+	bool AttendanceEnabled,
+	AttendancePaginationDto Pagination
 );
 
 public sealed record AttendanceDeltaDto(

@@ -1,6 +1,18 @@
 .attendance {
     padding-right: 12px;
 
+    .grid {
+        display: grid;
+        grid-template-columns: minmax(280px, 420px) minmax(320px, 1fr);
+        gap: 24px;
+        height: calc(100vh - 332px);
+        margin-top: 24px;
+
+        .form {
+            align-self: start;
+        }
+    }
+
     h1 {
         font-size: 32px;
         line-height: 1;
@@ -41,7 +53,7 @@
     min-height: 104px;
     padding: 22px;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 12px;
     background: var(--element-bg);
     box-shadow: 0 16px 38px #00000014;
 
@@ -69,18 +81,9 @@
     }
 }
 
-.grid {
-    display: grid;
-    grid-template-columns: minmax(280px, 420px) minmax(320px, 1fr);
-    gap: 24px;
-    margin-top: 24px;
-}
-
-.form,
-.participants,
-.timeline {
+.form {
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 12px;
     background: var(--element-bg);
     box-shadow: 0 16px 38px #00000014;
 }
@@ -106,7 +109,7 @@
     textarea {
         width: 100%;
         border: 1px solid var(--border-color);
-        border-radius: 8px;
+        border-radius: 12px;
         background: var(--background-bg);
         color: var(--text-color);
         font: inherit;
@@ -151,7 +154,7 @@
         align-items: center;
         justify-content: center;
         gap: 10px;
-        border-radius: 8px;
+        border-radius: 12px;
         background: var(--accent-color);
         color: var(--accent-color-text);
         font-weight: 600;
@@ -173,8 +176,7 @@
     }
 }
 
-.sectionHeader,
-.timelineHeader {
+.sectionHeader {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -189,7 +191,7 @@
 
     >span {
         padding: 6px 10px;
-        border-radius: 8px;
+        border-radius: 12px;
         background: var(--accent-soft);
         color: var(--accent-color);
         font-size: 14px;
@@ -203,7 +205,7 @@
     align-items: center;
     gap: 12px;
     padding: 12px;
-    border-radius: 8px;
+    border-radius: 12px;
     background: var(--background-bg);
 
     strong {
@@ -219,9 +221,164 @@
     }
 }
 
-.participants {
+.tabPanel {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    row-gap: 18px;
+    min-width: 0;
     min-height: 300px;
     padding: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--element-bg);
+    box-shadow: 0 16px 38px #00000014;
+    overflow: hidden;
+
+    .tabs {
+        display: flex;
+        gap: 8px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .tab {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        gap: 8px;
+        padding: 0 14px;
+        border-bottom: 2px solid transparent;
+        color: var(--text-color-secondary);
+        font-weight: 700;
+        transition: border-color .2s ease, color .2s ease, background .2s ease;
+
+        span {
+            min-width: 24px;
+            padding: 3px 7px;
+            border-radius: 12px;
+            background: var(--background-bg);
+            color: var(--text-color-darker);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        &:hover {
+            color: var(--text-color);
+            background: color-mix(in srgb, var(--accent-soft) 24%, transparent);
+        }
+
+        &:focus-visible {
+            border-radius: 6px 6px 0 0;
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        &.activeTab {
+            border-bottom-color: var(--accent-color);
+            color: var(--accent-color);
+
+            span {
+                background: var(--accent-soft);
+                color: var(--accent-color);
+            }
+        }
+    }
+
+    .tabContent {
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 4px;
+        scrollbar-color: var(--text-color-3) var(--background-bg);
+        scrollbar-width: thin;
+
+        &::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        &::-webkit-scrollbar-track {
+            border: none;
+            outline: none;
+            background-color: var(--background-bg);
+            box-shadow: none;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background-color: var(--text-color-3);
+            box-shadow: none;
+        }
+
+        .participantList {
+            max-height: none;
+            overflow: visible;
+            padding-right: 0;
+        }
+
+        .participantList,
+        .entries {
+            margin-top: 0;
+        }
+    }
+
+    .recordsToolbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+
+        h2 {
+            color: var(--accent-color);
+            font-size: 24px;
+            line-height: 1.1;
+            font-weight: 600;
+        }
+
+        p {
+            margin-top: 4px;
+            color: var(--text-color-darker);
+        }
+    }
+
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        margin-top: 18px;
+
+        span {
+            color: var(--text-color-secondary);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        button {
+            min-height: 38px;
+            padding: 0 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--background-bg);
+            color: var(--text-color);
+            font-weight: 600;
+            transition: border-color .2s ease, color .2s ease, opacity .2s ease;
+
+            &:hover:not(:disabled) {
+                border-color: var(--accent-color);
+                color: var(--accent-color);
+            }
+
+            &:disabled {
+                cursor: not-allowed;
+                opacity: .45;
+            }
+        }
+    }
+
+    .skeletonTab {
+        width: 112px;
+        height: 42px;
+        margin-bottom: 2px;
+    }
 }
 
 .participantList {
@@ -240,7 +397,7 @@
     gap: 12px;
     min-height: 58px;
     padding: 10px;
-    border-radius: 8px;
+    border-radius: 12px;
     color: var(--text-color);
     text-decoration: none;
     transition: background .2s ease;
@@ -271,20 +428,6 @@
     }
 }
 
-.timeline {
-    margin-top: 24px;
-    padding: 24px;
-}
-
-.timelineHeader {
-    align-items: flex-start;
-
-    p {
-        margin-top: 4px;
-        color: var(--text-color-darker);
-    }
-}
-
 .searchBox {
     display: flex;
     align-items: center;
@@ -293,7 +436,7 @@
     min-height: 42px;
     padding: 0 12px;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 12px;
     background: var(--background-bg);
     transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
 
@@ -341,7 +484,7 @@
     gap: 18px;
     padding: 16px;
     border: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
-    border-radius: 8px;
+    border-radius: 12px;
     background: var(--background-bg);
 }
 
@@ -405,7 +548,7 @@
     justify-content: center;
     min-width: 72px;
     padding: 5px 9px;
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 13px;
     font-style: normal;
     font-weight: 700;
@@ -435,7 +578,7 @@
     min-height: 42px;
     margin-top: 16px;
     padding: 0 14px;
-    border-radius: 8px;
+    border-radius: 12px;
     background: var(--accent-color);
     color: var(--accent-color-text);
     font-weight: 700;
@@ -447,7 +590,7 @@
 
 .skeletonBlock {
     display: block;
-    border-radius: 8px;
+    border-radius: 12px;
     background:
         linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--text-color) 7%, transparent) 46%, transparent 92%),
         color-mix(in srgb, var(--text-color) 9%, var(--element-bg));
@@ -477,7 +620,7 @@
 .skeletonPill {
     width: 78px;
     height: 26px;
-    border-radius: 8px;
+    border-radius: 12px;
 }
 
 .skeletonText,
@@ -546,7 +689,7 @@
     gap: 12px;
     min-height: 58px;
     padding: 10px;
-    border-radius: 8px;
+    border-radius: 12px;
 }
 
 .skeletonEntry {
@@ -572,8 +715,10 @@
         grid-template-columns: 1fr;
     }
 
-    .timelineHeader {
-        display: grid;
+    .attendance {
+        .grid {
+            height: auto;
+        }
     }
 
     .searchBox {
@@ -588,6 +733,12 @@
     .entry {
         grid-template-columns: 1fr;
     }
+
+    .tabPanel {
+        .recordsToolbar {
+            display: grid;
+        }
+    }
 }
 
 @media (max-width: 520px) {
@@ -596,10 +747,29 @@
     }
 
     .statCard,
-    .form,
-    .participants,
-    .timeline {
+    .form {
         padding: 18px;
+    }
+
+    .tabPanel {
+        padding: 18px;
+
+        .tabs {
+            overflow-x: auto;
+        }
+
+        .tab {
+            flex: 1 0 auto;
+            justify-content: center;
+        }
+
+        .pagination {
+            gap: 8px;
+
+            button {
+                padding: 0 9px;
+            }
+        }
     }
 
     .participant {

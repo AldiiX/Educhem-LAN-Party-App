@@ -19,18 +19,23 @@ public sealed class AttendanceControllerV1(
 	IDbLoggerService dbLogger
 ) : Controller {
 	private const string AttendanceOverviewCacheKey = "attendance:overview";
+	private const int AttendancePageSize = 25;
 	private static readonly TimeSpan CreateCooldown = TimeSpan.FromMinutes(2);
 
 	[HttpGet]
-	public async Task<IActionResult> GetAttendance(CancellationToken ct = default) {
+	public async Task<IActionResult> GetAttendance(
+		[FromQuery] int page = 1,
+		[FromQuery] string? search = null,
+		CancellationToken ct = default
+	) {
 		var acc = await auth.ReAuthAsync(ct);
 		if(acc == null) return new UnauthorizedResult();
 
 		var attendanceEnabled = await appSettings.GetAttendanceEnabledAsync(ct);
-		if(cache.TryGetValue(AttendanceOverviewCacheKey, out AttendanceOverviewDto? cachedOverview)
+		if(cache.TryGetValue(AttendanceOverviewCacheKey, out AttendanceOverviewCache? cachedOverview)
 		   && cachedOverview is not null
 		   && cachedOverview.AttendanceEnabled == attendanceEnabled) {
-			return Ok(cachedOverview);
+			return Ok(BuildOverview(cachedOverview, page, search));
 		}
 
 		var entries = await db.AttendanceEntriesEf()
@@ -58,7 +63,7 @@ public sealed class AttendanceControllerV1(
 			.ToList();
 		var present = participantDtos.Count(p => p.CurrentState == AttendanceEntryType.CheckIn);
 
-		var overview = new AttendanceOverviewDto(
+		var overview = new AttendanceOverviewCache(
 			entries.Select(e => e.ToDto()).ToList(),
 			participantDtos,
 			new AttendanceStatsDto(present, Math.Max(0, participants.Count - present), participants.Count),
@@ -66,7 +71,7 @@ public sealed class AttendanceControllerV1(
 		);
 		cache.Set(AttendanceOverviewCacheKey, overview);
 
-		return Ok(overview);
+		return Ok(BuildOverview(overview, page, search));
 	}
 
 	[HttpPost]
@@ -192,7 +197,7 @@ public sealed class AttendanceControllerV1(
 	}
 
 	private void UpdateCachedOverview(AttendanceDeltaDto delta) {
-		if(!cache.TryGetValue(AttendanceOverviewCacheKey, out AttendanceOverviewDto? overview)
+		if(!cache.TryGetValue(AttendanceOverviewCacheKey, out AttendanceOverviewCache? overview)
 		   || overview is null) {
 			return;
 		}
@@ -214,6 +219,37 @@ public sealed class AttendanceControllerV1(
 			Participants = participants,
 			Stats = delta.Stats,
 		});
+	}
+
+	private static AttendanceOverviewDto BuildOverview(AttendanceOverviewCache overview, int page, string? search) {
+		var normalizedSearch = NormalizeOptional(search);
+		var matchingEntries = normalizedSearch is null
+			? overview.Entries
+			: overview.Entries.Where(entry => MatchesSearch(entry, normalizedSearch)).ToList();
+		var totalEntries = matchingEntries.Count;
+		var totalPages = totalEntries == 0 ? 0 : (int)Math.Ceiling(totalEntries / (double)AttendancePageSize);
+		var currentPage = totalPages == 0 ? 1 : Math.Clamp(page, 1, totalPages);
+		var entries = matchingEntries
+			.Skip((currentPage - 1) * AttendancePageSize)
+			.Take(AttendancePageSize)
+			.ToList();
+
+		return new AttendanceOverviewDto(
+			entries,
+			overview.Participants,
+			overview.Stats,
+			overview.AttendanceEnabled,
+			new AttendancePaginationDto(currentPage, AttendancePageSize, totalEntries, totalPages)
+		);
+	}
+
+	private static bool MatchesSearch(AttendanceEntryDto entry, string search) {
+		return entry.Profile.FullName.Contains(search, StringComparison.CurrentCultureIgnoreCase)
+		       || (entry.Profile.Enrollment?.Class?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false)
+		       || (entry.Reason?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false)
+		       || entry.CreatedBy.FullName.Contains(search, StringComparison.CurrentCultureIgnoreCase)
+		       || (entry.Type == AttendanceEntryType.CheckIn ? "Příchod" : "Odchod")
+		       .Contains(search, StringComparison.CurrentCultureIgnoreCase);
 	}
 
 	private static bool HasRoleAtLeast(Account account, AccountType accountType) {
@@ -246,5 +282,12 @@ public sealed class AttendanceControllerV1(
 		AttendanceEntryType Type,
 		Guid? AccountId,
 		string? Reason
+	);
+
+	private sealed record AttendanceOverviewCache(
+		IReadOnlyList<AttendanceEntryDto> Entries,
+		IReadOnlyList<AttendanceParticipantDto> Participants,
+		AttendanceStatsDto Stats,
+		bool AttendanceEnabled
 	);
 }
