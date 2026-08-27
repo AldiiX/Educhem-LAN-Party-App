@@ -1,4 +1,4 @@
-﻿import style from './LogsToolbar.module.scss' 
+import style from "./LogsToolbar.module.scss";
 
 type LogsToolbarProps = {
     totalCount: number;
@@ -41,4 +41,3 @@ export function LogsToolbar({
         </button>
     </section>;
 }
-

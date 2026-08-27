@@ -1,6 +1,8 @@
 import {useState} from "react";
 import useSWR from "swr";
 import {fetcher} from "@/lib/swr";
+import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {hasRoleAtLeast} from "@/lib/roles";
 import {LogEntry, LogEntrySchema} from "@/schemas/LogEntrySchema";
 
 const logsFetcher = async (url: string) => {
@@ -10,7 +12,13 @@ const logsFetcher = async (url: string) => {
 };
 
 export function useLogsQuery() {
-    const {data, error, isLoading, mutate} = useSWR<LogEntry[]>("/api/v1/adm/logs", logsFetcher);
+    const {account} = useAuth();
+    const canManageApp = hasRoleAtLeast(account, "Admin");
+
+    const {data, error, isLoading, mutate} = useSWR<LogEntry[]>(
+        canManageApp ? "/api/v1/adm/logs" : null,
+        logsFetcher
+    );
     const logs = data ?? [];
 
     const [searchTerm, setSearchTerm] = useState("");

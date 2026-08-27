@@ -1,4 +1,4 @@
-﻿import style from "./LogsFilter.module.scss";
+import style from "./LogsFilter.module.scss";
 
 type LogFiltersProps = {
     logTypes: string[];
@@ -93,4 +93,3 @@ export function LogsFilters({
         </div>
     </section>;
 }
-

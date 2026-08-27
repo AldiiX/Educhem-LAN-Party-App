@@ -1,13 +1,31 @@
-﻿"use client";
+"use client";
 
-import style from "./AppSettingsTab.module.scss";
-import If from "../../../../../../components/util/If";
-import {CountdownTimer} from "../CountdownTimer";
-import {useAppSettings} from "../../_hooks/useAppSettings";
+import style from "./client.module.scss";
+import {useEffect} from "react";
+import {useRouter} from "next/navigation";
+import If from "@/components/util/If";
+import {CountdownTimer} from "./_components/CountdownTimer";
+import {useAppSettings} from "../_hooks/useAppSettings";
+import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {hasRoleAtLeast} from "@/lib/roles";
 import {ReservationStatusType} from "@/schemas/AppSettingsSchema";
 
-export function AppSettingsTab() {
+export function AppSettings() {
+    const {account} = useAuth();
+    const router = useRouter();
+    const canManageApp = hasRoleAtLeast(account, "Admin");
+
+    useEffect(() => {
+        if (!canManageApp) {
+            router.replace("/app/administration/users");
+        }
+    }, [canManageApp, router]);
+
     const settings = useAppSettings();
+
+    if (!canManageApp) {
+        return null;
+    }
 
     if (settings.error) {
         return (
@@ -179,12 +197,14 @@ export function AppSettingsTab() {
     );
 }
 
+export const AppSettingsTab = AppSettings;
+
 function ReservationTimerInfo({
     serverNow,
-        from,
-        to,
-        reservationsEnabledRightNow,
-        onFinished,
+    from,
+    to,
+    reservationsEnabledRightNow,
+    onFinished,
 }: {
     serverNow: Date;
     from: Date;

@@ -2,7 +2,7 @@ import {Account} from "@/schemas/AccountSchema";
 import {Avatar} from "@/components/Avatar";
 import {accountTypeLabel, genderLabel, schoolLabel} from "@/lib/enumLabels";
 import style from "./AccountsTable.module.scss";
-import {AccountTableSort, SortKey} from "../_hooks/types";
+import {AccountTableSort, SortKey} from "../../_hooks/types";
 
 type AccountsTableProps = {
     accounts: Account[];

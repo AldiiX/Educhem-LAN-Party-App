@@ -1,12 +1,12 @@
-﻿"use client";
+"use client";
 
-import style from "../../client.module.scss";
-import {AdministrationFilters} from "../AdministrationFilters";
-import {AccountsTable} from "../AccountsTable";
-import {AccountModals} from "../AccountModals";
-import {useAdministrationAccounts} from "../../_hooks/useAdministrationAccounts";
+import style from "../layoutclient.module.scss";
+import {useAdministrationAccounts} from "@/app/app/(withlayout)/administration/_hooks/useAdministrationAccounts";
+import {AdministrationFilters} from "./_components/AdministrationFilters";
+import {AccountsTable} from "./_components/AccountsTable";
+import {AccountModals} from "./_components/AccountModals";
 
-export function UsersTab() {
+export function Users() {
     const administration = useAdministrationAccounts();
 
     if(administration.accountsError) {
@@ -71,4 +71,3 @@ export function UsersTab() {
         />
     </>;
 }
-

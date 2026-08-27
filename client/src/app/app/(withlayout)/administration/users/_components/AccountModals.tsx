@@ -6,7 +6,7 @@ import {Modal} from "@/components/Modal";
 import {ModalDestructive, ModalInformative} from "@/components/ModalDialog";
 import {phrase} from "@/lib/communicationStyle";
 import {accountTypeFilterLabel, accountTypeLabel, communicationStyleLabel, genderLabel, schoolLabel} from "@/lib/enumLabels";
-import {AccountForm, ModalMode, SchoolOption} from "../_hooks/types";
+import {AccountForm, ModalMode, SchoolOption} from "../../_hooks/types";
 import style from "./AccountModals.module.scss";
 
 type AccountModalsProps = {

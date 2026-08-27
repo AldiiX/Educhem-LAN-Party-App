@@ -1,5 +1,5 @@
 import style from "./AdministrationFilters.module.scss";
-import {FilterKey, FilterOption} from "../_hooks/types";
+import {FilterKey, FilterOption} from "../../_hooks/types";
 
 type AdministrationFiltersProps = {
     activeFilterCount: number;

@@ -1,6 +1,10 @@
 import type {ReactNode} from "react";
-import AdministrationClient from "./client";
+import AdministrationClient from "./layoutclient";
+import {requireAdministrationRole} from "./_lib/requireAdministrationRole";
 
-export default function AdministrationLayout({children}: {children: ReactNode}) {
+export default async function AdministrationLayout({children}: {children: ReactNode}) {
+    await requireAdministrationRole("TeacherOrg");
+
     return <AdministrationClient>{children}</AdministrationClient>;
 }
+

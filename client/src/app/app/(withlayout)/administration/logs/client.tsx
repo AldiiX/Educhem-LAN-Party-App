@@ -1,17 +1,31 @@
-﻿"use client";
+"use client";
 
-import style from "../../client.module.scss";
-
-import {useLogsAdministration} from "../../_hooks/useAdministrationLogs";
-
-import {LogsToolbar} from "../LogsToolbar";
-import {LogsFilters} from "../LogsFilters";
-import {LogsTable} from "../LogsTable";
-
+import style from "../layoutclient.module.scss";
+import {useEffect} from "react";
+import {useRouter} from "next/navigation";
+import {useLogsAdministration} from "../_hooks/useAdministrationLogs";
+import {LogsToolbar} from "./_components/LogsToolbar";
+import {LogsFilters} from "./_components/LogsFilters";
+import {LogsTable} from "./_components/LogsTable";
+import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {hasRoleAtLeast} from "@/lib/roles";
 
-export function LogsTab() {
+export function Logs() {
+    const {account} = useAuth();
+    const router = useRouter();
+    const canManageApp = hasRoleAtLeast(account, "Admin");
+
+    useEffect(() => {
+        if (!canManageApp) {
+            router.replace("/app/administration/users");
+        }
+    }, [canManageApp, router]);
+
     const logsAdministration = useLogsAdministration();
+
+    if (!canManageApp) {
+        return null;
+    }
 
     if(logsAdministration.logsError) {
         return <>
@@ -64,3 +78,5 @@ export function LogsTab() {
         </section>
     </>;
 }
+
+export const LogsTab = Logs;

@@ -1,6 +1,8 @@
-﻿import {FormEvent, useEffect, useMemo, useState} from "react";
+import {FormEvent, useEffect, useMemo, useState} from "react";
 import useSWR from "swr";
 import {toast} from "react-hot-toast";
+import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {hasRoleAtLeast} from "@/lib/roles";
 import {
     AppSettingsResponse,
     mapAppSettings,
@@ -26,11 +28,18 @@ export type CacheClearResult = {
 };
 
 export function useAppSettings() {
-    const {data, error, isLoading, mutate} = useSWR("/api/v1/appsettings", fetcher, {
-        revalidateOnFocus: false,
-        revalidateOnReconnect: false,
-        refreshInterval: 0
-    });
+    const {account} = useAuth();
+    const canManageApp = hasRoleAtLeast(account, "Admin");
+
+    const {data, error, isLoading, mutate} = useSWR(
+        canManageApp ? "/api/v1/appsettings" : null,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+            refreshInterval: 0
+        }
+    );
 
     const appSettings = useMemo(() => data ? mapAppSettings(data) : null, [data]);
 

@@ -258,7 +258,7 @@
     width: 15px;
     height: 15px;
     background: currentColor;
-    mask-image: url("../../../../../../public/icons/trash.svg");
+    mask-image: url("../../../../../../../public/icons/trash.svg");
     mask-size: contain;
     mask-repeat: no-repeat;
     mask-position: center;
@@ -427,5 +427,4 @@
     .editRows {
         grid-template-columns: 1fr;
     }
-
 }

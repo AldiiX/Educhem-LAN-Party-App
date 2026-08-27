@@ -28,5 +28,5 @@ export function LogsTable({logs}: LogsTableProps) {
             ))}
             </tbody>
         </table>
-    </section>
+    </section>;
 }
