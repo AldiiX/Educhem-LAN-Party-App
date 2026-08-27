@@ -1,4 +1,4 @@
-﻿.reservationStatus {
+.reservationStatus {
     min-width: 210px;
     padding: 14px 16px;
     border-radius: 12px;
@@ -28,10 +28,8 @@
         strong {
         }
     }
-}
 
-@media (max-width: 700px) {
-    .reservationStatus {
+    @media (max-width: 700px) {
         min-width: min(210px, 70vw);
         padding: 12px;
 

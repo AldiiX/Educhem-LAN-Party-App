@@ -1,4 +1,4 @@
-﻿.banner {
+.banner {
     top: 0;
     left: 0;
     width: 100%;
@@ -22,7 +22,6 @@
         background-repeat: no-repeat;
     }
 
-
     .avatar {
         box-sizing: content-box;
         position: absolute;
@@ -30,6 +29,27 @@
         left: 64px;
         border: 16px solid var(--background-bg);
         z-index: 1;
+    }
+
+    @media (max-width: 960px) {
+        height: 240px;
+
+        .avatar {
+            --size: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: -90px;
+            border-width: 10px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        height: 200px;
+
+        .avatar {
+            --size: 150px;
+            bottom: -76px;
+        }
     }
 }
 
@@ -147,6 +167,7 @@
             padding: 16px;
             border-radius: 12px;
             background: var(--element-bg);
+            max-height: 320px;
         }
 
         .barHeader {
@@ -167,10 +188,6 @@
 
         .barEmpty {
             color: var(--text-muted);
-        }
-
-        .achievementBar {
-            max-height: 320px;
         }
 
         .achievementList {
@@ -242,22 +259,8 @@
             white-space: nowrap;
         }
     }
-}
 
-@media (max-width: 960px) {
-    .banner {
-        height: 240px;
-
-        .avatar {
-            --size: 180px;
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: -90px;
-            border-width: 10px;
-        }
-    }
-
-    .flex {
+    @media (max-width: 960px) {
         flex-direction: column;
         padding: 0 24px;
 
@@ -288,19 +291,8 @@
             }
         }
     }
-}
 
-@media (max-width: 640px) {
-    .banner {
-        height: 200px;
-
-        .avatar {
-            --size: 150px;
-            bottom: -76px;
-        }
-    }
-
-    .flex {
+    @media (max-width: 640px) {
         padding: 0 16px;
 
         .right {

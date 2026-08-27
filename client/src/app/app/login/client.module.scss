@@ -1,4 +1,4 @@
-﻿.parent{
+.parent{
     position: relative;
     display: flex;
     width: 100vw;
@@ -234,6 +234,18 @@
 
         }
     }
+
+    @media (max-width: 768px) {
+        >.left-side {
+            width: 100%;
+            border-radius: 0;
+            height: 100%;
+            max-width: 100vw;
+        }
+        >.right-side {
+            display: none;
+        }
+    }
 }
 
 .resetModal {
@@ -367,10 +379,8 @@
                 linear-gradient(180deg, rgba(255, 131, 0, .12), transparent 34%),
                 var(--element-bg);
     }
-}
 
-@media (max-width: 520px) {
-    .resetModal {
+    @media (max-width: 520px) {
         width: min(100%, calc(100vw - 28px));
 
         form {
@@ -394,21 +404,6 @@
                     }
                 }
             }
-        }
-    }
-}
-
-
-@media (max-width: 768px) {
-    .parent{
-        >.left-side {
-            width: 100%;
-            border-radius: 0;
-            height: 100%;
-            max-width: 100vw;
-        }
-        >.right-side {
-            display: none;
         }
     }
 }

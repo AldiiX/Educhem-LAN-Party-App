@@ -66,6 +66,22 @@
         >* {
             pointer-events: auto;
         }
+
+        &.topLeft,
+        &.topLeft {
+            top: 28px;
+            left: 28px;
+        }
+
+        &.bottomLeft {
+            bottom: 28px;
+            left: 28px;
+        }
+
+        &.bottomRight {
+            right: 28px;
+            bottom: 28px;
+        }
     }
 
     .topLeft {
@@ -82,10 +98,8 @@
         right: 28px;
         bottom: 28px;
     }
-}
 
-@media (max-width: 720px) {
-    .map {
+    @media (max-width: 720px) {
         min-height: 420px;
 
         .controls {
@@ -98,6 +112,23 @@
                 width: 42px;
                 height: 42px;
                 font-size: 22px;
+            }
+        }
+
+        .overlay {
+            &.topLeft {
+                top: 12px;
+                left: 12px;
+            }
+
+            &.bottomLeft {
+                bottom: 12px;
+                left: 12px;
+            }
+
+            &.bottomRight {
+                right: 12px;
+                bottom: 12px;
             }
         }
 

@@ -471,10 +471,8 @@
             }
         }
     }
-}
 
-@media (max-width: 1500px) {
-    .home {
+    @media (max-width: 1500px) {
         padding-top: 52px;
 
         .hero {
@@ -498,10 +496,8 @@
             }
         }
     }
-}
 
-@media (max-width: 980px) {
-    .home {
+    @media (max-width: 980px) {
         padding-top: 92px;
 
         .hero {
@@ -525,10 +521,8 @@
             }
         }
     }
-}
 
-@media (max-width: 620px) {
-    .home {
+    @media (max-width: 620px) {
         .hero {
             .quickLinks {
                 grid-template-columns: 1fr;

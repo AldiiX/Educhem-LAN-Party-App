@@ -30,6 +30,25 @@
         tbody tr:last-child td {
             border-bottom: 0;
         }
+
+        .logType {
+            font-weight: 600;
+        }
+
+        .exactType {
+            color: var(--accent-color);
+        }
+
+        .message {
+            max-width: 700px;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+        .date {
+            white-space: nowrap;
+            color: var(--text-color-darker);
+        }
     }
     
     .logType {

@@ -1,4 +1,4 @@
-﻿.title {
+.title {
     margin-bottom: 24px;
 }
 
@@ -21,6 +21,10 @@
             background: var(--accent-soft);
             color: var(--accent-color);
         }
+    }
+
+    @media (max-width: 720px) {
+        margin-bottom: 30px;
     }
 }
 
@@ -604,15 +608,8 @@
             }
         }
     }
-}
 
-
-@media (max-width: 720px) {
-    .tabs {
-        margin-bottom: 30px;
-    }
-
-    .flex {
+    @media (max-width: 720px) {
         height: auto;
         max-height: none;
         flex-direction: column;

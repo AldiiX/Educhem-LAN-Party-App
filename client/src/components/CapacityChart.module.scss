@@ -39,10 +39,8 @@
         font-size: 17px;
         line-height: 1.15;
     }
-}
 
-@media (max-width: 720px) {
-    .capacityChart {
+    @media (max-width: 720px) {
         gap: 12px;
         padding: 12px 14px;
 
