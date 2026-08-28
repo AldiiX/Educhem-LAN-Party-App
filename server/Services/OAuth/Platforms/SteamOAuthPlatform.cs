@@ -17,10 +17,19 @@ internal sealed class SteamOAuthPlatform(
 ) : IOAuthPlatform {
 	private HttpClient HttpClient => httpClientFactory.CreateClient("oauth-external");
 
+	/// <inheritdoc />
 	public OAuthProvider Provider => OAuthProvider.Steam;
+
+	/// <inheritdoc />
 	public string Scheme => SteamAuthenticationDefaults.AuthenticationScheme;
+
+	/// <inheritdoc />
 	public bool IsConfigured => HasEnv("STEAM_WEB_API_KEY");
 
+	/// <summary>
+	/// registruje steam openid providera do ASP.NET Core authentication builderu
+	/// </summary>
+	/// <param name="builder">authentication builder pro registraci handleru</param>
 	public static void ConfigureAuthentication(AuthenticationBuilder builder) {
 		if (!Program.ENV.TryGetValue("STEAM_WEB_API_KEY", out var steamKey) || string.IsNullOrWhiteSpace(steamKey)) {
 			return;
@@ -34,6 +43,7 @@ internal sealed class SteamOAuthPlatform(
 		});
 	}
 
+	/// <inheritdoc />
 	public ExtractedOAuthProfile ExtractProfile(ClaimsPrincipal principal, AuthenticationProperties properties) {
 		var rawId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
 		var providerUserId = rawId.Contains("/openid/id/") ? rawId[(rawId.LastIndexOf('/') + 1)..] : rawId;
@@ -47,6 +57,7 @@ internal sealed class SteamOAuthPlatform(
 		return new ExtractedOAuthProfile(providerUserId, username, avatarUrl, profileUrl);
 	}
 
+	/// <inheritdoc />
 	public async Task<PlatformValidationResult> ValidateConnectionAsync(OAuthConnection connection, CancellationToken ct) {
 		if (!IsConfigured) return new PlatformValidationResult(PlatformValidationStatus.Unavailable);
 
@@ -65,8 +76,15 @@ internal sealed class SteamOAuthPlatform(
 		);
 	}
 
+	/// <inheritdoc />
 	public Task RevokeConnectionAsync(OAuthConnection connection, CancellationToken ct) => Task.CompletedTask;
 
+	/// <summary>
+	/// stahne aktualni verejny profil hrace pres steam web api
+	/// </summary>
+	/// <param name="steamId">steamid64 hrace</param>
+	/// <param name="ct">token pro zruseni asynchronni operace</param>
+	/// <returns>profil hrace, nebo null pri chybe</returns>
 	private async Task<SteamUser?> FetchPlayerAsync(string steamId, CancellationToken ct) {
 		if (!IsConfigured) return null;
 
@@ -86,18 +104,32 @@ internal sealed class SteamOAuthPlatform(
 		}
 	}
 
+	/// <summary>
+	/// overuje pritomnost neprazdne promenne v konfiguraci prostredi
+	/// </summary>
+	/// <param name="key">nazev environment promenne</param>
+	/// <returns>true pokud promenna existuje a neni prazdna</returns>
 	private static bool HasEnv(string key) => Program.ENV.TryGetValue(key, out var val) && !string.IsNullOrWhiteSpace(val);
 
+	/// <summary>
+	/// mapuje obalku odpovedi steam web api
+	/// </summary>
 	private sealed class SteamPlayerSummariesResponse {
 		[JsonPropertyName("response")]
 		public SteamPlayerSummariesBody? Response { get; init; }
 	}
 
+	/// <summary>
+	/// mapuje pole hracu ve steam web api odpovedi
+	/// </summary>
 	private sealed class SteamPlayerSummariesBody {
 		[JsonPropertyName("players")]
 		public List<SteamUser> Players { get; init; } = [];
 	}
 
+	/// <summary>
+	/// mapuje data hrace ze steam web api
+	/// </summary>
 	private sealed class SteamUser {
 		[JsonPropertyName("steamid")]
 		public string? SteamId { get; init; }

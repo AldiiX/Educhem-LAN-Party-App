@@ -118,6 +118,15 @@ public static class Program {
         builder.Services.AddScoped<IDbLoggerService, DbLoggerService>();
         builder.Services.AddScoped<IAppSettingsService, AppSettingsService>();
 
+        builder.Services.AddCors(options => {
+            options.AddDefaultPolicy(policy => {
+                policy.SetIsOriginAllowed(_ => true)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials();
+            });
+        });
+
         Application = builder.Build();
         
         await AppSettingsItemSeeder.SeedAsync(Application);
@@ -131,26 +140,16 @@ public static class Program {
         var forwardedOptions = new ForwardedHeadersOptions {
             ForwardedHeaders = ForwardedHeaders.All,
         };
-        forwardedOptions.KnownNetworks.Clear();
+        forwardedOptions.KnownIPNetworks.Clear();
         forwardedOptions.KnownProxies.Clear();
         Application.UseForwardedHeaders(forwardedOptions);
 
-        Application.Use(async (context, next) => {
-            if (Program.ENV.TryGetValue("WEB_URL", out var webUrl) && Uri.TryCreate(webUrl, UriKind.Absolute, out var uri)) {
-                if (context.Request.Host.Value != uri.Authority) {
-                    context.Request.Host = new HostString(uri.Authority);
-                    context.Request.Scheme = uri.Scheme;
-                }
-            }
-            await next.Invoke();
-        });
-
         Application.UseDefaultFiles();
         Application.MapStaticAssets();
+        Application.UseCors();
         Application.UseSession();
         Application.UseAuthentication();
         Application.UseAuthorization();
-        Application.UseCors();
 
         // pridani X-Powered-By
         Application.Use(async (context, next) => {

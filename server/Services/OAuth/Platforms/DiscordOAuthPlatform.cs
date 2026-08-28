@@ -22,10 +22,19 @@ internal sealed class DiscordOAuthPlatform(
 	private readonly IDataProtector tokenProtector = dataProtectionProvider.CreateProtector("discord-oauth-tokens");
 	private HttpClient HttpClient => httpClientFactory.CreateClient("oauth-external");
 
+	/// <inheritdoc />
 	public OAuthProvider Provider => OAuthProvider.Discord;
+
+	/// <inheritdoc />
 	public string Scheme => DiscordAuthenticationDefaults.AuthenticationScheme;
+
+	/// <inheritdoc />
 	public bool IsConfigured => HasEnv("DISCORD_CLIENT_ID") && HasEnv("DISCORD_CLIENT_SECRET");
 
+	/// <summary>
+	/// registruje discord providera do ASP.NET Core authentication builderu
+	/// </summary>
+	/// <param name="builder">authentication builder pro registraci handleru</param>
 	public static void ConfigureAuthentication(AuthenticationBuilder builder) {
 		if (!Program.ENV.TryGetValue("DISCORD_CLIENT_ID", out var clientId) || string.IsNullOrWhiteSpace(clientId) ||
 			!Program.ENV.TryGetValue("DISCORD_CLIENT_SECRET", out var clientSecret) || string.IsNullOrWhiteSpace(clientSecret)) {
@@ -43,6 +52,7 @@ internal sealed class DiscordOAuthPlatform(
 		});
 	}
 
+	/// <inheritdoc />
 	public ExtractedOAuthProfile ExtractProfile(ClaimsPrincipal principal, AuthenticationProperties properties) {
 		var providerUserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
 		var username = principal.FindFirst(ClaimTypes.Name)?.Value
@@ -67,6 +77,7 @@ internal sealed class DiscordOAuthPlatform(
 		return new ExtractedOAuthProfile(providerUserId, username, avatarUrl, null, accessToken, refreshToken, expiresAtUtc);
 	}
 
+	/// <inheritdoc />
 	public async Task<PlatformValidationResult> ValidateConnectionAsync(OAuthConnection connection, CancellationToken ct) {
 		if (!IsConfigured) return new PlatformValidationResult(PlatformValidationStatus.Unavailable);
 
@@ -115,6 +126,7 @@ internal sealed class DiscordOAuthPlatform(
 		);
 	}
 
+	/// <inheritdoc />
 	public async Task RevokeConnectionAsync(OAuthConnection connection, CancellationToken ct) {
 		var refreshToken = UnprotectToken(connection.RefreshToken);
 		if (string.IsNullOrWhiteSpace(refreshToken) || !IsConfigured) return;
@@ -134,18 +146,35 @@ internal sealed class DiscordOAuthPlatform(
 		}
 	}
 
+	/// <summary>
+	/// zasifruje a ulozi pristupove a refresh tokeny do entity spojeni
+	/// </summary>
+	/// <param name="connection">spojeni, do ktereho se tokeny ukladaji</param>
+	/// <param name="accessToken">nezasifrovany access token</param>
+	/// <param name="refreshToken">nezasifrovany refresh token</param>
+	/// <param name="expiresAtUtc">expirace access tokenu v utc</param>
 	public void ApplyTokens(OAuthConnection connection, string? accessToken, string? refreshToken, DateTime? expiresAtUtc) {
 		if (!string.IsNullOrWhiteSpace(accessToken)) connection.AccessToken = tokenProtector.Protect(accessToken);
 		if (!string.IsNullOrWhiteSpace(refreshToken)) connection.RefreshToken = tokenProtector.Protect(refreshToken);
 		connection.AccessTokenExpiresAtUtc = expiresAtUtc;
 	}
 
+	/// <summary>
+	/// zasifruje a ulozi tokeny ziskane z token response
+	/// </summary>
+	/// <param name="connection">spojeni, do ktereho se tokeny ukladaji</param>
+	/// <param name="tokens">token response ziskana z discord api</param>
 	private void ApplyTokens(OAuthConnection connection, DiscordTokenResponse tokens) {
 		if (!string.IsNullOrWhiteSpace(tokens.AccessToken)) connection.AccessToken = tokenProtector.Protect(tokens.AccessToken);
 		if (!string.IsNullOrWhiteSpace(tokens.RefreshToken)) connection.RefreshToken = tokenProtector.Protect(tokens.RefreshToken);
 		if (tokens.ExpiresIn.HasValue) connection.AccessTokenExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokens.ExpiresIn.Value);
 	}
 
+	/// <summary>
+	/// desifruje ulozeny token pomoci data protection
+	/// </summary>
+	/// <param name="protectedToken">sifrovany token z databaze</param>
+	/// <returns>puvodni nezasifrovany token, nebo null pri chybe</returns>
 	private string? UnprotectToken(string? protectedToken) {
 		if (string.IsNullOrWhiteSpace(protectedToken)) return null;
 		try {
@@ -156,6 +185,12 @@ internal sealed class DiscordOAuthPlatform(
 		}
 	}
 
+	/// <summary>
+	/// vymeni refresh token za novou sadu tokenu pres discord oauth token endpoint
+	/// </summary>
+	/// <param name="refreshToken">desifrovany refresh token</param>
+	/// <param name="ct">token pro zruseni asynchronni operace</param>
+	/// <returns>token response, nebo null pri chybe</returns>
 	private async Task<DiscordTokenResponse?> RefreshTokenAsync(string refreshToken, CancellationToken ct) {
 		if (!IsConfigured) return null;
 
@@ -178,6 +213,12 @@ internal sealed class DiscordOAuthPlatform(
 		}
 	}
 
+	/// <summary>
+	/// stahne profil prihlaseneho discord uzivatele pres users/@me endpoint
+	/// </summary>
+	/// <param name="accessToken">platny bearer access token</param>
+	/// <param name="ct">token pro zruseni asynchronni operace</param>
+	/// <returns>discord user profil, nebo null pri chybe</returns>
 	private async Task<DiscordUser?> FetchUserAsync(string accessToken, CancellationToken ct) {
 		using var request = new HttpRequestMessage(HttpMethod.Get, "https://discord.com/api/v10/users/@me");
 		request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -193,8 +234,16 @@ internal sealed class DiscordOAuthPlatform(
 		}
 	}
 
+	/// <summary>
+	/// overuje pritomnost neprazdne promenne v konfiguraci prostredi
+	/// </summary>
+	/// <param name="key">nazev environment promenne</param>
+	/// <returns>true pokud promenna existuje a neni prazdna</returns>
 	private static bool HasEnv(string key) => Program.ENV.TryGetValue(key, out var val) && !string.IsNullOrWhiteSpace(val);
 
+	/// <summary>
+	/// mapuje token response z discord token endpointu
+	/// </summary>
 	private sealed class DiscordTokenResponse {
 		[JsonPropertyName("access_token")]
 		public string? AccessToken { get; init; }
@@ -206,6 +255,9 @@ internal sealed class DiscordOAuthPlatform(
 		public int? ExpiresIn { get; init; }
 	}
 
+	/// <summary>
+	/// mapuje odpoved z discord users/@me endpointu
+	/// </summary>
 	private sealed class DiscordUser {
 		[JsonPropertyName("id")]
 		public string? Id { get; init; }

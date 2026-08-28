@@ -38,11 +38,7 @@ internal sealed class OAuthService(
 
 	/// <inheritdoc />
 	public async Task<OAuthCompletion> CompleteExternalAuthAsync(AuthenticateResult authResult, OAuthProvider provider, CancellationToken ct = default) {
-		if (!authResult.Succeeded || authResult.Principal == null || authResult.Properties == null) {
-			return new OAuthCompletion(OAuthCompletionKind.Failed, GetFrontendOrigin(), Flow: OAuthFlow.Login);
-		}
-
-		if (!platforms.TryGetValue(provider, out var platform)) {
+		if (!authResult.Succeeded || authResult.Principal == null || authResult.Properties == null || !platforms.TryGetValue(provider, out var platform)) {
 			return new OAuthCompletion(OAuthCompletionKind.Failed, GetFrontendOrigin(), Flow: OAuthFlow.Login);
 		}
 
@@ -112,6 +108,14 @@ internal sealed class OAuthService(
 		return await db.Accounts.FirstOrDefaultAsync(item => item.Id == accountId, ct);
 	}
 
+	/// <summary>
+	/// dokonci prihlasovaci flow, najde propojeny ucet a aktualizuje profilova data
+	/// </summary>
+	/// <param name="platform">implementace platformy</param>
+	/// <param name="profile">extrahovany profil z externiho tokenu</param>
+	/// <param name="origin">overeny frontend origin</param>
+	/// <param name="ct">token pro zruseni asynchronni operace</param>
+	/// <returns>vysledek prihlaseni</returns>
 	private async Task<OAuthCompletion> CompleteLoginAsync(IOAuthPlatform platform, ExtractedOAuthProfile profile, string origin, CancellationToken ct) {
 		var connection = await db.OAuthConnections
 			.Include(item => item.Account)
@@ -124,6 +128,15 @@ internal sealed class OAuthService(
 		return new OAuthCompletion(OAuthCompletionKind.LoginSucceeded, origin, connection.AccountId, OAuthFlow.Login);
 	}
 
+	/// <summary>
+	/// dokonci propojovaci flow, overi kolize a ulozi nove nebo aktualizovane spojeni k prihlasenemu uctu
+	/// </summary>
+	/// <param name="platform">implementace platformy</param>
+	/// <param name="profile">extrahovany profil z externiho tokenu</param>
+	/// <param name="origin">overeny frontend origin</param>
+	/// <param name="accountId">id prihlaseneho uctu ziskane ze state</param>
+	/// <param name="ct">token pro zruseni asynchronni operace</param>
+	/// <returns>vysledek propojeni</returns>
 	private async Task<OAuthCompletion> CompleteConnectAsync(IOAuthPlatform platform, ExtractedOAuthProfile profile, string origin, Guid? accountId, CancellationToken ct) {
 		if (accountId == null) return new OAuthCompletion(OAuthCompletionKind.InvalidState, origin, Flow: OAuthFlow.Connect);
 
@@ -159,6 +172,13 @@ internal sealed class OAuthService(
 		return new OAuthCompletion(OAuthCompletionKind.Connected, origin, account.Id, OAuthFlow.Connect);
 	}
 
+	/// <summary>
+	/// zkontroluje a pripadne validuje existujici spojeni podle stanoveneho casoveho intervalu
+	/// </summary>
+	/// <param name="accountId">id uctu</param>
+	/// <param name="provider">kontrolovany provider</param>
+	/// <param name="forceValidation">urcuje, zda se ma ignorovat casovy interval</param>
+	/// <param name="ct">token pro zruseni asynchronni operace</param>
 	private async Task EnsureConnectionAsync(Guid accountId, OAuthProvider provider, bool forceValidation, CancellationToken ct) {
 		if (!platforms.TryGetValue(provider, out var platform) || !platform.IsConfigured) return;
 
@@ -191,6 +211,13 @@ internal sealed class OAuthService(
 		await db.SaveChangesAsync(ct);
 	}
 
+	/// <summary>
+	/// promitne ziskana data profilu do entity uctu a spojeni
+	/// </summary>
+	/// <param name="account">ucet vlastnika</param>
+	/// <param name="connection">entita spojeni s platformou</param>
+	/// <param name="platform">implementace platformy</param>
+	/// <param name="profile">extrahovany profil</param>
 	private static void ApplyProfile(Account account, OAuthConnection connection, IOAuthPlatform platform, ExtractedOAuthProfile profile) {
 		connection.ProviderUserId = profile.UserId;
 		connection.Username = profile.Username;
@@ -207,6 +234,12 @@ internal sealed class OAuthService(
 		connection.LastValidatedUtc = DateTime.UtcNow;
 	}
 
+	/// <summary>
+	/// odstrani spojeni z databaze a zapise zaznam do audit logu
+	/// </summary>
+	/// <param name="connection">odstranovane spojeni</param>
+	/// <param name="automatic">urcuje, zda k odpojeni doslo automaticky pri neplatnem tokenu</param>
+	/// <param name="ct">token pro zruseni asynchronni operace</param>
 	private async Task RemoveConnectionAsync(OAuthConnection connection, bool automatic, CancellationToken ct) {
 		var account = connection.Account;
 		var provider = connection.Provider;
@@ -221,5 +254,10 @@ internal sealed class OAuthService(
 		await dbLogger.LogInfoAsync($"Platforma {provider} ({username}) byla {mode} u účtu {FormatAccount(account)}.", "platform-disconnect", ct);
 	}
 
+	/// <summary>
+	/// naformatuje identifikaci uctu pro ucely audit logu
+	/// </summary>
+	/// <param name="account">ucet</param>
+	/// <returns>textova reprezentace jmena a id uctu</returns>
 	private static string FormatAccount(Account account) => $"{account.FirstName} {account.LastName} ({account.Id})";
 }
