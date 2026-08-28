@@ -12,7 +12,7 @@ export function useAccountPage(initialAccount: Account) {
     const session = useAccountSession(initialAccount);
     const modal = useAccountModal();
     const profile = useAccountProfile(session.account, session.setAccount, modal.closeModal);
-    const password = useAccountPassword(session.setAccount, session.router);
+    const password = useAccountPassword(session.account, session.setAccount, session.router);
     const achievements = useAccountAchievements(session.account, session.setAccount);
     const accountPlatforms = useAccountPlatforms(session.setAccount);
 

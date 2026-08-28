@@ -15,6 +15,7 @@ const AccountPageContext = createContext<ReturnType<typeof useAccountPage> | nul
 const tabs = [
     {href: "/app/account", label: "Přehled"},
     {href: "/app/account/achievements", label: "Achievementy"},
+    {href: "/app/account/devices", label: "Zařízení"},
     {href: "/app/account/settings", label: "Nastavení"},
 ] as const;
 

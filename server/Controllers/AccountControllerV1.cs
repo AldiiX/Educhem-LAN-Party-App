@@ -682,6 +682,55 @@ public sealed class AccountControllerV1(
 		return account.Gender == Gender.Female ? "účastnice" : "účastníka";
 	}
 
+	[HttpGet("sessions")]
+	[Authorize]
+	public async Task<IActionResult> GetMySessions(CancellationToken ct = default) {
+		var user = auth.GetCurrentUser();
+		if (user == null) return Unauthorized();
+
+		var sessions = await auth.GetActiveSessionsAsync(user.Value.Id, user.Value.SessionId, ct);
+		return Ok(sessions);
+	}
+
+	[HttpDelete("sessions/{id:guid}")]
+	[Authorize]
+	public async Task<IActionResult> RevokeSession(Guid id, CancellationToken ct = default) {
+		var user = auth.GetCurrentUser();
+		if (user == null) return Unauthorized();
+
+		var success = await auth.RevokeSessionAsync(id, user.Value.Id, ct);
+		if (!success) return NotFound("Relace nebyla nalezena.");
+
+		await dbLogger.LogInfoAsync(
+			$"Uživatel ({user.Value.Id}) odhlásil zařízení s relací {id}.",
+			"session-revoke",
+			user.Value.Id,
+			id.ToString(),
+			ct
+		);
+
+		return NoContent();
+	}
+
+	[HttpDelete("sessions/other")]
+	[Authorize]
+	public async Task<IActionResult> RevokeOtherSessions(CancellationToken ct = default) {
+		var user = auth.GetCurrentUser();
+		if (user == null) return Unauthorized();
+
+		var count = await auth.RevokeOtherSessionsAsync(user.Value.SessionId, user.Value.Id, ct);
+
+		await dbLogger.LogInfoAsync(
+			$"Uživatel ({user.Value.Id}) odhlásil všechna ostatní zařízení ({count} relací).",
+			"session-revoke-other",
+			user.Value.Id,
+			user.Value.SessionId.ToString(),
+			ct
+		);
+
+		return Ok(new { RevokedCount = count });
+	}
+
 	private static string PastVerb(Account account, string masculine, string feminine) {
 		return account.Gender == Gender.Female ? feminine : masculine;
 	}

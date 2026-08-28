@@ -1,7 +1,17 @@
 import style from "./ProblemReportForm.module.scss";
 import type {ProblemReportHook} from "../_hooks/useProblemReport";
+import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {phrase} from "@/lib/communicationStyle";
 
 export function ProblemReportForm({report}: {report: ProblemReportHook}) {
+    const {account} = useAuth();
+    const isFemale = account?.gender === "Female";
+    const descriptionPlaceholder = phrase(
+        account?.communicationStyle,
+        isFemale ? "Co se stalo, kde se to stalo a co jsi zkoušela?" : "Co se stalo, kde se to stalo a co jsi zkoušel?",
+        "Co se stalo, kde se to stalo a co jste zkoušeli?"
+    );
+
     return <form className={style.form} onSubmit={report.submit}>
         {report.submitError && <p className={style.error}>{report.submitError}</p>}
 
@@ -39,7 +49,7 @@ export function ProblemReportForm({report}: {report: ProblemReportHook}) {
             <textarea
                 value={report.form.description}
                 onChange={event => report.updateField("description", event.target.value)}
-                placeholder="Co se stalo, kde se to stalo a co jsi zkoušel(a)?"
+                placeholder={descriptionPlaceholder}
                 rows={7}
             />
         </label>

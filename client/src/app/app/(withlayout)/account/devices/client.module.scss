@@ -1,0 +1,256 @@
+.devicesSection {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    max-width: 1100px;
+
+    .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+
+        .headerText {
+            display: grid;
+            gap: 6px;
+
+            h2 {
+                font-size: 22px;
+                font-weight: 700;
+                color: var(--text-color);
+                line-height: 1.2;
+            }
+
+            p {
+                color: var(--text-color-secondary);
+                font-size: 15px;
+                line-height: 1.4;
+                max-width: 650px;
+                opacity: 0.5;
+            }
+        }
+
+        .revokeAllBtn {
+            white-space: nowrap;
+            font-size: 14px;
+        }
+    }
+
+    .devicesList {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 20px;
+    }
+
+    .deviceCard {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: var(--element-bg);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+        &:hover {
+            border-color: var(--accent-line);
+        }
+
+        &.currentCard {
+            border: 1px solid var(--accent-line);
+            background: var(--element-bg);
+        }
+
+        .deviceCardHeader {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+
+            .deviceIconWrap {
+                width: 44px;
+                height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 10px;
+                background: var(--accent-soft);
+                border: 1px solid var(--accent-line);
+                flex-shrink: 0;
+
+                .iconMask {
+                    width: 22px;
+                    height: 22px;
+                    background-color: var(--accent-color);
+                    mask-repeat: no-repeat;
+                    mask-position: center;
+                    mask-size: contain;
+                }
+            }
+
+            .deviceMainInfo {
+                flex: 1;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+
+                .deviceTitleRow {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 8px;
+                    flex-wrap: wrap;
+
+                    .deviceName {
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: var(--text-color);
+                        line-height: 1.2;
+                        word-break: break-word;
+                    }
+
+                    .currentBadge {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        padding: 3px 8px;
+                        border-radius: 999px;
+                        background: var(--accent-soft);
+                        border: 1px solid var(--accent-line);
+                        color: var(--accent-color);
+                        font-size: 12px;
+                        font-weight: 700;
+                        white-space: nowrap;
+
+                        .pulseDot {
+                            width: 6px;
+                            height: 6px;
+                            border-radius: 50%;
+                            background: var(--accent-color);
+                            box-shadow: 0 0 8px var(--accent-color);
+                            animation: pulse 2s infinite;
+                        }
+                    }
+                }
+
+                .deviceTypeLabel {
+                    font-size: 13px;
+                    color: var(--text-color-secondary);
+                }
+            }
+        }
+
+        .deviceMetaList {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: var(--background-bg-2);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 13px;
+
+            .metaRow {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 12px;
+
+                .rowLabel {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    color: var(--text-color-secondary);
+                    font-weight: 500;
+                    white-space: nowrap;
+
+                    .rowIcon {
+                        width: 15px;
+                        height: 15px;
+                        background-color: var(--text-color-darker);
+                        mask-repeat: no-repeat;
+                        mask-position: center;
+                        mask-size: contain;
+                        flex-shrink: 0;
+                    }
+                }
+
+                .rowValue {
+                    color: var(--text-color);
+                    text-align: right;
+                    word-break: break-word;
+
+                    code {
+                        font-family: monospace;
+                        font-size: 12px;
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        background: rgba(255, 255, 255, 0.06);
+                        color: var(--text-color);
+                    }
+                }
+            }
+        }
+
+        .deviceCardFooter {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 2px;
+
+            .revokeSingleBtn {
+                width: 100%;
+                font-size: 13px;
+                min-height: 36px;
+            }
+        }
+    }
+
+    .loadingState,
+    .errorState {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        min-height: 200px;
+        padding: 40px 20px;
+        text-align: center;
+        border-radius: 12px;
+        border: 1px dashed var(--border-color);
+        background: var(--element-bg);
+        color: var(--text-color-secondary);
+    }
+
+    .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--border-color);
+        border-top-color: var(--accent-color);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 var(--accent-soft);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px transparent;
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

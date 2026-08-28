@@ -327,7 +327,7 @@ function AttendanceEntryRow({entry}: {entry: AttendanceEntry}) {
                 <time>{entry.createdAtUtc.toLocaleString("cs-CZ")}</time>
             </div>
             {entry.reason && <p>{entry.reason}</p>}
-            {entry.createdBy.id !== entry.profile.id && <small>Zapsal/a {entry.createdBy.fullName}</small>}
+            {entry.createdBy.id !== entry.profile.id && <small>{entry.createdBy.gender === "Female" ? "Zapsala" : entry.createdBy.gender === "Male" ? "Zapsal" : "Zapsal/a"} {entry.createdBy.fullName}</small>}
         </div>
     </article>;
 }

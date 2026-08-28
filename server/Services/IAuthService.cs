@@ -1,4 +1,5 @@
 using server.Data.Entities;
+using server.Dto;
 
 namespace server.Services;
 
@@ -21,4 +22,7 @@ public interface IAuthService {
 	Task<bool> RefreshAsync(CancellationToken ct = default);
 	Task LogoutAsync(CancellationToken ct = default);
 	Task RevokeAllSessionsAsync(Guid accountId, CancellationToken ct = default);
+	Task<List<AuthSessionDto>> GetActiveSessionsAsync(Guid accountId, Guid? currentSessionId, CancellationToken ct = default);
+	Task<bool> RevokeSessionAsync(Guid sessionId, Guid accountId, CancellationToken ct = default);
+	Task<int> RevokeOtherSessionsAsync(Guid currentSessionId, Guid accountId, CancellationToken ct = default);
 }

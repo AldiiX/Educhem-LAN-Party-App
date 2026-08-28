@@ -6,6 +6,7 @@ import {ProblemReportsPanel} from "./_components/ProblemReportsPanel";
 import {useProblemReport} from "./_hooks/useProblemReport";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {hasRoleAtLeast} from "@/lib/roles";
+import {phrase} from "@/lib/communicationStyle";
 
 export default function SupportClient() {
     const report = useProblemReport();
@@ -18,8 +19,8 @@ export default function SupportClient() {
         <section className={style.intro}>
             <span style={{maskImage: "url(/icons/warn2.svg)"}}></span>
             <div>
-                <h2>Dej organizátorům vědět, co nefunguje</h2>
-                <p>Popiš problém co nejkonkrétněji, aby se dal rychle dohledat a vyřešit.</p>
+                <h2>{phrase(account?.communicationStyle, "Dej organizátorům vědět, co nefunguje", "Dejte organizátorům vědět, co nefunguje")}</h2>
+                <p>{phrase(account?.communicationStyle, "Popiš problém co nejkonkrétněji, aby se dal rychle dohledat a vyřešit.", "Popište problém co nejkonkrétněji, aby se dal rychle dohledat a vyřešit.")}</p>
             </div>
             <button type="button" onClick={report.openCreateModal} disabled={!report.reportsEnabled}>
                 <span style={{maskImage: "url(/icons/plus.svg)"}}></span>

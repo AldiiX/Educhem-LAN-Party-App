@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using server.Data;
 using server.Data.Entities;
+using server.Dto;
+using server.Dto.Mappers;
 using server.Infrastructure;
 
 namespace server.Services;
@@ -158,6 +160,13 @@ internal sealed class AuthService(
 			return false;
 		}
 
+		var clientInfo = ClientInfoExtractor.Extract(context);
+		session.LastActiveUtc = DateTime.UtcNow;
+		if (!string.IsNullOrWhiteSpace(clientInfo.IpAddress)) session.IpAddress = clientInfo.IpAddress;
+		if (!string.IsNullOrWhiteSpace(clientInfo.City)) session.City = clientInfo.City;
+		if (!string.IsNullOrWhiteSpace(clientInfo.Country)) session.Country = clientInfo.Country;
+		await db.SaveChangesAsync(ct);
+
 		AppendAccessCookie(account, session.Id, session.IsPersistent);
 		QueueLastActiveUpdate(account.Id);
 		return true;
@@ -175,6 +184,33 @@ internal sealed class AuthService(
 			.ExecuteUpdateAsync(setters => setters.SetProperty(item => item.RevokedAtUtc, nowUtc), ct);
 	}
 
+	public async Task<List<AuthSessionDto>> GetActiveSessionsAsync(Guid accountId, Guid? currentSessionId, CancellationToken ct = default) {
+		var nowUtc = DateTime.UtcNow;
+		var sessions = await db.AuthSessions
+			.AsNoTracking()
+			.Where(item => item.AccountId == accountId && item.RevokedAtUtc == null && item.ExpiresAtUtc > nowUtc)
+			.OrderByDescending(item => item.LastActiveUtc)
+			.ToListAsync(ct);
+
+		return sessions.Select(item => item.ToDto(currentSessionId)).ToList();
+	}
+
+	public async Task<bool> RevokeSessionAsync(Guid sessionId, Guid accountId, CancellationToken ct = default) {
+		var session = await db.AuthSessions.FirstOrDefaultAsync(item => item.Id == sessionId && item.AccountId == accountId && item.RevokedAtUtc == null, ct);
+		if (session == null) return false;
+
+		session.RevokedAtUtc = DateTime.UtcNow;
+		await db.SaveChangesAsync(ct);
+		return true;
+	}
+
+	public async Task<int> RevokeOtherSessionsAsync(Guid currentSessionId, Guid accountId, CancellationToken ct = default) {
+		var nowUtc = DateTime.UtcNow;
+		return await db.AuthSessions
+			.Where(item => item.AccountId == accountId && item.Id != currentSessionId && item.RevokedAtUtc == null)
+			.ExecuteUpdateAsync(setters => setters.SetProperty(item => item.RevokedAtUtc, nowUtc), ct);
+	}
+
 	private async Task ReplaceCurrentSessionAsync(Account account, bool rememberMe, CancellationToken ct) {
 		await RevokeCurrentSessionAsync(ct);
 
@@ -182,6 +218,7 @@ internal sealed class AuthService(
 		var sessionId = Guid.CreateVersion7();
 		var secret = Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
 		var rawRefreshToken = $"{sessionId:N}.{secret}";
+		var clientInfo = ClientInfoExtractor.Extract(http.HttpContext);
 		var session = new AuthSession {
 			Id = sessionId,
 			AccountId = account.Id,
@@ -190,6 +227,14 @@ internal sealed class AuthService(
 			ExpiresAtUtc = nowUtc.Add(JwtAuthConfiguration.RefreshTokenLifetime),
 			RevokedAtUtc = null,
 			IsPersistent = rememberMe,
+			IpAddress = clientInfo.IpAddress,
+			UserAgent = clientInfo.UserAgent,
+			DeviceType = clientInfo.DeviceType,
+			Browser = clientInfo.Browser,
+			OperatingSystem = clientInfo.OperatingSystem,
+			City = clientInfo.City,
+			Country = clientInfo.Country,
+			LastActiveUtc = nowUtc,
 		};
 
 		db.AuthSessions.Add(session);

@@ -26,4 +26,28 @@ public sealed class AuthSession : Entity<Guid> {
 	public DateTime? RevokedAtUtc { get; set; }
 
 	public required bool IsPersistent { get; set; }
+
+	[MaxLength(45)]
+	public string? IpAddress { get; set; }
+
+	[MaxLength(512)]
+	public string? UserAgent { get; set; }
+
+	[MaxLength(64)]
+	public string? DeviceType { get; set; }
+
+	[MaxLength(64)]
+	public string? Browser { get; set; }
+
+	[MaxLength(64)]
+	public string? OperatingSystem { get; set; }
+
+	[MaxLength(64)]
+	public string? City { get; set; }
+
+	[MaxLength(16)]
+	public string? Country { get; set; }
+
+	[Column(TypeName = "timestamp with time zone")]
+	public DateTime LastActiveUtc { get; set; }
 }

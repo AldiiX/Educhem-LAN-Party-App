@@ -91,7 +91,7 @@ public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : 
 
 		switch (completion.Kind) {
 			case OAuthCompletionKind.LoginSucceeded:
-				if (completion.AccountId == null || await auth.SignInAsAsync(completion.AccountId.Value, false, ct) == null) {
+				if (completion.AccountId == null || await auth.SignInAsAsync(completion.AccountId.Value, true, ct) == null) {
 					return Redirect(BuildRedirect(origin, $"/app/login?{parameter}=error"));
 				}
 				return Redirect(BuildRedirect(origin, "/app"));
