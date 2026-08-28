@@ -20,10 +20,10 @@ export default async function HomePage() {
         <>
             <section className={styles.hero}>
                 <div className={`${styles.heroImage} ${styles.heroImageDark}`}>
-                    <img src="/images/banner3.jpeg" alt=""/>
+                    <img src="/images/banner3.webp" alt=""/>
                 </div>
                 <div className={`${styles.heroImage} ${styles.heroImageLight}`}>
-                    <img src="/images/history/summer2024/IMG_20240607_195534.jpg" alt=""/>
+                    <img src="/images/history/summer2024/3.webp" alt=""/>
                 </div>
                 <div className={styles.heroOverlay}/>
                 <div className={styles.heroContent}>
@@ -78,7 +78,7 @@ export default async function HomePage() {
                     </div>
 
                     <div className={styles.feature}>
-                        <img src="/images/img1.jpg"/>
+                        <img src="/images/img1.webp"/>
                         <div className={styles.featureCaption}>
                             <strong>Jedna noc, jedna síť, hodně her.</strong>
                             <span>Školní PC, vlastní setupy, společný prostor a grilování v ceně vstupného.</span>
@@ -109,7 +109,7 @@ export default async function HomePage() {
                             <div className={styles.step}>
                                 <div className={styles.stepNumber}>1</div>
                                 <div>
-                                    <h3 className={styles.stepTitle}>Zaplatit vstupné</h3>
+                                     <h3 className={styles.stepTitle}>Zaplatit vstupné</h3>
                                     <p className={styles.stepText}>
                                         {paymentsAllowed ? (
                                             <>
@@ -176,7 +176,7 @@ export default async function HomePage() {
                             </div>
                         </div>
                         <div className={styles.setupImage}>
-                            <img src="/images/img2.jpg" alt="Herní setup s počítačem"/>
+                            <img src="/images/img2.webp" alt="Herní setup s počítačem"/>
                         </div>
                     </div>
                 </div>

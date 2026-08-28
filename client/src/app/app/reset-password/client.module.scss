@@ -8,12 +8,12 @@
     background-position: center;
 
     :global(html[data-theme='dark']) & {
-        background-image: url('../../../../public/images/banner3.jpeg');
+        background-image: url('../../../../public/images/banner3.webp');
         box-shadow: inset 0 0 0 100vmax rgba(0, 0, 0, .68);
     }
 
     :global(html[data-theme='light']) & {
-        background-image: url('../../../../public/images/history/summer2024/IMG_20240607_195534.jpg');
+        background-image: url('../../../../public/images/history/summer2024/3.webp');
         box-shadow: inset 0 0 0 100vmax rgba(255, 255, 255, .72);
     }
 

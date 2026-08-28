@@ -8,7 +8,7 @@
     background-position: center;
 
     :global(html[data-theme='dark']) & {
-        background-image: url('../../../../public/images/banner3.jpeg');
+        background-image: url('../../../../public/images/banner3.webp');
 
         &::after {
             position: absolute;
@@ -25,7 +25,7 @@
     }
 
     :global(html[data-theme='light']) & {
-        background-image: url('../../../../public/images/history/summer2024/IMG_20240607_195534.jpg');
+        background-image: url('../../../../public/images/history/summer2024/3.webp');
 
         &::after {
             position: absolute;
