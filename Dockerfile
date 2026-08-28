@@ -80,7 +80,7 @@ WORKDIR /app
 USER root
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates nginx \
+    && apt-get install -y --no-install-recommends ca-certificates nginx libgssapi-krb5-2 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=client-build /usr/local/bin/node /usr/local/bin/node

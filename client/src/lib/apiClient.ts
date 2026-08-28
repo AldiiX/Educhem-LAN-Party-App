@@ -39,11 +39,18 @@ async function getCsrfToken(force = false) {
     return csrfPromise;
 }
 
-async function createRequestInit(init: RequestInit = {}) {
+function isAuthEndpoint(input: RequestInfo | URL) {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.pathname : input.url;
+    return url.includes("/api/v1/auth/")
+        || url.includes("/api/v1/account/forgot-password")
+        || url.includes("/api/v1/account/reset-password");
+}
+
+async function createRequestInit(input: RequestInfo | URL, init: RequestInit = {}) {
     const method = (init.method ?? "GET").toUpperCase();
     const headers = new Headers(init.headers);
 
-    if(unsafeMethods.has(method)) {
+    if(unsafeMethods.has(method) && !isAuthEndpoint(input)) {
         headers.set("X-XSRF-TOKEN", await getCsrfToken());
     }
 
@@ -80,15 +87,15 @@ export async function refreshAccessToken() {
 }
 
 export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
-    let response = await fetch(input, await createRequestInit(init));
+    let response = await fetch(input, await createRequestInit(input, init));
 
     if(response.headers.get("X-CSRF-Invalid") === "1") {
         await getCsrfToken(true);
-        response = await fetch(input, await createRequestInit(init));
+        response = await fetch(input, await createRequestInit(input, init));
     }
 
     if(response.status === 401 && canRefresh(input) && await refreshAccessToken()) {
-        response = await fetch(input, await createRequestInit(init));
+        response = await fetch(input, await createRequestInit(input, init));
     }
 
     const url = typeof input === "string" ? input : input instanceof URL ? input.pathname : input.url;
