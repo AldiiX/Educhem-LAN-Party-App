@@ -5,9 +5,16 @@ import shell from './page-shell.module.scss'
 import styles from './page.module.scss'
 import {Header} from "@/components/header";
 import {Footer} from "@/components/footer";
+import {PaymentQr} from '@/components/paymentQr'
+import {connection} from 'next/server'
+import {arePaymentsAllowed, formatPaymentDeadline} from '@/lib/payments'
 
-export default function HomePage() {
+export default async function HomePage() {
+    await connection()
+
     const event = siteConfig.currentEvent
+    const paymentsAllowed = arePaymentsAllowed(event.paymentDeadline)
+    const paymentDeadline = formatPaymentDeadline(event.paymentDeadline)
 
     return (
         <>
@@ -33,7 +40,7 @@ export default function HomePage() {
                         {/*<a href="/app/" className={`${shell.button} ${shell.primaryButton}`}>*/}
                         {/*    Vstup do systému*/}
                         {/*</a>*/}
-                        <Link href="/reservation" className={`${shell.button} ${shell.primaryButton}`}>
+                        <Link href="/info#reservation" className={`${shell.button} ${shell.primaryButton}`}>
                             Rezervovat místo
                         </Link>
                         <Link href="/info" className={`${shell.button} ${shell.secondaryButton}`}>
@@ -104,8 +111,14 @@ export default function HomePage() {
                                 <div>
                                     <h3 className={styles.stepTitle}>Zaplatit vstupné</h3>
                                     <p className={styles.stepText}>
-                                        Převodem {event.fee} na účet {event.bankAccount} nebo QR kódem. Do zprávy
-                                        napište {event.paymentMessage}.
+                                        {paymentsAllowed ? (
+                                            <>
+                                                Převodem {event.fee} na účet {event.bankAccount} nebo QR kódem. Do
+                                                zprávy napište {event.paymentMessage}.
+                                            </>
+                                        ) : (
+                                            <>Převodem {event.fee} na účet nebo QR kódem. Termín pro platbu skončil {paymentDeadline}.</>
+                                        )}
                                     </p>
                                 </div>
                             </div>
@@ -113,11 +126,24 @@ export default function HomePage() {
                                 <div>
                                     <p className={styles.homeQrKicker}>Platba QR kódem</p>
                                     <p className={styles.homeQrText}>
-                                        Naskenujte QR kód a před odesláním zkontrolujte zprávu pro příjemce.
-                                        Platba musí být odeslaná do {event.paymentDeadline}.
+                                        {paymentsAllowed ? (
+                                            <>
+                                                Naskenujte QR kód a před odesláním zkontrolujte zprávu pro příjemce.
+                                                Platba musí být odeslaná do {paymentDeadline}.
+                                            </>
+                                        ) : (
+                                            <>
+                                                Naskenujte QR kód a před odesláním zkontrolujte zprávu pro příjemce.
+                                                Termín pro platbu skončil {paymentDeadline}.
+                                            </>
+                                        )}
                                     </p>
                                 </div>
-                                <img className={styles.homeQrImage} src="/qr.svg" alt="QR kód pro platbu vstupného"/>
+                                <PaymentQr
+                                    enabled={paymentsAllowed}
+                                    imageClassName={styles.homeQrImage}
+                                    placeholderClassName={styles.homeQrPlaceholder}
+                                />
                             </div>
                             <div className={styles.step}>
                                 <div className={styles.stepNumber}>2</div>

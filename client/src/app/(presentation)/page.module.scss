@@ -389,19 +389,33 @@
                         color: var(--text-color-secondary);
                     }
 
-                    &Image {
+                    &Image,
+                    &Placeholder {
                         width: clamp(118px, 13vw, 156px);
                         aspect-ratio: 1;
                         padding: 8px;
                         border: 1px solid var(--border-color);
                         border-radius: var(--radius-sm);
                         background: white;
-                        object-fit: contain;
                         pointer-events: none;
 
                         @media (max-width: 620px) {
                             width: min(164px, 100%);
                         }
+                    }
+
+                    &Image {
+                        object-fit: contain;
+                    }
+
+                    &Placeholder {
+                        display: grid;
+                        place-items: center;
+                        color: #333;
+                        font-size: 0.88rem;
+                        font-weight: 700;
+                        line-height: 1.25;
+                        text-align: center;
                     }
 
                     @media (prefers-reduced-motion: reduce) {

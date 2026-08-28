@@ -28,7 +28,7 @@ export const siteConfig = {
         endDate: '6.6.',
         startTime: '12:00',
         endTime: '14:00',
-        paymentDeadline: '3.6. 20:00',
+        paymentDeadline: '2026-06-03T20:00:00+02:00',
         venueShort: 'SŠ EDUCHEM',
         venueFull: 'SŠ EDUCHEM, Eduarda Basse 1142, 434 01 Most',
         fee: '100 Kč',
@@ -38,7 +38,7 @@ export const siteConfig = {
     },
     author: {
         name: 'Stanislav Škudrna',
-        href: '/info#spravci',
+        href: '/organizers#spravci',
     },
     repository: {
         label: 'GitHub',
@@ -47,9 +47,8 @@ export const siteConfig = {
     navLinks: [
         {href: '/', label: 'Home'},
         {href: '/info', label: 'Info'},
+        {href: '/organizers', label: 'Organizátoři'},
         {href: '/history', label: 'Historie'},
-        {href: '/reservation', label: 'Rezervace'},
-        {href: '/rules', label: 'Pravidla'},
         {href: '/schedule', label: 'Harmonogram'},
         {href: '/faq', label: 'FAQ'},
     ],
