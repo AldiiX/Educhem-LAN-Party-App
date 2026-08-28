@@ -1,34 +1,31 @@
 using dotenv.net;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Npgsql.NameTranslation;
 using server.Data;
 using server.Data.Entities;
+using server.Data.Seeders;
 using server.Hubs;
 using server.Services;
 using server.Services.OAuth;
 using StackExchange.Redis;
-using server.Data.Seeders;
 
 namespace server;
-
-
 
 public static class Program {
 
     public static WebApplication Application { get; private set; } = null!;
     public static IDictionary<string, string> ENV { get; private set; } = DotEnv.Read();
 
-
-
     #if DEBUG
         public static readonly bool DevelopmentMode = true;
     #else
         public static readonly bool DevelopmentMode = false;
     #endif
-
 
     public static async Task Main(string[] args) {
         ENV = DotEnv.Read();
@@ -74,7 +71,6 @@ public static class Program {
         );
 
         builder.Services.AddDbContextPool<AppDbContext>(opt => {
-            // pripojeni na postgres pres npgsql provider
             opt.UseNpgsql(
                 $"Host={ENV["PSQL_DB_HOST"]};Port={ENV["PSQL_DB_PORT"]};Database={ENV["PSQL_DB_NAME"]};Username={ENV["PSQL_DB_USER"]};Password={ENV["PSQL_DB_PASSWORD"]}",
                 o => o
@@ -89,28 +85,32 @@ public static class Program {
 
         builder.Services.AddSession(options => {
             options.IdleTimeout = TimeSpan.FromDays(365);
-            //options.Cookie.IsEssential = true;
             options.Cookie.MaxAge = TimeSpan.FromDays(365);
             options.Cookie.Name = "educhemlanparty_session";
         });
 
-        // Add services to the container.
-
         builder.Services.AddControllers();
         builder.Services.AddHttpContextAccessor();
-        // provideri se registruji jako kolekce a oauth service je vybere podle typu platformy
-        builder.Services.AddHttpClient(ExternalAuthProviderBase.HttpClientName, client => {
+
+        var authBuilder = builder.Services.AddAuthentication(options => {
+            options.DefaultScheme = "ExternalCookie";
+            options.DefaultChallengeScheme = "ExternalCookie";
+        })
+        .AddCookie("ExternalCookie", options => {
+            options.Cookie.Name = "educhemlanparty_external";
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+        });
+
+        builder.Services.AddHttpClient("oauth-external", client => {
             client.Timeout = TimeSpan.FromSeconds(10);
             client.DefaultRequestHeaders.UserAgent.ParseAdd("EduchemLANPartyApp/4.1");
         });
-        builder.Services.AddScoped<OAuthStateService>();
-        builder.Services.AddScoped<ExternalAuthProviderBase, DiscordOAuthProvider>();
-        builder.Services.AddScoped<ExternalAuthProviderBase, GitHubOAuthProvider>();
-        builder.Services.AddScoped<ExternalAuthProviderBase, GoogleOAuthProvider>();
-        builder.Services.AddScoped<ExternalAuthProviderBase, AppleOAuthProvider>();
-        builder.Services.AddScoped<ExternalAuthProviderBase, SteamOpenIdProvider>();
-        builder.Services.AddScoped<IOAuthService, OAuthService>();
-        builder.Services.AddMemoryCache(); // pro pripad, ze bych chtel nekdy skalovat (asi ne) je lepsi vyuzit redis pokud mam multiistance app coz pro lanku asi mit stejne nikdy nebudu
+
+        builder.Services.AddOAuthPlatforms(authBuilder);
+        builder.Services.AddMemoryCache();
 
         builder.Services.AddSingleton<AppCacheService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
@@ -128,12 +128,27 @@ public static class Program {
             Application.Logger.LogInformation("NPGSQL provider: {}", db.Database.ProviderName);
         }
 
+        var forwardedOptions = new ForwardedHeadersOptions {
+            ForwardedHeaders = ForwardedHeaders.All,
+        };
+        forwardedOptions.KnownNetworks.Clear();
+        forwardedOptions.KnownProxies.Clear();
+        Application.UseForwardedHeaders(forwardedOptions);
+
+        Application.Use(async (context, next) => {
+            if (Program.ENV.TryGetValue("WEB_URL", out var webUrl) && Uri.TryCreate(webUrl, UriKind.Absolute, out var uri)) {
+                if (context.Request.Host.Value != uri.Authority) {
+                    context.Request.Host = new HostString(uri.Authority);
+                    context.Request.Scheme = uri.Scheme;
+                }
+            }
+            await next.Invoke();
+        });
+
         Application.UseDefaultFiles();
         Application.MapStaticAssets();
         Application.UseSession();
-
-        //app.UseHttpsRedirection();
-
+        Application.UseAuthentication();
         Application.UseAuthorization();
         Application.UseCors();
 
@@ -142,7 +157,6 @@ public static class Program {
             context.Response.Headers.Append("X-Powered-By", "ASP.NET");
             await next.Invoke();
         });
-
 
         Application.MapControllers();
         Application.MapHub<ReservationsHub>("/hubs/reservations");

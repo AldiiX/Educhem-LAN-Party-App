@@ -8,27 +8,33 @@ namespace server.Services;
 /// </summary>
 public interface IOAuthService {
 	/// <summary>
-	/// vytvori jednorazovy oauth state, ulozi ho do distribuovane cache a necha providera sestavit authorization url
+	/// overuje, zda ma dany provider nastavenou vsechnu potrebnou konfiguraci v prostredi
 	/// </summary>
-	/// <param name="accountId">id prihlaseneho uctu pro connect flow; pro login flow zustava null</param>
-	/// <param name="provider">provider, pres ktereho flow probiha</param>
-	/// <param name="flow">typ flow, ktery rozlisuje prihlaseni a propojeni platformy</param>
-	/// <param name="request">aktualni http request pouzity pro ulozeni bezpecnostni cookie</param>
-	/// <param name="ct">token pro zruseni asynchronni operace</param>
-	/// <returns>authorization url, nebo null pri nezname, vypnute ci spatne nakonfigurovane platforme</returns>
-	Task<Uri?> CreateAuthorizationUrlAsync(Guid? accountId, OAuthProvider provider, OAuthFlow flow, HttpRequest request, CancellationToken ct = default);
+	/// <param name="provider">provider, jehoz konfigurace se overuje</param>
+	/// <returns>true pokud je provider pripraven k pouziti, jinak false</returns>
+	bool IsProviderConfigured(OAuthProvider provider);
 
 	/// <summary>
-	/// spotrebuje jednorazovy state, overi odpoved providera a dokonci prihlaseni nebo propojeni platformy
+	/// vraci nazev registrovaneho ASP.NET Core authentication scheme pro daneho providera
 	/// </summary>
-	/// <param name="request">callback request vcetne provider-specific query parametru</param>
-	/// <param name="provider">provider, jehoz callback se zpracovava</param>
-	/// <param name="state">state vraceny providerem pro sparovani s puvodnim flow</param>
-	/// <param name="code">authorization code vraceny oauth providerem</param>
-	/// <param name="error">chyba nebo zruseni vracene providerem</param>
+	/// <param name="provider">provider, pro ktereho se hleda scheme</param>
+	/// <returns>nazev authentication scheme</returns>
+	string GetAuthenticationScheme(OAuthProvider provider);
+
+	/// <summary>
+	/// nacte a normalizuje povoleny frontend origin z konfigurace aplikace
+	/// </summary>
+	/// <returns>schema a authority povoleneho frontend originu, nebo null pri neplatne konfiguraci</returns>
+	string? GetFrontendOrigin();
+
+	/// <summary>
+	/// zpracuje vysledek externi autentizace po navratu z middleware a provede login nebo connect
+	/// </summary>
+	/// <param name="authResult">vysledek autentizace z docasneho cookies schematu</param>
+	/// <param name="provider">provider, pres ktereho autentizace probehla</param>
 	/// <param name="ct">token pro zruseni asynchronni operace</param>
-	/// <returns>normalizovany vysledek, podle ktereho controller provede prihlaseni nebo presmerovani</returns>
-	Task<OAuthCompletion> CompleteAuthorizationAsync(HttpRequest request, OAuthProvider provider, string? state, string? code, string? error, CancellationToken ct = default);
+	/// <returns>normalizovany vysledek flow</returns>
+	Task<OAuthCompletion> CompleteExternalAuthAsync(Microsoft.AspNetCore.Authentication.AuthenticateResult authResult, OAuthProvider provider, CancellationToken ct = default);
 
 	/// <summary>
 	/// zrusi externi token, pokud to provider podporuje, a potom odstrani lokalni spojeni s uctem

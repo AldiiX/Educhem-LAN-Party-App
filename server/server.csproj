@@ -8,9 +8,15 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="AngleSharp" Version="1.7.2" />
+        <PackageReference Include="AspNet.Security.OAuth.Apple" Version="10.0.0" />
+        <PackageReference Include="AspNet.Security.OAuth.Discord" Version="10.0.0" />
+        <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="10.0.0" />
+        <PackageReference Include="AspNet.Security.OpenId.Steam" Version="10.0.0" />
         <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
         <PackageReference Include="dotenv.net" Version="4.0.2" />
         <PackageReference Include="MailKit" Version="4.17.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.11" />
         <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.*" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.*" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.*">
@@ -38,24 +44,6 @@
       </Compile>
       <Compile Update="Data\Entities\RoomReservation.cs">
         <DependentUpon>Reservation.cs</DependentUpon>
-      </Compile>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Update="Services\OAuth\AppleOAuthProvider.cs">
-        <DependentUpon>OAuthProviderBase.cs</DependentUpon>
-      </Compile>
-      <Compile Update="Services\OAuth\DiscordOAuthProvider.cs">
-        <DependentUpon>OAuthProviderBase.cs</DependentUpon>
-      </Compile>
-      <Compile Update="Services\OAuth\GitHubOAuthProvider.cs">
-        <DependentUpon>OAuthProviderBase.cs</DependentUpon>
-      </Compile>
-      <Compile Update="Services\OAuth\GoogleOAuthProvider.cs">
-        <DependentUpon>OAuthProviderBase.cs</DependentUpon>
-      </Compile>
-      <Compile Update="Services\OAuth\SteamOpenIdProvider.cs">
-        <DependentUpon>ExternalAuthProviderBase.cs</DependentUpon>
       </Compile>
     </ItemGroup>
 
