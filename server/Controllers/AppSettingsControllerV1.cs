@@ -1,14 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using server.Data.Entities;
 using server.Dto.Requests;
 using server.Dto.Responses;
 using server.Services;
+using server.Infrastructure;
 using System.Globalization;
 
 namespace server.Controllers;
 
 [ApiController]
 [Route("api/v1/appsettings")]
+[Authorize(Policy = AuthPolicies.Admin)]
 public sealed class AppSettingsControllerV1(
     IAuthService auth,
     IAppSettingsService settings,
@@ -17,19 +19,6 @@ public sealed class AppSettingsControllerV1(
 ) : ControllerBase {
     [HttpGet]
     public async Task<ActionResult> Get(CancellationToken ct) {
-        var acc = await auth.ReAuthFromContextOrNullAsync(ct);
-
-        if (acc == null || acc.AccountType < AccountType.Admin) {
-            return Unauthorized(new {
-                success = false,
-                message = Phrase(
-                    acc,
-                    "Nelze zobrazit nastavení aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva.",
-                    "Nelze zobrazit nastavení aplikace, pokud nejste přihlášený, nebo nemáte dostatečná práva."
-                )
-            });
-        }
-
         var reservationsStatus = await settings.GetReservationsStatusAsync(ct);
         var reservationsEnabledRightNow = await settings.SyncReservationsEnabledRightNowAsync(ct);
         var reservationsEnabledFrom = DateTime.SpecifyKind(
@@ -58,19 +47,7 @@ public sealed class AppSettingsControllerV1(
     public async Task<IActionResult> Update(
         [FromBody] UpdateAppSettingsRequest request,
         CancellationToken ct) {
-        var acc = await auth.ReAuthFromContextOrNullAsync(ct);
-
-        if (acc == null || acc.AccountType < AccountType.Admin) {
-            return Unauthorized(new {
-                success = false,
-                message = Phrase(
-                    acc,
-                    "Nelze upravit nastavení aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva.",
-                    "Nelze upravit nastavení aplikace, pokud nejste přihlášený, nebo nemáte dostatečná práva."
-                )
-            });
-        }
-
+        var actorId = auth.GetCurrentAccountId();
         var changes = new List<string>();
 
         await UpdateFeatureSettingsAsync(request, changes, ct);
@@ -105,8 +82,10 @@ public sealed class AppSettingsControllerV1(
 
         if (changes.Count > 0) {
             await dbLogger.LogInfoAsync(
-                $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "upravil", "upravila")} časy a nastavení rezervací: {string.Join("; ", changes)}.",
+                $"Uživatel ({actorId}) upravil časy a nastavení rezervací: {string.Join("; ", changes)}.",
                 "app-settings-edit",
+                actorId,
+                "app_settings",
                 ct
             );
         }
@@ -139,24 +118,14 @@ public sealed class AppSettingsControllerV1(
 
     [HttpPost("cache/clear")]
     public async Task<IActionResult> ClearCache(CancellationToken ct) {
-        var acc = await auth.ReAuthFromContextOrNullAsync(ct);
-
-        if (acc == null || acc.AccountType < AccountType.Admin) {
-            return Unauthorized(new {
-                success = false,
-                message = Phrase(
-                    acc,
-                    "Nelze smazat cache aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva.",
-                    "Nelze smazat cache aplikace, pokud nejste přihlášený, nebo nemáte dostatečná práva."
-                )
-            });
-        }
-
+        var actorId = auth.GetCurrentAccountId();
         var result = cache.Clear();
 
         await dbLogger.LogWarnAsync(
-            $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "vyčistil", "vyčistila")} aplikační cache ({result.RemovedKeys} klíčů).",
+            $"Uživatel ({actorId}) vyčistil aplikační cache ({result.RemovedKeys} klíčů).",
             "app-cache-clear",
+            actorId,
+            "cache",
             ct
         );
 
@@ -192,21 +161,5 @@ public sealed class AppSettingsControllerV1(
             null => "(null)",
             _ => value.ToString() ?? "(null)"
         };
-    }
-
-    private static string FormatAccount(Account account) {
-        return $"{account.FirstName} {account.LastName} ({account.Email})";
-    }
-
-    private static string UserNoun(Account account) {
-        return account.Gender == Gender.Female ? "Uživatelka" : "Uživatel";
-    }
-
-    private static string PastVerb(Account account, string masculine, string feminine) {
-        return account.Gender == Gender.Female ? feminine : masculine;
-    }
-
-    private static string Phrase(Account? account, string informal, string formal) {
-        return account?.CommunicationStyle == CommunicationStyle.Informal ? informal : formal;
     }
 }

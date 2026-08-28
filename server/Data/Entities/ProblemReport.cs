@@ -15,7 +15,7 @@ public sealed class ProblemReport : AuditableEntity<Guid> {
 
 	[AutoInclude]
 	[DeleteBehavior(DeleteBehavior.Cascade)]
-	public required Account Reporter { get; set; }
+	public Account Reporter { get; set; } = null!;
 
 	[StringEnum]
 	public required ProblemReportCategory Category { get; set; } = ProblemReportCategory.TechnicalProblem;

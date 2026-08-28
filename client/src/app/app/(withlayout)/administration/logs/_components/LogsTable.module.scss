@@ -39,8 +39,22 @@
             color: var(--accent-color);
         }
 
+        .idCell {
+            white-space: nowrap;
+        }
+
+        .idBadge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-color-secondary);
+            font-family: monospace;
+            font-size: 12px;
+        }
+
         .message {
-            max-width: 700px;
+            max-width: 600px;
             line-height: 1.45;
             word-break: break-word;
         }
@@ -49,24 +63,5 @@
             white-space: nowrap;
             color: var(--text-color-darker);
         }
-    }
-    
-    .logType {
-        font-weight: 600;
-    }
-
-    .exactType {
-        color: var(--accent-color);
-    }
-
-    .message {
-        max-width: 700px;
-        line-height: 1.45;
-        word-break: break-word;
-    }
-
-    .date {
-        white-space: nowrap;
-        color: var(--text-color-darker);
     }
 }

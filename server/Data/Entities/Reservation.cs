@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 using server.Data.Attributes;
@@ -12,6 +12,6 @@ public class Reservation : AuditableEntity<Guid> {
 	[ForeignKey(nameof(Account))]
 	public required Guid AccountId { get; set; }
 	[AutoInclude]
-	public required Account Account { get; set; }
+	public Account Account { get; set; } = null!;
 	public required string? Note { get; set; }
 }

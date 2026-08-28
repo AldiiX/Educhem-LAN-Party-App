@@ -9,10 +9,14 @@ type LogFiltersProps = {
     exactTypeCounts: Map<string, number>;
     dateFrom: string;
     dateTo: string;
+    actorIdFilter: string;
+    targetIdFilter: string;
     onToggleLogType: (type: string) => void;
     onToggleExactType: (type: string) => void;
     onDateFromChange: (value: string) => void;
     onDateToChange: (value: string) => void;
+    onActorIdChange: (value: string) => void;
+    onTargetIdChange: (value: string) => void;
 };
 
 export function LogsFilters({
@@ -24,10 +28,14 @@ export function LogsFilters({
     exactTypeCounts,
     dateFrom,
     dateTo,
+    actorIdFilter,
+    targetIdFilter,
     onToggleLogType,
     onToggleExactType,
     onDateFromChange,
-    onDateToChange
+    onDateToChange,
+    onActorIdChange,
+    onTargetIdChange,
 }: LogFiltersProps) {
     return <section className={style.logsFilters}>
         <div className={style.logsFilterGroup}>
@@ -87,6 +95,30 @@ export function LogsFilters({
                         type="datetime-local"
                         value={dateTo}
                         onChange={(event) => onDateToChange(event.target.value)}
+                    />
+                </label>
+            </div>
+        </div>
+
+        <div className={style.logsFilterGroup}>
+            <p className={style.logsFilterLabel}>Aktér a Cíl:</p>
+            <div className={style.logsDateFilters}>
+                <label className={style.logsDateField}>
+                    <span>Aktér:</span>
+                    <input
+                        type="text"
+                        placeholder="UUID aktéra..."
+                        value={actorIdFilter}
+                        onChange={(event) => onActorIdChange(event.target.value)}
+                    />
+                </label>
+                <label className={style.logsDateField}>
+                    <span>Cíl:</span>
+                    <input
+                        type="text"
+                        placeholder="ID cíle..."
+                        value={targetIdFilter}
+                        onChange={(event) => onTargetIdChange(event.target.value)}
                     />
                 </label>
             </div>

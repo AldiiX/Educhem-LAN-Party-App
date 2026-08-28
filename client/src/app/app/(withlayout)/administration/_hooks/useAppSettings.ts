@@ -8,9 +8,10 @@ import {
     mapAppSettings,
     ReservationStatusType
 } from "@/schemas/AppSettingsSchema";
+import {apiFetch} from "@/lib/apiClient";
 
 const fetcher = async (url: string) => {
-    const res = await fetch(url, {credentials: "include"});
+    const res = await apiFetch(url);
 
     if (!res.ok) {
         throw new Error("Failed to load app settings");
@@ -107,7 +108,7 @@ export function useAppSettings() {
 
         setSaving(true);
 
-        const res = await fetch("/api/v1/appsettings", {
+        const res = await apiFetch("/api/v1/appsettings", {
             method: "PUT",
             credentials: "include",
             headers: {"Content-Type": "application/json"},
@@ -137,7 +138,7 @@ export function useAppSettings() {
 
         setSaving(true);
 
-        const res = await fetch("/api/v1/appsettings", {
+        const res = await apiFetch("/api/v1/appsettings", {
             method: "PUT",
             credentials: "include",
             headers: {"Content-Type": "application/json"},
@@ -163,7 +164,7 @@ export function useAppSettings() {
         setClearingCache(true);
 
         try {
-            const res = await fetch("/api/v1/appsettings/cache/clear", {
+            const res = await apiFetch("/api/v1/appsettings/cache/clear", {
                 method: "POST",
                 credentials: "include",
             });

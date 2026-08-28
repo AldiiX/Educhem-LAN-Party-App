@@ -4,6 +4,7 @@ import {useRouter} from "next/navigation";
 import {Account} from "@/schemas/AccountSchema";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {useWebTheme} from "@/app/_providers/WebThemeProvider";
+import {apiFetch} from "@/lib/apiClient";
 
 export function useAccountSession(initialAccount: Account) {
     const router = useRouter();
@@ -12,7 +13,7 @@ export function useAccountSession(initialAccount: Account) {
     const account = authAccount ?? initialAccount;
 
     async function logout() {
-        await fetch("/api/v1/account/logout", {method: "POST"});
+        await apiFetch("/api/v1/auth/logout", {method: "POST"});
         setAccount(null);
         router.push("/app/login");
         router.refresh();

@@ -19,6 +19,11 @@ public sealed class LogEntry : AuditableEntity<int> {
     [MaxLength(256)]
     public string Message { get; set; } = string.Empty;
 
+    public Guid? ActorId { get; set; }
+
+    [MaxLength(64)]
+    public string? TargetId { get; set; }
+
     [DefaultValueSql("NOW()")]
     public DateTime? Date { get; set; }
 }

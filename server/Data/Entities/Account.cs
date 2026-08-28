@@ -47,6 +47,8 @@ public sealed class Account : AuditableEntity<Guid> {
 	[AutoInclude]
 	public ICollection<OAuthConnection> OAuthConnections { get; set; } = new List<OAuthConnection>();
 
+	public ICollection<AuthSession> AuthSessions { get; set; } = new List<AuthSession>();
+
 	[DefaultValue(false)]
 	public bool EnableReservations { get; set; } = false;
 

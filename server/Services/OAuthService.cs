@@ -166,7 +166,13 @@ internal sealed class OAuthService(
 		await db.SaveChangesAsync(ct);
 
 		if (isNew) {
-			await dbLogger.LogInfoAsync($"Účet {FormatAccount(account)} propojil platformu {platform.Provider} jako {profile.Username}.", "platform-connect", ct);
+			await dbLogger.LogInfoAsync(
+				$"Účet {FormatAccount(account)} propojil platformu {platform.Provider} jako {profile.Username}.",
+				"platform-connect",
+				account.Id,
+				platform.Provider.ToString(),
+				ct
+			);
 		}
 
 		return new OAuthCompletion(OAuthCompletionKind.Connected, origin, account.Id, OAuthFlow.Connect);
@@ -251,7 +257,13 @@ internal sealed class OAuthService(
 		}
 		await db.SaveChangesAsync(ct);
 		var mode = automatic ? "automaticky odpojena" : "odpojena";
-		await dbLogger.LogInfoAsync($"Platforma {provider} ({username}) byla {mode} u účtu {FormatAccount(account)}.", "platform-disconnect", ct);
+		await dbLogger.LogInfoAsync(
+			$"Platforma {provider} ({username}) byla {mode} u účtu {FormatAccount(account)}.",
+			"platform-disconnect",
+			account.Id,
+			provider.ToString(),
+			ct
+		);
 	}
 
 	/// <summary>

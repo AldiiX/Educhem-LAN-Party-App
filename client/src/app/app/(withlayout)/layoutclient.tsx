@@ -10,6 +10,7 @@ import {Button} from "@/components/Button";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {useWebTheme} from "@/app/_providers/WebThemeProvider";
 import {hasRoleAtLeast} from "@/lib/roles";
+import {apiFetch} from "@/lib/apiClient";
 
 
 
@@ -87,7 +88,7 @@ export default function({ children }: { children: ReactNode }) {
     }, []);
 
     const logout = async () => {
-        await fetch("/api/v1/account/logout", {method: "POST"});
+        await apiFetch("/api/v1/auth/logout", {method: "POST"});
         setAccount(null);
         router.push("/app/login");
         router.refresh();

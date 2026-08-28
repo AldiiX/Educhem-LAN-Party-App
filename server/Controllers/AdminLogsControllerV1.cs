@@ -1,41 +1,38 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using server.Data;
-using server.Data.Entities;
 using server.Dto.Mappers;
-using server.Services;
+using server.Infrastructure;
 
 namespace server.Controllers;
 
 [ApiController]
 [Route("api/v1/adm")]
-public sealed class AdminLogsControllerV1(
-    IAuthService auth,
-    AppDbContext db
-) : Controller {
+[Authorize(Policy = AuthPolicies.Admin)]
+public sealed class AdminLogsControllerV1(AppDbContext db) : Controller {
     [HttpGet("logs")]
-    public async Task<IActionResult> GetLogs(CancellationToken ct = default) {
-        var acc = await auth.ReAuthFromContextOrNullAsync(ct);
-        if(acc == null || acc.AccountType < AccountType.Admin)
-            return new UnauthorizedObjectResult(new {
-                success = false,
-                message = Phrase(
-                    acc,
-                    "Nelze zobrazit logy, pokud nejsi přihlášený, nebo nemáš dostatečná práva.",
-                    "Nelze zobrazit logy, pokud nejste přihlášený, nebo nemáte dostatečná práva."
-                )
-            });
+    public async Task<IActionResult> GetLogs(
+        [FromQuery] Guid? actorId = null,
+        [FromQuery] string? targetId = null,
+        CancellationToken ct = default
+    ) {
+        var query = db.LogEntries.AsNoTracking();
 
-        var logs = await db.LogEntries
-            .AsNoTracking()
+        if (actorId.HasValue) {
+            query = query.Where(l => l.ActorId == actorId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(targetId)) {
+            var trimmedTarget = targetId.Trim();
+            query = query.Where(l => l.TargetId == trimmedTarget);
+        }
+
+        var logs = await query
             .OrderByDescending(l => l.Date)
             .Select(l => l.ToDto())
             .ToListAsync(ct);
 
         return Ok(logs);
-    }
-
-    private static string Phrase(Account? account, string informal, string formal) {
-        return account?.CommunicationStyle == CommunicationStyle.Informal ? informal : formal;
     }
 }

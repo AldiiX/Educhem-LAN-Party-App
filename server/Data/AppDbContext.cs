@@ -8,6 +8,7 @@ namespace server.Data;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options) {
 
 	public DbSet<Account> Accounts { get; set; }
+	public DbSet<AuthSession> AuthSessions { get; set; }
 	public DbSet<OAuthConnection> OAuthConnections { get; set; }
 	public DbSet<Enrollment> Enrollments { get; set; }
 	public DbSet<School> Schools { get; set; }
@@ -60,6 +61,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 			.HasMany(account => account.OAuthConnections)
 			.WithOne(connection => connection.Account)
 			.HasForeignKey(connection => connection.AccountId)
+			.OnDelete(DeleteBehavior.Cascade);
+
+		modelBuilder.Entity<Account>()
+			.HasMany(account => account.AuthSessions)
+			.WithOne(session => session.Account)
+			.HasForeignKey(session => session.AccountId)
 			.OnDelete(DeleteBehavior.Cascade);
 
 		modelBuilder.Entity<OAuthConnection>()

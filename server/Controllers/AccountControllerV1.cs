@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,11 +16,6 @@ using server.Models;
 using server.Services;
 
 namespace server.Controllers;
-
-
-
-
-
 
 [ApiController]
 [Route("api/v1/account")]
@@ -39,11 +35,10 @@ public sealed class AccountControllerV1(
 	private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromMinutes(15);
 	private static readonly TimeSpan LoginLinkTokenLifetime = TimeSpan.FromMinutes(30);
 
-
-
 	[HttpGet]
+	[Authorize]
 	public async Task<IActionResult> GetMyAccount(CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
+		var acc = await auth.GetCurrentAccountFullAsync(ct);
 		if(acc == null) return new UnauthorizedResult();
 
 		return Ok(acc.ToDto());
@@ -51,7 +46,7 @@ public sealed class AccountControllerV1(
 
 	[HttpGet("dashboard")]
 	public async Task<IActionResult> GetDashboard(CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
+		var isAuthenticated = User.Identity?.IsAuthenticated == true;
 		var nowUtc = DateTime.UtcNow;
 		var accounts = await db.AccountsEf()
 			.AsNoTracking()
@@ -61,7 +56,7 @@ public sealed class AccountControllerV1(
 		var activeToday = accounts.Count(a => a.LastActiveUtc >= nowUtc.Date);
 		var reservationsEnabled = accounts.Count(a => a.EnableReservations);
 		var staffCount = accounts.Count(a => a.AccountType >= AccountType.Teacher);
-		var latestAccounts = acc == null ? [] : accounts
+		var latestAccounts = !isAuthenticated ? [] : accounts
 			.OrderByDescending(a => a.CreatedAtUtc)
 			.Take(4)
 			.Select(a => a.ToProfileDto())
@@ -95,12 +90,8 @@ public sealed class AccountControllerV1(
 	}
 
 	[HttpGet("all")]
+	[Authorize(Policy = AuthPolicies.TeacherOrg)]
 	public async Task<IActionResult> GetAllAccounts(CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
-			return Forbid();
-
 		var accounts = await db.AccountsEf()
 			.AsNoTracking()
 			.OrderBy(a => a.LastName)
@@ -112,17 +103,18 @@ public sealed class AccountControllerV1(
 	}
 
 	[HttpPost]
+	[Authorize(Policy = AuthPolicies.TeacherOrg)]
 	public async Task<IActionResult> CreateAccount([FromBody] AccountMutationRequest request, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
+		var user = auth.GetCurrentUser();
+		if(user == null) return new UnauthorizedResult();
+		if(!HasRoleAtLeast(user.Value.Role, AccountType.TeacherOrg))
 			return Forbid();
 
 		if(string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName) || string.IsNullOrWhiteSpace(request.Email))
 			return BadRequest("Missing required account fields.");
 
 		var requestedAccountType = request.AccountType ?? AccountType.Student;
-		if(!CanManageRole(acc, requestedAccountType))
+		if(!CanManageRole(user.Value.Role, requestedAccountType))
 			return Forbid();
 
 		var enrollmentResult = await ResolveEnrollmentEntitiesAsync(request.Enrollment, ct);
@@ -144,8 +136,8 @@ public sealed class AccountControllerV1(
 		};
 		if(enrollmentResult.School != null) {
 			account.Enrollment = new Enrollment {
-				Account = account,
-				School = enrollmentResult.School,
+				AccountId = account.Id,
+				SchoolId = enrollmentResult.School.Id,
 				Class = enrollmentResult.Class,
 			};
 		}
@@ -169,8 +161,10 @@ public sealed class AccountControllerV1(
 		}
 
 		await dbLogger.LogInfoAsync(
-			$"{UserNoun(created)} {FormatAccount(created)} {PastVerb(created, "byl vytvořen", "byla vytvořena")} {UserInstrumental(acc)} {FormatAccount(acc)}.",
+			$"{UserNoun(created)} {FormatAccount(created)} {PastVerb(created, "byl vytvořen", "byla vytvořena")} uživatelem ({user.Value.Id}).",
 			"user-create",
+			user.Value.Id,
+			created.Id.ToString(),
 			ct
 		);
 
@@ -178,20 +172,21 @@ public sealed class AccountControllerV1(
 	}
 
 	[HttpPut("{id:guid}")]
+	[Authorize(Policy = AuthPolicies.TeacherOrg)]
 	public async Task<IActionResult> UpdateAccount(Guid id, [FromBody] AccountMutationRequest request, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
+		var user = auth.GetCurrentUser();
+		if(user == null) return new UnauthorizedResult();
+		if(!HasRoleAtLeast(user.Value.Role, AccountType.TeacherOrg))
 			return Forbid();
 
 		var account = await db.AccountsEf().FirstOrDefaultAsync(a => a.Id == id, ct);
 		if(account == null) return NotFound();
-		if(!CanManageAccount(acc, account))
+		if(!CanManageAccount(user.Value.Role, account))
 			return Forbid();
 
 		var previousEnableReservations = account.EnableReservations;
 		var requestedAccountType = request.AccountType ?? account.AccountType;
-		if(!CanManageRole(acc, requestedAccountType))
+		if(!CanManageRole(user.Value.Role, requestedAccountType))
 			return Forbid();
 
 		if(!string.IsNullOrWhiteSpace(request.FirstName)) account.FirstName = request.FirstName.Trim();
@@ -213,12 +208,11 @@ public sealed class AccountControllerV1(
 		} else if(account.Enrollment == null) {
 			account.Enrollment = new Enrollment {
 				AccountId = account.Id,
-				Account = account,
-				School = enrollmentResult.School,
+				SchoolId = enrollmentResult.School.Id,
 				Class = enrollmentResult.Class,
 			};
 		} else {
-			account.Enrollment.School = enrollmentResult.School;
+			account.Enrollment.SchoolId = enrollmentResult.School.Id;
 			account.Enrollment.Class = enrollmentResult.Class;
 		}
 
@@ -232,6 +226,7 @@ public sealed class AccountControllerV1(
 		}
 
 		await db.SaveChangesAsync(ct);
+		if(passwordForEmail != null) await auth.RevokeAllSessionsAsync(account.Id, ct);
 		reservationCache.InvalidateReservations();
 
 		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == account.Id, ct);
@@ -250,34 +245,35 @@ public sealed class AccountControllerV1(
 		}
 
 		await dbLogger.LogInfoAsync(
-			$"{UserNoun(updated)} {FormatAccount(updated)} {PastVerb(updated, "byl upraven", "byla upravena")} {UserInstrumental(acc)} {FormatAccount(acc)}.",
+			$"{UserNoun(updated)} {FormatAccount(updated)} {PastVerb(updated, "byl upraven", "byla upravena")} uživatelem ({user.Value.Id}).",
 			"user-edit",
+			user.Value.Id,
+			updated.Id.ToString(),
 			ct
 		);
 
-		// var previousEnableReservations = account.EnableReservations;
 		if(request.EnableReservations.HasValue && previousEnableReservations != updated.EnableReservations) {
 			var stateMessage = updated.EnableReservations
-				? $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "změnil", "změnila")} stav {ParticipantGenitive(updated)} {FormatAccount(updated)} na možnost rezervace."
-				: $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "změnil", "změnila")} stav {ParticipantGenitive(updated)} {FormatAccount(updated)} na zákaz rezervace.";
-				
+				? $"Uživatel ({user.Value.Id}) změnil stav {ParticipantGenitive(updated)} {FormatAccount(updated)} na možnost rezervace."
+				: $"Uživatel ({user.Value.Id}) změnil stav {ParticipantGenitive(updated)} {FormatAccount(updated)} na zákaz rezervace.";
 
-			await dbLogger.LogInfoAsync(stateMessage, "user-edit", ct);
+			await dbLogger.LogInfoAsync(stateMessage, "user-edit", user.Value.Id, updated.Id.ToString(), ct);
 		}
 
 		return Ok(new AccountMutationResponse(updated.ToDto(), emailSent));
 	}
 
 	[HttpDelete("{id:guid}")]
+	[Authorize(Policy = AuthPolicies.TeacherOrg)]
 	public async Task<IActionResult> DeleteAccount(Guid id, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
+		var user = auth.GetCurrentUser();
+		if(user == null) return new UnauthorizedResult();
+		if(!HasRoleAtLeast(user.Value.Role, AccountType.TeacherOrg))
 			return Forbid();
 
 		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == id, ct);
 		if(account == null) return NotFound();
-		if(!CanManageAccount(acc, account))
+		if(!CanManageAccount(user.Value.Role, account))
 			return Forbid();
 
 		db.Accounts.Remove(account);
@@ -285,8 +281,10 @@ public sealed class AccountControllerV1(
 		reservationCache.InvalidateReservations();
 
 		await dbLogger.LogInfoAsync(
-			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "byl smazán", "byla smazána")} {UserInstrumental(acc)} {FormatAccount(acc)}.",
+			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "byl smazán", "byla smazána")} uživatelem ({user.Value.Id}).",
 			"user-delete",
+			user.Value.Id,
+			account.Id.ToString(),
 			ct
 		);
 
@@ -294,25 +292,29 @@ public sealed class AccountControllerV1(
 	}
 
 	[HttpPost("{id:guid}/reset-password")]
+	[Authorize(Policy = AuthPolicies.TeacherOrg)]
 	public async Task<IActionResult> ResetPassword(Guid id, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
+		var user = auth.GetCurrentUser();
+		if(user == null) return new UnauthorizedResult();
+		if(!HasRoleAtLeast(user.Value.Role, AccountType.TeacherOrg))
 			return Forbid();
 
 		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == id, ct);
 		if(account == null) return NotFound();
-		if(!CanManageAccount(acc, account))
+		if(!CanManageAccount(user.Value.Role, account))
 			return Forbid();
 
 		var password = GenerateRandomPassword();
 		account.PasswordHash = AuthService.HashPassword(password);
 		await db.SaveChangesAsync(ct);
+		await auth.RevokeAllSessionsAsync(account.Id, ct);
 		reservationCache.InvalidateReservations();
 
 		await dbLogger.LogInfoAsync(
-			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "měl", "měla")} resetované heslo {UserInstrumental(acc)} {FormatAccount(acc)}.",
+			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "měl", "měla")} resetované heslo uživatelem ({user.Value.Id}).",
 			"user-reset-password",
+			user.Value.Id,
+			account.Id.ToString(),
 			ct
 		);
 
@@ -331,37 +333,31 @@ public sealed class AccountControllerV1(
 	}
 
 	[HttpPost("{id:guid}/impersonate")]
+	[Authorize(Policy = AuthPolicies.Admin)]
 	public async Task<IActionResult> Impersonate(Guid id, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-		if(!HasRoleAtLeast(acc, AccountType.Admin))
+		var user = auth.GetCurrentUser();
+		if(user == null) return new UnauthorizedResult();
+		if(!HasRoleAtLeast(user.Value.Role, AccountType.Admin))
 			return Forbid();
 
 		var account = await db.Accounts.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id, ct);
 		if(account == null) return NotFound();
-		if(!CanManageAccount(acc, account))
+		if(!CanManageAccount(user.Value.Role, account))
 			return Forbid();
 
-		var signedInAccount = await auth.SignInAsAsync(account.Id, ct);
+		var signedInAccount = await auth.SignInAsAsync(account.Id, false, ct);
 		if(signedInAccount == null) return NotFound();
 
 		return Ok(signedInAccount.ToDto());
 	}
 
-	[HttpPost("login")]
-	public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct = default) {
-		var acc = await auth.LoginAsync(request.Email, request.PasswordPlain, ct);
-		if (acc == null) return Unauthorized("Nesprávný e-mail nebo heslo.");
-
-		return new OkObjectResult(acc.ToDto());
-	}
-
 	[HttpPut("me")]
+	[Authorize]
 	public async Task<IActionResult> UpdateMyAccount([FromBody] MyAccountMutationRequest request, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
+		var accountId = auth.GetCurrentAccountId();
+		if(accountId == null) return new UnauthorizedResult();
 
-		var account = await db.AccountsEf().FirstOrDefaultAsync(a => a.Id == acc.Id, ct);
+		var account = await db.AccountsEf().FirstOrDefaultAsync(a => a.Id == accountId.Value, ct);
 		if(account == null) return NotFound();
 
 		account.Gender = request.Gender;
@@ -377,23 +373,25 @@ public sealed class AccountControllerV1(
 	}
 
 	[HttpPut("avatar-sync-platform")]
+	[Authorize]
 	public async Task<IActionResult> SetAvatarSyncPlatform([FromBody] AvatarSyncPlatformRequest request, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if (acc == null) return new UnauthorizedResult();
+		var accountId = auth.GetCurrentAccountId();
+		if (accountId == null) return new UnauthorizedResult();
 
-		var updated = await oauth.SetAvatarSyncPlatformAsync(acc.Id, request.Platform, ct);
+		var updated = await oauth.SetAvatarSyncPlatformAsync(accountId.Value, request.Platform, ct);
 		return updated == null ? NotFound() : Ok(updated.ToDto());
 	}
 
 	[HttpPost("me/password")]
+	[Authorize]
 	public async Task<IActionResult> ChangeMyPassword([FromBody] ChangeMyPasswordRequest request, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
+		var accountId = auth.GetCurrentAccountId();
+		if(accountId == null) return new UnauthorizedResult();
 
 		if(string.IsNullOrWhiteSpace(request.OldPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
 			return BadRequest("Vyplň staré i nové heslo.");
 
-		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == acc.Id, ct);
+		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == accountId.Value, ct);
 		if(account == null) return NotFound();
 		if(!AuthService.VerifyPassword(request.OldPassword, account.PasswordHash))
 			return BadRequest("Nesprávné staré heslo.");
@@ -402,10 +400,13 @@ public sealed class AccountControllerV1(
 
 		account.PasswordHash = AuthService.HashPassword(request.NewPassword);
 		await db.SaveChangesAsync(ct);
+		await auth.RevokeAllSessionsAsync(account.Id, ct);
 
 		await dbLogger.LogInfoAsync(
 			$"{UserNoun(account)} {FormatAccount(account)} si {PastVerb(account, "změnil", "změnila")} heslo.",
 			"user-change-own-password",
+			account.Id,
+			account.Id.ToString(),
 			ct
 		);
 
@@ -441,12 +442,16 @@ public sealed class AccountControllerV1(
 			await dbLogger.LogInfoAsync(
 				$"{UserNoun(account)} {FormatAccount(account)} si {PastVerb(account, "vyžádal", "vyžádala")} reset hesla; resetovací email byl odeslán.",
 				"user-password-reset-request",
+				null,
+				account.Id.ToString(),
 				ct
 			);
 		} else {
 			await dbLogger.LogWarnAsync(
 				$"{UserNoun(account)} {FormatAccount(account)} si {PastVerb(account, "vyžádal", "vyžádala")} reset hesla, ale resetovací email se nepodařilo odeslat.",
 				"user-password-reset-email-failed",
+				null,
+				account.Id.ToString(),
 				ct
 			);
 		}
@@ -471,10 +476,13 @@ public sealed class AccountControllerV1(
 
 		account.PasswordHash = AuthService.HashPassword(request.NewPassword);
 		await db.SaveChangesAsync(ct);
+		await auth.RevokeAllSessionsAsync(account.Id, ct);
 
 		await dbLogger.LogInfoAsync(
 			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "dokončil", "dokončila")} reset hesla přes resetovací odkaz.",
 			"user-password-reset-confirm",
+			null,
+			account.Id.ToString(),
 			ct
 		);
 
@@ -493,7 +501,7 @@ public sealed class AccountControllerV1(
 			.FirstOrDefaultAsync(a => a.Id == loginToken.AccountId, ct);
 		if(account == null || account.PasswordHash != loginToken.PasswordHash) return Redirect("/app/login");
 
-		var acc = await auth.SignInAsAsync(account.Id, ct);
+		var acc = await auth.SignInAsAsync(account.Id, false, ct);
 		if(acc == null) return Redirect("/app/login");
 
 		await distributedCache.SetStringAsync(
@@ -505,13 +513,6 @@ public sealed class AccountControllerV1(
 
 		return Redirect("/app");
 	}
-
-	[HttpPost("logout")]
-	public async Task<IActionResult> Logout(CancellationToken ct = default) {
-		await auth.LogoutAsync(ct);
-		return NoContent();
-	}
-
 
 	public sealed record AccountMutationRequest(
 		string? FirstName,
@@ -568,16 +569,16 @@ public sealed class AccountControllerV1(
 
 	private sealed record EnrollmentEntitiesResult(School? School, string? Class, string? Error);
 
-	private static bool HasRoleAtLeast(Account account, AccountType accountType) {
-		return account.AccountType >= accountType;
+	private static bool HasRoleAtLeast(AccountType actorRole, AccountType accountType) {
+		return actorRole >= accountType;
 	}
 
-	private static bool CanManageRole(Account actor, AccountType targetAccountType) {
-		return actor.AccountType == AccountType.SuperAdmin || actor.AccountType > targetAccountType;
+	private static bool CanManageRole(AccountType actorRole, AccountType targetAccountType) {
+		return actorRole == AccountType.SuperAdmin || actorRole > targetAccountType;
 	}
 
-	private static bool CanManageAccount(Account actor, Account target) {
-		return CanManageRole(actor, target.AccountType);
+	private static bool CanManageAccount(AccountType actorRole, Account target) {
+		return CanManageRole(actorRole, target.AccountType);
 	}
 
 	private static string GenerateRandomPassword(int length = 24) {
@@ -675,10 +676,6 @@ public sealed class AccountControllerV1(
 
 	private static string UserNoun(Account account) {
 		return account.Gender == Gender.Female ? "Uživatelka" : "Uživatel";
-	}
-
-	private static string UserInstrumental(Account account) {
-		return account.Gender == Gender.Female ? "uživatelkou" : "uživatelem";
 	}
 
 	private static string ParticipantGenitive(Account account) {

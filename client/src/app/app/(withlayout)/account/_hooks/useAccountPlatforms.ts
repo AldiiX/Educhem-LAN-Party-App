@@ -4,6 +4,7 @@ import {useState} from "react";
 import toast from "react-hot-toast";
 import {Account, AccountSchema, AvatarSyncPlatform} from "@/schemas/AccountSchema";
 import {ConnectablePlatform, platforms} from "@/data/platforms";
+import {apiFetch} from "@/lib/apiClient";
 
 export function useAccountPlatforms(setAccount: (account: Account) => void) {
     const [platformLoading, setPlatformLoading] = useState(false);
@@ -16,7 +17,7 @@ export function useAccountPlatforms(setAccount: (account: Account) => void) {
         const platformName = platforms.find(item => item.id === platform)?.name ?? platform;
         setPlatformLoading(true);
         try {
-            const response = await fetch(`/api/v1/${platform}/connection`, {method: "DELETE"});
+            const response = await apiFetch(`/api/v1/${platform}/connection`, {method: "DELETE"});
             if(!response.ok) {
                 toast.error(`${platformName} se nepodařilo odpojit.`);
                 return;
@@ -38,7 +39,7 @@ export function useAccountPlatforms(setAccount: (account: Account) => void) {
 	async function setAvatarSyncPlatform(platform: AvatarSyncPlatform | null) {
 		setPlatformLoading(true);
 		try {
-			const response = await fetch("/api/v1/account/avatar-sync-platform", {
+			const response = await apiFetch("/api/v1/account/avatar-sync-platform", {
 				method: "PUT",
 				headers: {"Content-Type": "application/json"},
 				body: JSON.stringify({platform}),

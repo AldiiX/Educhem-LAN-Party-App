@@ -1,4 +1,4 @@
-﻿using server.Data.Entities;
+using server.Data.Entities;
 
 namespace server.Dto.Mappers;
 
@@ -12,6 +12,8 @@ internal static class LogEntryMapper {
             Message = log.Message,
             Type = log.Type,
             ExactType = log.ExactType,
+            ActorId = log.ActorId,
+            TargetId = log.TargetId,
         };
     }
 }

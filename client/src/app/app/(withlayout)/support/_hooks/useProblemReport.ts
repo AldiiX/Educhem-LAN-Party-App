@@ -6,6 +6,7 @@ import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {isSuperAdmin} from "@/lib/roles";
 import {fetcher} from "@/lib/swr";
 import type {Account} from "@/schemas/AccountSchema";
+import {apiFetch} from "@/lib/apiClient";
 
 export type ProblemReportCategory =
     "TechnicalProblem" |
@@ -200,7 +201,7 @@ export function useProblemReport() {
         setWasSubmitted(false);
 
         try {
-            const response = await fetch("/api/v1/problem-reports", {
+            const response = await apiFetch("/api/v1/problem-reports", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(form),
@@ -254,7 +255,7 @@ export function useProblemReport() {
 
         setPendingReportId(id);
         try {
-            const response = await fetch(`/api/v1/problem-reports/${id}/status`, {
+            const response = await apiFetch(`/api/v1/problem-reports/${id}/status`, {
                 method: "PUT",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(draft),
@@ -270,7 +271,7 @@ export function useProblemReport() {
     const deleteReport = async (id: string) => {
         setPendingReportId(id);
         try {
-            const response = await fetch(`/api/v1/problem-reports/${id}`, {method: "DELETE"});
+            const response = await apiFetch(`/api/v1/problem-reports/${id}`, {method: "DELETE"});
 
             if(!response.ok) throw new Error("Problem report delete request failed.");
             await mutate();

@@ -5,6 +5,10 @@ type UseLogsFiltersProps = {
     logs: LogEntry[];
     searchTerm: string;
     setSearchTerm: Dispatch<SetStateAction<string>>;
+    actorIdFilter: string;
+    setActorIdFilter: Dispatch<SetStateAction<string>>;
+    targetIdFilter: string;
+    setTargetIdFilter: Dispatch<SetStateAction<string>>;
     selectedLogTypes: Set<string>;
     setSelectedLogTypes: Dispatch<SetStateAction<Set<string>>>;
     selectedExactTypes: Set<string>;
@@ -16,17 +20,21 @@ type UseLogsFiltersProps = {
 };
 
 export function useLogsFilters({
-   logs,
-   searchTerm,
-   setSearchTerm,
-   selectedLogTypes,
-   setSelectedLogTypes,
-   selectedExactTypes,
-   setSelectedExactTypes,
-   dateFrom,
-   setDateFrom,
-   dateTo,
-   setDateTo,
+    logs,
+    searchTerm,
+    setSearchTerm,
+    actorIdFilter,
+    setActorIdFilter,
+    targetIdFilter,
+    setTargetIdFilter,
+    selectedLogTypes,
+    setSelectedLogTypes,
+    selectedExactTypes,
+    setSelectedExactTypes,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
 }: UseLogsFiltersProps){
 
     const uniqueExactTypes = useMemo(() => (
@@ -77,7 +85,9 @@ export function useLogsFilters({
         setDateFrom("");
         setDateTo("");
         setSearchTerm("");
-    }, [setDateFrom, setDateTo, setSearchTerm, setSelectedExactTypes, setSelectedLogTypes]);
+        setActorIdFilter("");
+        setTargetIdFilter("");
+    }, [setDateFrom, setDateTo, setSearchTerm, setActorIdFilter, setTargetIdFilter, setSelectedExactTypes, setSelectedLogTypes]);
 
     const filteredLogs = useMemo(() => logs.filter((log) => {
         if(selectedLogTypes.size > 0 && !selectedLogTypes.has(String(log.type))) {
@@ -85,6 +95,14 @@ export function useLogsFilters({
         }
 
         if(selectedExactTypes.size > 0 && !selectedExactTypes.has(log.exactType)) {
+            return false;
+        }
+
+        if(actorIdFilter && (!log.actorId || !log.actorId.toLowerCase().includes(actorIdFilter.toLowerCase().trim()))) {
+            return false;
+        }
+
+        if(targetIdFilter && (!log.targetId || !log.targetId.toLowerCase().includes(targetIdFilter.toLowerCase().trim()))) {
             return false;
         }
 
@@ -97,8 +115,15 @@ export function useLogsFilters({
             }
         }
 
-        if(searchTerm && !log.message.toLowerCase().includes(searchTerm.toLowerCase())) {
-            return false;
+        if(searchTerm) {
+            const term = searchTerm.toLowerCase().trim();
+            const matchMessage = log.message.toLowerCase().includes(term);
+            const matchActor = log.actorId?.toLowerCase().includes(term);
+            const matchTarget = log.targetId?.toLowerCase().includes(term);
+            const matchExact = log.exactType.toLowerCase().includes(term);
+            if (!matchMessage && !matchActor && !matchTarget && !matchExact) {
+                return false;
+            }
         }
 
         return true;
@@ -106,6 +131,8 @@ export function useLogsFilters({
         logs,
         selectedLogTypes,
         selectedExactTypes,
+        actorIdFilter,
+        targetIdFilter,
         dateFrom,
         dateTo,
         searchTerm,

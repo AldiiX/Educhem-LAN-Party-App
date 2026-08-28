@@ -8,11 +8,11 @@ namespace server.Data.Entities;
 public sealed class Enrollment {
 	[Key]
 	public Guid AccountId { get; set; }
-	public required Account Account { get; set; }
+	public Account Account { get; set; } = null!;
 
 	public ushort SchoolId { get; set; }
 	[AutoInclude]
-	public required School School { get; set; }
+	public School School { get; set; } = null!;
 
 	[MaxLength(16)]
 	public string? Class { get; set; }

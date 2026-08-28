@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using server.Data.Entities;
 using server.Dto.Mappers;
 using server.Services;
+using server.Infrastructure;
 
 namespace server.Controllers;
 
@@ -13,7 +15,7 @@ namespace server.Controllers;
 [ApiController]
 [Route("api/v1/{provider}")]
 public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : Controller {
-	private const string ExternalScheme = "ExternalCookie";
+	private const string ExternalScheme = AuthSchemes.ExternalCookie;
 
 	/// <summary>
 	/// zahaji login flow a presmeruje prohlizec na authorization url vybraneho providera
@@ -42,12 +44,13 @@ public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : 
 	/// po reautentizaci zahaji connect flow pro propojeni platformy s prihlasenym uctem
 	/// </summary>
 	[HttpGet("connect")]
+	[Authorize]
 	public async Task<IActionResult> Connect(string provider, CancellationToken ct = default) {
 		if (!TryGetProvider(provider, out var oauthProvider)) return NotFound();
 		if (!oauth.IsProviderConfigured(oauthProvider)) return Problem(statusCode: StatusCodes.Status503ServiceUnavailable);
 
-		var account = await auth.ReAuthAsync(ct);
-		if (account == null) return Unauthorized();
+		var accountId = auth.GetCurrentAccountId();
+		if (accountId == null) return Unauthorized();
 
 		var origin = oauth.GetFrontendOrigin();
 		if (origin == null) return Problem(statusCode: StatusCodes.Status503ServiceUnavailable);
@@ -57,7 +60,7 @@ public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : 
 			Items = {
 				["flow"] = "connect",
 				["provider"] = provider,
-				["accountId"] = account.Id.ToString(),
+				["accountId"] = accountId.Value.ToString(),
 				["origin"] = origin,
 			}
 		};
@@ -88,7 +91,7 @@ public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : 
 
 		switch (completion.Kind) {
 			case OAuthCompletionKind.LoginSucceeded:
-				if (completion.AccountId == null || await auth.SignInAsAsync(completion.AccountId.Value, ct) == null) {
+				if (completion.AccountId == null || await auth.SignInAsAsync(completion.AccountId.Value, false, ct) == null) {
 					return Redirect(BuildRedirect(origin, $"/app/login?{parameter}=error"));
 				}
 				return Redirect(BuildRedirect(origin, "/app"));
@@ -122,12 +125,13 @@ public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : 
 	/// po reautentizaci odpoji platformu od prihlaseneho uctu a vrati aktualizovana data uctu
 	/// </summary>
 	[HttpDelete("connection")]
+	[Authorize]
 	public async Task<IActionResult> Disconnect(string provider, CancellationToken ct = default) {
 		if (!TryGetProvider(provider, out var oauthProvider)) return NotFound();
-		var account = await auth.ReAuthAsync(ct);
-		if (account == null) return Unauthorized();
+		var accountId = auth.GetCurrentAccountId();
+		if (accountId == null) return Unauthorized();
 
-		var updated = await oauth.DisconnectAsync(account.Id, oauthProvider, ct);
+		var updated = await oauth.DisconnectAsync(accountId.Value, oauthProvider, ct);
 		return updated == null ? NotFound() : Ok(updated.ToDto());
 	}
 

@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Account, AccountSchema } from "@/schemas/AccountSchema";
+import {apiFetch} from "@/lib/apiClient";
 
 export function useAccountAchievements(account: Account, setAccount: (account: Account) => void) {
     const [updatingAchievements, setUpdatingAchievements] = useState<Set<string>>(() => new Set());
@@ -14,7 +15,7 @@ export function useAccountAchievements(account: Account, setAccount: (account: A
     const toggleAchievementVisibility = useCallback(async (entryId: string, nextHidden: boolean) => {
         setUpdatingAchievements(prev => new Set(prev).add(entryId));
         try {
-            const response = await fetch(`/api/v1/account/me/achievements/${entryId}`, {
+            const response = await apiFetch(`/api/v1/account/me/achievements/${entryId}`, {
                 method: "PUT",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({isHidden: nextHidden}),
@@ -53,7 +54,7 @@ export function useAccountAchievements(account: Account, setAccount: (account: A
 
         setUpdatingBadges(prev => new Set(prev).add(entryId));
         try {
-            const response = await fetch(`/api/v1/account/me/badges/${entryId}`, {
+            const response = await apiFetch(`/api/v1/account/me/badges/${entryId}`, {
                 method: "PUT",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({isTakenOut: nextTakenOut}),

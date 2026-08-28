@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using server.Data;
 using server.Dto.Mappers;
 using server.Infrastructure;
@@ -11,8 +11,9 @@ namespace server.Controllers;
 public sealed class ProfileControllerV1(AppDbContext db, IAuthService auth) : Controller {
 
 	[HttpGet]
+	[Microsoft.AspNetCore.Authorization.Authorize]
 	public async Task<IActionResult> Get() {
-		var me = await auth.ReAuthAsync();
+		var me = await auth.GetCurrentAccountFullAsync();
 		if(me == null) return new UnauthorizedResult();
 
 		return Ok(me.ToProfileDto());

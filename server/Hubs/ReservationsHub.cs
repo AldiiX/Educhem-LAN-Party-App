@@ -28,9 +28,8 @@ public sealed class ReservationsHub(
 
 	public override async Task OnConnectedAsync() {
 		ConnectedIds.TryAdd(Context.ConnectionId, 0);
-		var account = await auth.ReAuthAsync();
 		// anonymum neposilame profily, prihlasenej clovek je muze videt
-		await Groups.AddToGroupAsync(Context.ConnectionId, account == null ? "anonymous" : "authenticated");
+		await Groups.AddToGroupAsync(Context.ConnectionId, Context.User?.Identity?.IsAuthenticated == true ? "authenticated" : "anonymous");
 		await Clients.Caller.SendAsync("ReceiveReservations", new { reservations = await FetchReservations() });
 		await QueueConnectedStatusBroadcast();
 		await base.OnConnectedAsync();
@@ -42,21 +41,17 @@ public sealed class ReservationsHub(
 		await base.OnDisconnectedAsync(exception);
 	}
 
+	[Microsoft.AspNetCore.Authorization.Authorize]
 	public async Task Reserve(ReserveRequest request) {
 		var ct = Context.ConnectionAborted;
-		var account = await auth.ReAuthAsync(ct);
-		if (account == null) {
+		var user = auth.GetCurrentUser();
+		if (user == null) {
 			await SendError("Nejste přihlášený.");
 			return;
 		}
 		
 		if (!await appSettings.AreReservationsEnabledRightNowAsync(ct)) {
 			await SendError("Rezervace jsou momentálně uzavřené.");
-			return;
-		}
-
-		if (!account.EnableReservations) {
-			await SendError("Nemáte povolené rezervace.");
 			return;
 		}
 
@@ -69,8 +64,23 @@ public sealed class ReservationsHub(
 			// serializable, at se dva rychly lidi nenacpou na stejny misto naraz
 			await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
 
-			var accountEntity = await db.Accounts.FirstAsync(a => a.Id == account.Id, ct);
-			var existingReservation = await db.ReservationsEf().FirstOrDefaultAsync(r => r.AccountId == account.Id, ct);
+			var accountInfo = await db.Accounts
+				.AsNoTracking()
+				.Where(a => a.Id == user.Value.Id)
+				.Select(a => new { a.EnableReservations, a.AccountType })
+				.FirstOrDefaultAsync(ct);
+
+			if (accountInfo == null) {
+				await SendError("Účet nebyl nalezen.");
+				return;
+			}
+
+			if (!accountInfo.EnableReservations) {
+				await SendError("Nemáte povolené rezervace.");
+				return;
+			}
+
+			var existingReservation = await db.ReservationsEf().FirstOrDefaultAsync(r => r.AccountId == user.Value.Id, ct);
 			Reservation? previousReservation = existingReservation;
 			Reservation? reservation = null;
 			string? reservedTarget = null;
@@ -83,13 +93,13 @@ public sealed class ReservationsHub(
 						return;
 					}
 
-					if (computer.IsTeachersComputer && account.AccountType < AccountType.Teacher) {
+					if (computer.IsTeachersComputer && accountInfo.AccountType < AccountType.Teacher) {
 						await SendError("Tento počítač je vyhrazený pro učitele.");
 						return;
 					}
 
 					var reservationExists = await db.ComputerReservations
-						.AnyAsync(r => r.Computer.Id == request.Id && r.AccountId != account.Id, ct);
+						.AnyAsync(r => r.Computer.Id == request.Id && r.AccountId != user.Value.Id, ct);
 
 					if (reservationExists) {
 						await SendError("Toto místo je již rezervované.");
@@ -100,8 +110,7 @@ public sealed class ReservationsHub(
 
 					reservation = new ComputerReservation {
 						Id = Guid.CreateVersion7(),
-						Account = accountEntity,
-						AccountId = account.Id,
+						AccountId = user.Value.Id,
 						Computer = computer,
 						Note = null,
 					};
@@ -118,7 +127,7 @@ public sealed class ReservationsHub(
 					}
 
 					var reservationCount = await db.RoomReservations
-						.CountAsync(r => r.Room.Id == request.Id && r.AccountId != account.Id, ct);
+						.CountAsync(r => r.Room.Id == request.Id && r.AccountId != user.Value.Id, ct);
 
 					if (reservationCount >= room.Capacity) {
 						await SendError("Toto místo je již rezervované.");
@@ -129,8 +138,7 @@ public sealed class ReservationsHub(
 
 					reservation = new RoomReservation {
 						Id = Guid.CreateVersion7(),
-						Account = accountEntity,
-						AccountId = account.Id,
+						AccountId = user.Value.Id,
 						Room = room,
 						Note = null,
 					};
@@ -148,9 +156,12 @@ public sealed class ReservationsHub(
 
 			if (reservation != null && !string.IsNullOrWhiteSpace(reservedTarget)) {
 				await dbLogger.LogInfoAsync(
-					$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "rezervoval", "rezervovala")} {reservedTarget}.",
-					"reservation", ct
-					);
+					$"Uživatel ({user.Value.Id}) rezervoval {reservedTarget}.",
+					"reservation",
+					user.Value.Id,
+					reservedTarget,
+					ct
+				);
 			}
 
 			await BroadcastReservationsChanged("booked", "Rezervace byla upravena.", previousReservation, reservation);
@@ -164,10 +175,11 @@ public sealed class ReservationsHub(
 
 	}
 
+	[Microsoft.AspNetCore.Authorization.Authorize]
 	public async Task Unbook() {
 		var ct = Context.ConnectionAborted;
-		var account = await auth.ReAuthAsync(ct);
-		if (account == null) {
+		var accountId = auth.GetCurrentAccountId();
+		if (accountId == null) {
 			await SendError("Nejste přihlášený.");
 			return;
 		}
@@ -177,19 +189,28 @@ public sealed class ReservationsHub(
 			return;
 		}
 
-		var existingReservation = await db.ReservationsEf().FirstOrDefaultAsync(r => r.AccountId == account.Id, ct);
+		var existingReservation = await db.ReservationsEf().FirstOrDefaultAsync(r => r.AccountId == accountId.Value, ct);
 		if (existingReservation == null) {
 			await SendError("Nemáte žádnou rezervaci.");
 			return;
 		}
+
+		var unbookedTarget = existingReservation is ComputerReservation cr
+			? cr.Computer?.Id
+			: existingReservation is RoomReservation rr
+				? rr.Room?.Id
+				: null;
 
 		db.Reservations.Remove(existingReservation);
 		await db.SaveChangesAsync(ct);
 		await reservationCache.ApplyReservationChangeAsync(existingReservation, null);
 
 		await dbLogger.LogInfoAsync(
-			$"{UserNoun(account)} {FormatAccount(account)} {PastVerb(account, "zrušil", "zrušila")} rezervaci.",
-			"reservation"
+			$"Uživatel ({accountId.Value}) zrušil rezervaci.",
+			"reservation",
+			accountId.Value,
+			unbookedTarget,
+			ct
 		);
 
 		await BroadcastReservationsChanged("unbooked", "Rezervace byla smazána.", existingReservation, null);
@@ -197,8 +218,8 @@ public sealed class ReservationsHub(
 
 	// helpery metodiky
 	private async Task<List<object>> FetchReservations() {
-		var account = await auth.ReAuthAsync();
-		return await reservationCache.GetReservationsAsync(account != null);
+		var authenticated = Context.User?.Identity?.IsAuthenticated == true;
+		return await reservationCache.GetReservationsAsync(authenticated);
 	}
 
 	private Task SendError(string message) {
@@ -268,17 +289,5 @@ public sealed class ReservationsHub(
 		return exception is PostgresException {
 			SqlState: PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.UniqueViolation
 		} || exception.InnerException is not null && IsConcurrentReservationWrite(exception.InnerException);
-	}
-
-	private static string FormatAccount(Account account) {
-		return $"{account.FirstName} {account.LastName} ({account.Email})";
-	}
-
-	private static string UserNoun(Account account) {
-		return account.Gender == Gender.Female ? "Uživatelka" : "Uživatel";
-	}
-
-	private static string PastVerb(Account account, string masculine, string feminine) {
-		return account.Gender == Gender.Female ? feminine : masculine;
 	}
 }

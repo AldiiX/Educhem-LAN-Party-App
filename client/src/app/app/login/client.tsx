@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import style from "./client.module.scss"
 import Link from "next/link";
@@ -16,6 +16,7 @@ export default function() {
     const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [rememberMe, setRememberMe] = useState(false);
     const [resetEmail, setResetEmail] = useState("");
     const [resetOpen, setResetOpen] = useState(false);
     const [resetLoading, setResetLoading] = useState(false);
@@ -41,7 +42,7 @@ export default function() {
 
         setLoginLoading(true);
         try {
-            await login(email, password);
+            await login(email, password, rememberMe);
         } finally {
             setLoginLoading(false);
         }
@@ -84,6 +85,25 @@ export default function() {
                         </div>
                         <input type="password" placeholder="•••••••" onChange={(e) => setPassword(e.currentTarget.value)} />
                     </div>
+                    <label className={style.rememberMe}>
+                        <input
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={event => setRememberMe(event.target.checked)}
+                        />
+                        <span className={style.checkboxControl}>
+                            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M3.5 8.5L6.5 11.5L12.5 4.5"
+                                    stroke="currentColor"
+                                    strokeWidth="2.2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
+                        </span>
+                        <span className={style.rememberMeText}>Zapamatovat přihlášení</span>
+                    </label>
                     <Button type="primary" text="Přihlásit se" buttonType="submit" className={style.submitBtn} disabled={loginLoading} loading={loginLoading} />
 
                     <div className={style.socialLogins}>

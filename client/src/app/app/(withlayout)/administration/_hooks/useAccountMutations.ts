@@ -6,6 +6,7 @@ import {phrase} from "@/lib/communicationStyle";
 import {canManageAccountRole, hasRoleAtLeast} from "@/lib/roles";
 import {splitDisplayName} from "./accountForm";
 import {AccountForm, ModalMode} from "./types";
+import {apiFetch} from "@/lib/apiClient";
 
 type UseAccountMutationsOptions = {
     canManageSelectedAccount: boolean;
@@ -90,7 +91,7 @@ export function useAccountMutations({
         };
 
         try {
-            const response = await fetch(modalMode === "create" ? "/api/v1/account" : `/api/v1/account/${selectedAccount?.id}`, {
+            const response = await apiFetch(modalMode === "create" ? "/api/v1/account" : `/api/v1/account/${selectedAccount?.id}`, {
                 method: modalMode === "create" ? "POST" : "PUT",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(body),
@@ -127,7 +128,7 @@ export function useAccountMutations({
 
         setSaving(true);
         try {
-            const response = await fetch(`/api/v1/account/${selectedAccount.id}`, {method: "DELETE"});
+            const response = await apiFetch(`/api/v1/account/${selectedAccount.id}`, {method: "DELETE"});
             if(!response.ok) throw new Error("Delete failed");
 
             await refreshAccounts();
@@ -145,7 +146,7 @@ export function useAccountMutations({
 
         setSaving(true);
         try {
-            const response = await fetch(`/api/v1/account/${selectedAccount.id}/reset-password`, {method: "POST"});
+            const response = await apiFetch(`/api/v1/account/${selectedAccount.id}/reset-password`, {method: "POST"});
             if(!response.ok) throw new Error("Reset failed");
 
             const data = await response.json() as {loginCredentialsEmailSent?: boolean};
@@ -163,7 +164,7 @@ export function useAccountMutations({
 
         setSaving(true);
         try {
-            const response = await fetch(`/api/v1/account/${selectedAccount.id}/impersonate`, {method: "POST"});
+            const response = await apiFetch(`/api/v1/account/${selectedAccount.id}/impersonate`, {method: "POST"});
             if(!response.ok) throw new Error("Impersonation failed");
 
             const signedInAccount = AccountSchema.parse(await response.json());

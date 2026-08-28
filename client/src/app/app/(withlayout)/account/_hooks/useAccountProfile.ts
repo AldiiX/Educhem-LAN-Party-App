@@ -4,6 +4,7 @@ import {useEffect, useState} from "react";
 import toast from "react-hot-toast";
 import {Account, AccountSchema} from "@/schemas/AccountSchema";
 import {ProfileDraft} from "./types";
+import {apiFetch} from "@/lib/apiClient";
 
 export function useAccountProfile(account: Account, setAccount: (account: Account) => void, closeModal: () => void) {
     const [savingProfile, setSavingProfile] = useState(false);
@@ -21,7 +22,7 @@ export function useAccountProfile(account: Account, setAccount: (account: Accoun
     async function saveProfile() {
         setSavingProfile(true);
         try {
-            const response = await fetch("/api/v1/account/me", {
+            const response = await apiFetch("/api/v1/account/me", {
                 method: "PUT",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({

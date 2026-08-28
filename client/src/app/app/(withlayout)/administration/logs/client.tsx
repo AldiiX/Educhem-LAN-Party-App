@@ -53,6 +53,8 @@ export function Logs() {
                 && !logsAdministration.dateFrom
                 && !logsAdministration.dateTo
                 && !logsAdministration.searchTerm
+                && !logsAdministration.actorIdFilter
+                && !logsAdministration.targetIdFilter
             }
         />
 
@@ -66,10 +68,14 @@ export function Logs() {
                 exactTypeCounts={logsAdministration.exactTypeCounts}
                 dateFrom={logsAdministration.dateFrom}
                 dateTo={logsAdministration.dateTo}
+                actorIdFilter={logsAdministration.actorIdFilter}
+                targetIdFilter={logsAdministration.targetIdFilter}
                 onToggleLogType={logsAdministration.toggleLogType}
                 onToggleExactType={logsAdministration.toggleExactType}
                 onDateFromChange={logsAdministration.setDateFrom}
                 onDateToChange={logsAdministration.setDateTo}
+                onActorIdChange={logsAdministration.setActorIdFilter}
+                onTargetIdChange={logsAdministration.setTargetIdFilter}
             />
         )}
 

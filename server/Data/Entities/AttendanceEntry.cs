@@ -15,7 +15,7 @@ public sealed class AttendanceEntry : AuditableEntity<Guid> {
 
 	[AutoInclude]
 	[DeleteBehavior(DeleteBehavior.Cascade)]
-	public required Account Account { get; set; }
+	public Account Account { get; set; } = null!;
 
 	[StringEnum]
 	public required AttendanceEntryType Type { get; set; }
@@ -28,7 +28,7 @@ public sealed class AttendanceEntry : AuditableEntity<Guid> {
 
 	[AutoInclude]
 	[DeleteBehavior(DeleteBehavior.Restrict)]
-	public required Account CreatedBy { get; set; }
+	public Account CreatedBy { get; set; } = null!;
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]

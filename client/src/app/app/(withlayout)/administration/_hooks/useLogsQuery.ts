@@ -22,6 +22,8 @@ export function useLogsQuery() {
     const logs = data ?? [];
 
     const [searchTerm, setSearchTerm] = useState("");
+    const [actorIdFilter, setActorIdFilter] = useState("");
+    const [targetIdFilter, setTargetIdFilter] = useState("");
 
     const [selectedLogTypes, setSelectedLogTypes] = useState<Set<string>>(
         () => new Set()
@@ -46,6 +48,12 @@ export function useLogsQuery() {
 
         searchTerm,
         setSearchTerm,
+
+        actorIdFilter,
+        setActorIdFilter,
+
+        targetIdFilter,
+        setTargetIdFilter,
 
         selectedLogTypes,
         setSelectedLogTypes,

@@ -1,5 +1,6 @@
 using dotenv.net;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -10,9 +11,12 @@ using server.Data;
 using server.Data.Entities;
 using server.Data.Seeders;
 using server.Hubs;
+using server.Infrastructure;
 using server.Services;
 using server.Services.OAuth;
 using StackExchange.Redis;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 
 namespace server;
 
@@ -30,6 +34,8 @@ public static class Program {
     public static async Task Main(string[] args) {
         ENV = DotEnv.Read();
         var builder = WebApplication.CreateBuilder(args);
+		var jwtConfiguration = JwtAuthConfiguration.FromEnvironment(ENV.AsReadOnly());
+		var frontendOrigin = GetFrontendOrigin();
 
         #if RELEASE
             builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
@@ -83,20 +89,48 @@ public static class Program {
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-        builder.Services.AddSession(options => {
-            options.IdleTimeout = TimeSpan.FromDays(365);
-            options.Cookie.MaxAge = TimeSpan.FromDays(365);
-            options.Cookie.Name = "educhemlanparty_session";
-        });
-
         builder.Services.AddControllers();
         builder.Services.AddHttpContextAccessor();
+		builder.Services.AddSingleton(jwtConfiguration);
+		builder.Services.AddAntiforgery(options => {
+			options.HeaderName = "X-XSRF-TOKEN";
+			options.Cookie.Name = AuthCookieNames.Antiforgery;
+			options.Cookie.HttpOnly = true;
+			options.Cookie.SameSite = SameSiteMode.Lax;
+			options.Cookie.SecurePolicy = Program.DevelopmentMode
+				? CookieSecurePolicy.SameAsRequest
+				: CookieSecurePolicy.Always;
+		});
 
         var authBuilder = builder.Services.AddAuthentication(options => {
-            options.DefaultScheme = "ExternalCookie";
-            options.DefaultChallengeScheme = "ExternalCookie";
+			options.DefaultAuthenticateScheme = AuthSchemes.AccessToken;
+			options.DefaultChallengeScheme = AuthSchemes.AccessToken;
         })
-        .AddCookie("ExternalCookie", options => {
+		.AddJwtBearer(AuthSchemes.AccessToken, options => {
+			options.MapInboundClaims = false;
+			options.TokenValidationParameters = new TokenValidationParameters {
+				ValidateIssuer = true,
+				ValidIssuer = JwtAuthConfiguration.Issuer,
+				ValidateAudience = true,
+				ValidAudience = JwtAuthConfiguration.Audience,
+				ValidateLifetime = true,
+				ValidateIssuerSigningKey = true,
+				IssuerSigningKey = jwtConfiguration.SigningKey,
+				ClockSkew = TimeSpan.FromSeconds(15),
+				NameClaimType = ClaimTypes.NameIdentifier,
+				RoleClaimType = ClaimTypes.Role,
+			};
+			options.Events = new JwtBearerEvents {
+				OnMessageReceived = context => {
+					var authorization = context.Request.Headers.Authorization.ToString();
+					if (!authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) {
+						context.Token = context.Request.Cookies[AuthCookieNames.Access];
+					}
+					return Task.CompletedTask;
+				},
+			};
+		})
+        .AddCookie(AuthSchemes.ExternalCookie, options => {
             options.Cookie.Name = "educhemlanparty_external";
             options.Cookie.SameSite = SameSiteMode.Lax;
             options.Cookie.HttpOnly = true;
@@ -110,6 +144,20 @@ public static class Program {
         });
 
         builder.Services.AddOAuthPlatforms(authBuilder);
+		builder.Services.AddAuthorization(options => {
+			options.AddPolicy(AuthPolicies.Teacher, policy => policy
+				.RequireAuthenticatedUser()
+				.RequireAssertion(context => HasAccountType(context.User, AccountType.Teacher)));
+			options.AddPolicy(AuthPolicies.TeacherOrg, policy => policy
+				.RequireAuthenticatedUser()
+				.RequireAssertion(context => HasAccountType(context.User, AccountType.TeacherOrg)));
+			options.AddPolicy(AuthPolicies.Admin, policy => policy
+				.RequireAuthenticatedUser()
+				.RequireAssertion(context => HasAccountType(context.User, AccountType.Admin)));
+			options.AddPolicy(AuthPolicies.SuperAdmin, policy => policy
+				.RequireAuthenticatedUser()
+				.RequireAssertion(context => HasAccountType(context.User, AccountType.SuperAdmin)));
+		});
         builder.Services.AddMemoryCache();
 
         builder.Services.AddSingleton<AppCacheService>();
@@ -120,7 +168,7 @@ public static class Program {
 
         builder.Services.AddCors(options => {
             options.AddDefaultPolicy(policy => {
-                policy.SetIsOriginAllowed(_ => true)
+				policy.WithOrigins(frontendOrigin)
                       .AllowAnyHeader()
                       .AllowAnyMethod()
                       .AllowCredentials();
@@ -147,8 +195,8 @@ public static class Program {
         Application.UseDefaultFiles();
         Application.MapStaticAssets();
         Application.UseCors();
-        Application.UseSession();
         Application.UseAuthentication();
+		Application.UseMiddleware<AntiforgeryValidationMiddleware>();
         Application.UseAuthorization();
 
         // pridani X-Powered-By
@@ -164,4 +212,19 @@ public static class Program {
 
         await Application.RunAsync();
     }
+
+	private static string GetFrontendOrigin() {
+		if (!ENV.TryGetValue("WEB_URL", out var webUrl) || !Uri.TryCreate(webUrl, UriKind.Absolute, out var uri)
+			|| uri.Scheme is not ("http" or "https") || !string.IsNullOrEmpty(uri.UserInfo)
+			|| !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment)) {
+			throw new InvalidOperationException("WEB_URL musi obsahovat platnou HTTP(S) originu.");
+		}
+
+		return uri.GetLeftPart(UriPartial.Authority);
+	}
+
+	private static bool HasAccountType(ClaimsPrincipal principal, AccountType requiredType) {
+		var value = principal.FindFirstValue(ClaimTypes.Role);
+		return Enum.TryParse<AccountType>(value, out var accountType) && accountType >= requiredType;
+	}
 }

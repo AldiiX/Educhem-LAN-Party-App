@@ -6,6 +6,7 @@ import {useMemo, useState} from "react";
 import toast from "react-hot-toast";
 import {Button} from "@/components/Button";
 import styles from "./client.module.scss";
+import {apiFetch} from "@/lib/apiClient";
 
 export default function ResetPasswordClient({token}: {token: string}) {
     const router = useRouter();
@@ -30,7 +31,7 @@ export default function ResetPasswordClient({token}: {token: string}) {
 
         setLoading(true);
         try {
-            const response = await fetch("/api/v1/account/reset-password", {
+            const response = await apiFetch("/api/v1/account/reset-password", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({

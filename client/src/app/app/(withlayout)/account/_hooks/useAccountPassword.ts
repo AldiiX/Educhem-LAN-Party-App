@@ -3,6 +3,7 @@
 import {useMemo, useState} from "react";
 import toast from "react-hot-toast";
 import {PasswordForm} from "./types";
+import {apiFetch} from "@/lib/apiClient";
 
 type PasswordRouter = {
     push: (href: string) => void;
@@ -40,7 +41,7 @@ export function useAccountPassword(setAccount: (account: null) => void, router: 
 
         setChangingPassword(true);
         try {
-            const response = await fetch("/api/v1/account/me/password", {
+            const response = await apiFetch("/api/v1/account/me/password", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({

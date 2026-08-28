@@ -1,8 +1,7 @@
-﻿"use client"
+"use client"
 
 import {useCallback, useMemo, useRef, useState} from "react";
 import {useSignalRHub} from "@/hooks/useSignalRHub";
-import {BACKEND_URL} from "@/lib/vars";
 import {Reservation, ReservationSchema} from "@/schemas/ReservationSchema";
 import toast from "react-hot-toast";
 
@@ -70,7 +69,7 @@ export function useReservationsHub() {
             ? 2
             : 3,
         reconnectDelays: [0, 2000, 10000],
-        startRetryDelays: [0, 1000, 3000]
+        startRetryDelays: [0, 1000, 3000],
     });
     const { invoke } = hub;
 
@@ -92,7 +91,7 @@ export function useReservationsHub() {
             reservationMutationPendingRef.current = false;
             setIsReservationMutationPending(false);
         }
-    }, [invoke])
+    }, [invoke]);
 
     const unbook = useCallback(async () => {
         if(reservationMutationPendingRef.current) return;
@@ -100,12 +99,12 @@ export function useReservationsHub() {
         reservationMutationPendingRef.current = true;
         setIsReservationMutationPending(true);
         try {
-            await invoke("Unbook")
+            await invoke("Unbook");
         } finally {
             reservationMutationPendingRef.current = false;
             setIsReservationMutationPending(false);
         }
-    }, [invoke])
+    }, [invoke]);
 
     return {
         ...hub,

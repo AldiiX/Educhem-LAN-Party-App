@@ -1,4 +1,4 @@
-﻿import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {useAuth} from "@/app/app/_providers/AuthProvider";
 
 import {useLogsQuery} from "./useLogsQuery";
 import {useLogsFilters} from "./useLogsFilters";
@@ -13,6 +13,12 @@ export function useLogsAdministration() {
 
         searchTerm: logsQuery.searchTerm,
         setSearchTerm: logsQuery.setSearchTerm,
+
+        actorIdFilter: logsQuery.actorIdFilter,
+        setActorIdFilter: logsQuery.setActorIdFilter,
+
+        targetIdFilter: logsQuery.targetIdFilter,
+        setTargetIdFilter: logsQuery.setTargetIdFilter,
 
         selectedLogTypes: logsQuery.selectedLogTypes,
         setSelectedLogTypes: logsQuery.setSelectedLogTypes,

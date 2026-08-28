@@ -147,6 +147,94 @@
                 }
             }
 
+            .rememberMe {
+                position: relative;
+                display: inline-flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+                cursor: pointer;
+                user-select: none;
+                width: fit-content;
+                padding: 2px 0;
+
+                >input {
+                    position: absolute;
+                    opacity: 0;
+                    width: 0;
+                    height: 0;
+                    margin: 0;
+                    pointer-events: none;
+                }
+
+                .checkboxControl {
+                    width: 20px;
+                    height: 20px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    border: 1.5px solid var(--border-color);
+                    border-radius: 6px;
+                    background: var(--background-bg-2);
+                    transition:
+                        background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                        border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                        box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 0.15s ease;
+
+                    svg {
+                        width: 13px;
+                        height: 13px;
+                        color: var(--accent-color-text);
+                        transform: scale(0.5);
+                        opacity: 0;
+                        transition:
+                            transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                            opacity 0.15s ease;
+                    }
+                }
+
+                .rememberMeText {
+                    color: var(--text-color-secondary);
+                    font-size: 14px;
+                    font-weight: 500;
+                    transition: color 0.2s ease;
+                    line-height: 1.3;
+                }
+
+                &:hover {
+                    .checkboxControl {
+                        border-color: var(--accent-line);
+                        background: var(--accent-soft);
+                    }
+
+                    .rememberMeText {
+                        color: var(--text-color);
+                    }
+                }
+
+                &:active .checkboxControl {
+                    transform: scale(0.92);
+                }
+
+                >input:focus-visible + .checkboxControl {
+                    border-color: var(--accent-color);
+                    box-shadow: 0 0 0 3px var(--accent-soft);
+                }
+
+                >input:checked + .checkboxControl {
+                    background: var(--accent-color);
+                    border-color: var(--accent-color);
+                    box-shadow: 0 0 14px var(--accent-soft), 0 2px 6px rgba(0, 0, 0, 0.2);
+
+                    svg {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+            }
+
             .socialLogins {
                 display: grid;
                 justify-items: center;

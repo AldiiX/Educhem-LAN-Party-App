@@ -3,6 +3,7 @@ import useSWR from "swr";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {fetcher} from "@/lib/swr";
 import {hasRoleAtLeast, isSuperAdmin} from "@/lib/roles";
+import {apiFetch} from "@/lib/apiClient";
 import {
     AttendanceEntryType,
     AttendanceDeltaSchema,
@@ -92,7 +93,7 @@ export function useAttendance() {
         setSubmitError(null);
 
         try {
-            const response = await fetch("/api/v1/attendance", {
+            const response = await apiFetch("/api/v1/attendance", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
