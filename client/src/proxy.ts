@@ -71,12 +71,21 @@ function buildCookieHeader(request: NextRequest) {
 }
 
 async function fetchAuth(path: string, request: NextRequest) {
+    const proto = request.headers.get("x-forwarded-proto") ?? request.nextUrl.protocol.replace(":", "");
+    const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
+    const ip = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for") ?? "";
+
+    const headers: Record<string, string> = {
+        cookie: buildCookieHeader(request),
+        "x-forwarded-proto": proto,
+        "x-forwarded-host": host,
+    };
+    if(ip) headers["x-forwarded-for"] = ip;
+
     return fetch(`${BACKEND_URL}${path}`, {
         method: path.endsWith("/csrf") ? "GET" : "POST",
         cache: "no-store",
-        headers: {
-            cookie: buildCookieHeader(request),
-        },
+        headers,
     });
 }
 

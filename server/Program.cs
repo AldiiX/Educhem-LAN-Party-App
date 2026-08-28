@@ -97,9 +97,7 @@ public static class Program {
 			options.Cookie.Name = AuthCookieNames.Antiforgery;
 			options.Cookie.HttpOnly = true;
 			options.Cookie.SameSite = SameSiteMode.Lax;
-			options.Cookie.SecurePolicy = Program.DevelopmentMode
-				? CookieSecurePolicy.SameAsRequest
-				: CookieSecurePolicy.Always;
+			options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 		});
 
         var authBuilder = builder.Services.AddAuthentication(options => {
