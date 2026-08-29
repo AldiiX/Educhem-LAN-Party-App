@@ -4,10 +4,25 @@
 
 .tabs {
     display: flex;
+    align-items: center;
     gap: 16px;
     margin-bottom: 24px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
 
     >button {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        white-space: nowrap;
         min-height: 42px;
         padding: 0 14px;
         border-radius: 8px;
