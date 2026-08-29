@@ -64,18 +64,14 @@ public sealed class ReservationsHub(
 			// serializable, at se dva rychly lidi nenacpou na stejny misto naraz
 			await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
 
-			var accountInfo = await db.Accounts
-				.AsNoTracking()
-				.Where(a => a.Id == user.Value.Id)
-				.Select(a => new { a.EnableReservations, a.AccountType })
-				.FirstOrDefaultAsync(ct);
+			var account = await db.AccountsEf().FirstOrDefaultAsync(a => a.Id == user.Value.Id, ct);
 
-			if (accountInfo == null) {
+			if (account == null) {
 				await SendError("Účet nebyl nalezen.");
 				return;
 			}
 
-			if (!accountInfo.EnableReservations) {
+			if (!account.EnableReservations) {
 				await SendError("Nemáte povolené rezervace.");
 				return;
 			}
@@ -93,7 +89,7 @@ public sealed class ReservationsHub(
 						return;
 					}
 
-					if (computer.IsTeachersComputer && accountInfo.AccountType < AccountType.Teacher) {
+					if (computer.IsTeachersComputer && account.AccountType < AccountType.Teacher) {
 						await SendError("Tento počítač je vyhrazený pro učitele.");
 						return;
 					}
@@ -111,6 +107,7 @@ public sealed class ReservationsHub(
 					reservation = new ComputerReservation {
 						Id = Guid.CreateVersion7(),
 						AccountId = user.Value.Id,
+						Account = account,
 						Computer = computer,
 						Note = null,
 					};
@@ -139,6 +136,7 @@ public sealed class ReservationsHub(
 					reservation = new RoomReservation {
 						Id = Guid.CreateVersion7(),
 						AccountId = user.Value.Id,
+						Account = account,
 						Room = room,
 						Note = null,
 					};
