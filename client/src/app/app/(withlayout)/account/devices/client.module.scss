@@ -50,7 +50,7 @@
         justify-content: space-between;
         gap: 16px;
         padding: 20px;
-        border-radius: 12px;
+        border-radius: var(--radius-panel);
         border: 1px solid var(--border-color);
         background: var(--element-bg);
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -218,7 +218,7 @@
         min-height: 200px;
         padding: 40px 20px;
         text-align: center;
-        border-radius: 12px;
+        border-radius: var(--radius-panel);
         border: 1px dashed var(--border-color);
         background: var(--element-bg);
         color: var(--text-color-secondary);

@@ -7,7 +7,7 @@
         display: flex;
         gap: 14px;
         padding: 14px;
-        border-radius: 12px;
+        border-radius: var(--radius-panel);
         background: var(--element-bg);
         min-height: 96px;
 

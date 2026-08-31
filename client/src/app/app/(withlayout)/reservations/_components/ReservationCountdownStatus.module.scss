@@ -1,7 +1,7 @@
 .reservationStatus {
     min-width: 210px;
     padding: 14px 16px;
-    border-radius: 12px;
+    border-radius: var(--radius-panel);
     backdrop-filter: blur(12px);
 
     p {

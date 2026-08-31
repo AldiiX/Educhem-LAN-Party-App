@@ -6,7 +6,7 @@
 
     .settingsCard {
         border: 1px solid var(--border-color);
-        border-radius: 12px;
+        border-radius: var(--radius-panel);
         background: var(--element-bg);
         padding: 24px;
         min-width: 0;

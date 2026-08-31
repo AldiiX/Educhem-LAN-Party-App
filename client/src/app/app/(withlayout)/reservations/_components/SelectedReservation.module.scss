@@ -4,7 +4,7 @@
     background-color: var(--element-bg);
     border: 1px solid var(--border-color);
     box-shadow: 0 16px 38px #00000014;
-    border-radius: 12px;
+    border-radius: var(--radius-panel);
     right: 28px;
     top: 50%;
     transform: translateY(-50%);

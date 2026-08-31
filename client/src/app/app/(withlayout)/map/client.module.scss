@@ -54,7 +54,7 @@
         background-color: var(--element-bg);
         border: 1px solid var(--border-color);
         box-shadow: 0 16px 38px #00000014;
-        border-radius: 12px;
+        border-radius: var(--radius-panel);
         padding: 24px;
         position: relative;
     }
@@ -93,7 +93,7 @@
             min-width: 260px;
             padding: 14px 16px;
             border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
-            border-radius: 14px;
+            border-radius: var(--radius-panel);
             background: color-mix(in srgb, var(--element-bg) 88%, transparent);
             backdrop-filter: blur(12px);
             transition: min-width .24s ease, padding .24s ease, box-shadow .24s ease;
@@ -314,7 +314,7 @@
         min-width: 260px;
         padding: 14px 16px;
         border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
-        border-radius: 14px;
+        border-radius: var(--radius-panel);
         background: color-mix(in srgb, var(--element-bg) 88%, transparent);
         backdrop-filter: blur(12px);
         transition: min-width .24s ease, padding .24s ease, box-shadow .24s ease;

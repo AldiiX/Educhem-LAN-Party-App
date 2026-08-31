@@ -110,6 +110,7 @@ $radius-sm: 8px;
         --accent-color-text: black;
         --accent-color-darker: #d39706;
         --accent-soft: rgba(255, 179, 3, 0.13);
+        --accent-soft-filled: color-mix(in srgb, var(--accent-color) 10%, var(--element-bg) 90%);
         --accent-line: rgba(255, 179, 3, 0.34);
         --element-bg: #151515;
         --element-bg-colored: #221d11;
@@ -130,6 +131,7 @@ $radius-sm: 8px;
         --container-width: #{$container-width};
         --radius: #{$radius};
         --radius-sm: #{$radius-sm};
+        --radius-panel: 12px;
     }
 
     html[data-theme='light'] {
@@ -137,6 +139,7 @@ $radius-sm: 8px;
         --accent-color-text: white;
         --accent-color-darker: #d96f01;
         --accent-soft: rgba(255, 131, 0, 0.13);
+        --accent-soft-filled: color-mix(in srgb, var(--accent-color) 15%, var(--background-bg) 85%);
         --accent-line: rgba(255, 131, 0, 0.28);
         --element-bg: white;
         --element-bg-colored: #fff1df;

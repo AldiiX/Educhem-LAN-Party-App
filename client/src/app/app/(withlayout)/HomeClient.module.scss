@@ -40,7 +40,7 @@
                 gap: 14px;
                 padding: 18px;
                 border: 1px solid var(--border-color);
-                border-radius: 8px;
+                border-radius: var(--radius-panel);
                 background: var(--element-bg);
                 color: var(--text-color-secondary);
                 transition: transform .2s ease, border-color .2s ease, color .2s ease, background .2s ease;
@@ -89,7 +89,7 @@
             align-items: center;
             padding: 24px;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: var(--radius-panel);
             background:
                 radial-gradient(circle at 85% 20%, var(--accent-soft), transparent 32%),
                 linear-gradient(135deg, var(--accent-soft), var(--element-bg) 52%),
@@ -147,7 +147,7 @@
             min-height: 310px;
             padding: 26px;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: var(--radius-panel);
             background: var(--element-bg);
             box-shadow: 0 18px 38px var(--shadow-color);
 
@@ -227,7 +227,7 @@
                     align-content: center;
                     padding: 16px;
                     border: 1px solid var(--border-color);
-                    border-radius: 8px;
+                    border-radius: var(--radius-panel);
                     background:
                         linear-gradient(180deg, var(--accent-soft), transparent 58%),
                         var(--background-bg);
@@ -240,7 +240,7 @@
                         min-height: 62px;
                         padding: 12px;
                         border: 1px solid var(--border-color);
-                        border-radius: 8px;
+                        border-radius: var(--radius-panel);
                         background: var(--element-bg);
 
                         >span {
@@ -426,7 +426,7 @@
                 gap: 12px;
                 padding: 24px;
                 border: 1px dashed var(--border-color);
-                border-radius: 8px;
+                border-radius: var(--radius-panel);
                 text-align: center;
 
                 >span {

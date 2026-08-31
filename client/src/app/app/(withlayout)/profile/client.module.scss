@@ -5,11 +5,11 @@
     height: 364px;
     background-color: var(--background-bg-2);
     position: relative;
-    border-radius: 16px;
+    border-radius: var(--radius-panel);
 
     &::after {
         content: "";
-        border-radius: 16px;
+        border-radius: var(--radius-panel);
         position: absolute;
         top: 0;
         left: 0;
@@ -115,7 +115,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            border-radius: 12px;
+            border-radius: var(--radius-panel);
             background: var(--element-bg);
         }
 
@@ -165,7 +165,7 @@
 
         .achievementBar {
             padding: 16px;
-            border-radius: 12px;
+            border-radius: var(--radius-panel);
             background: var(--element-bg);
             max-height: 320px;
         }
@@ -204,7 +204,7 @@
             flex-direction: column;
             gap: 10px;
             padding: 12px 14px;
-            border-radius: 12px;
+            border-radius: var(--radius-panel);
             background: var(--background-bg-2);
         }
 

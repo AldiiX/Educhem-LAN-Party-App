@@ -42,7 +42,7 @@
             flex-direction: column;
             gap: 10px;
             padding: 12px 14px;
-            border-radius: 12px;
+            border-radius: var(--radius-panel);
             background: var(--element-bg);
 
             .achievementMain {

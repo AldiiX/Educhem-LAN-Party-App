@@ -44,7 +44,7 @@
         display: grid;
         gap: 18px;
         padding: 28px;
-        border-radius: 10px;
+        border-radius: var(--radius-panel);
         border: 1px solid var(--border-color);
         background: var(--element-bg);
         box-shadow: 0 18px 44px var(--shadow-color);

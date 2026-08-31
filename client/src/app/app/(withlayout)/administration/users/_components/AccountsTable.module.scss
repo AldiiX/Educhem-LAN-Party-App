@@ -1,7 +1,7 @@
 .tableWrap {
     position: relative;
     margin-top: 24px;
-    border-radius: 12px;
+    border-radius: var(--radius-panel);
     background: var(--element-bg);
     border: 1px solid var(--border-color);
 
