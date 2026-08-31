@@ -496,8 +496,8 @@
         inset: 0;
         width: 100%;
         max-width: 100dvw;
-        min-height: 100svh;
-        height: 100svh;
+        min-height: 100dvh;
+        height: 100dvh;
         touch-action: none;
 
         .panel {
@@ -553,7 +553,7 @@
         }
 
         .mobileTabs {
-            position: absolute;
+            position: fixed;
             left: 50%;
             bottom: max(14px, env(safe-area-inset-bottom));
             z-index: 15;
@@ -623,9 +623,8 @@
         }
 
         .mobileMenu {
-            position: absolute;
             width: 100%;
-            height: 100%;
+            height: 100dvh;
             max-width: 100dvw;
         }
     }
