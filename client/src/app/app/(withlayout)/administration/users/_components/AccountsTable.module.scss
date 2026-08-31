@@ -1,9 +1,14 @@
 .tableWrap {
     position: relative;
+    width: 100%;
+    max-width: 100%;
     margin-top: 24px;
     border-radius: var(--radius-panel);
     background: var(--element-bg);
     border: 1px solid var(--border-color);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
 
     table {
         width: 100%;
@@ -170,10 +175,9 @@
     }
 
     @media (max-width: 1280px) {
-        width: 1120px;
-
         table {
-            min-width: 100%;
+            width: 1120px;
+            min-width: 1120px;
 
             .nameColumn {
                 width: 220px;

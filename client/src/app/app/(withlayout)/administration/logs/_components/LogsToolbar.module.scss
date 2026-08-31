@@ -76,4 +76,28 @@
             cursor: not-allowed;
         }
     }
+
+    @media (max-width: 900px) {
+        margin-top: 40px;
+
+        .searchBox {
+            flex: 1 1 280px;
+        }
+    }
+
+    @media (max-width: 600px) {
+        display: grid;
+        align-items: stretch;
+        gap: 12px;
+        margin-top: 32px;
+
+        h2 {
+            font-size: 23px;
+        }
+
+        .searchBox,
+        .clearFiltersButton {
+            width: 100%;
+        }
+    }
 }

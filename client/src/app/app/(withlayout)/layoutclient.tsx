@@ -120,9 +120,9 @@ export default function({ children }: { children: ReactNode }) {
             </nav>
 
             <footer>
-                <p>© { new Date().getFullYear() } EDUCHEM LAN Party</p>
+                <p><a href="https://github.com/AldiiX/Educhem-LAN-Party-App" target="_blank">© { new Date().getFullYear() } EDUCHEM LAN Party</a></p>
                 <p>Vytvořili: <a href="https://stanislavskudrna.cz" target="_blank">Stanislav Škudrna</a>, <a href="https://serhii.cz" target="_blank">Serhii Yavorskyi</a></p>
-                <p>v{appVersion}</p>
+                <p><a href="https://github.com/AldiiX/Educhem-LAN-Party-App/releases" target="_blank">v{appVersion}</a></p>
             </footer>
         </div>
 

@@ -1,4 +1,7 @@
 .attendance {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     padding-right: 12px;
 
     .header {
@@ -215,10 +218,12 @@
         }
 
         .tabPanel {
+            container-type: inline-size;
             display: grid;
             grid-template-rows: auto minmax(0, 1fr);
             row-gap: 18px;
             min-width: 0;
+            max-width: 100%;
             min-height: 300px;
             padding: 24px;
             border: 1px solid var(--border-color);
@@ -231,17 +236,23 @@
                 display: flex;
                 gap: 8px;
                 border-bottom: 1px solid var(--border-color);
+                overflow-x: auto;
+                overflow-y: hidden;
+                overscroll-behavior-inline: contain;
+                -webkit-overflow-scrolling: touch;
             }
 
             .tab {
                 display: inline-flex;
                 min-height: 44px;
                 align-items: center;
+                flex: 0 0 auto;
                 gap: 8px;
                 padding: 0 14px;
                 border-bottom: 2px solid transparent;
                 color: var(--text-color-secondary);
                 font-weight: 700;
+                white-space: nowrap;
                 transition: border-color .2s ease, color .2s ease, background .2s ease;
 
                 span {
@@ -277,9 +288,12 @@
             }
 
             .tabContent {
+                max-width: 100%;
                 min-height: 0;
-                overflow-x: hidden;
+                overflow-x: auto;
                 overflow-y: auto;
+                overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch;
                 padding-right: 4px;
                 scrollbar-color: var(--text-color-3) var(--background-bg);
                 scrollbar-width: thin;
@@ -556,6 +570,60 @@
                 height: 42px;
                 margin-bottom: 2px;
             }
+
+            @container (max-width: 680px) {
+                .recordsToolbar {
+                    display: grid;
+                    grid-template-columns: 1fr;
+
+                    .searchBox {
+                        width: 100%;
+                        min-width: 0;
+                    }
+                }
+
+                .entries {
+                    .entry {
+                        grid-template-columns: 1fr;
+                    }
+                }
+            }
+
+            @container (max-width: 440px) {
+                .tabs {
+                    .tab {
+                        flex: 1 0 auto;
+                        justify-content: center;
+                    }
+                }
+
+                .participantList {
+                    .participant {
+                        grid-template-columns: 36px minmax(0, 1fr);
+
+                        em {
+                            grid-column: 2;
+                            width: fit-content;
+                        }
+                    }
+                }
+
+                .entries {
+                    .entry {
+                        .entryBody {
+                            >div {
+                                align-items: flex-start;
+                                flex-direction: column;
+                            }
+                        }
+                    }
+                }
+
+                .pagination {
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }
+            }
         }
     }
 
@@ -701,25 +769,34 @@
 
         .grid {
             height: auto;
-        }
 
-        .searchBox {
-            min-width: 0;
-            width: 100%;
+            .tabPanel {
+                .recordsToolbar {
+                    display: grid;
+                    grid-template-columns: 1fr;
+
+                    .searchBox {
+                        width: 100%;
+                        min-width: 0;
+                    }
+                }
+
+                .entries {
+                    .entry {
+                        grid-template-columns: 1fr;
+
+                        .entryProfile,
+                        .entryBody {
+                            width: 100%;
+                            min-width: 0;
+                        }
+                    }
+                }
+            }
         }
 
         .skeletonSearch {
             width: 100%;
-        }
-
-        .entry {
-            grid-template-columns: 1fr;
-        }
-
-        .tabPanel {
-            .recordsToolbar {
-                display: grid;
-            }
         }
     }
 
@@ -750,20 +827,38 @@
                     padding: 0 9px;
                 }
             }
-        }
 
-        .participant {
-            grid-template-columns: 36px minmax(0, 1fr);
+            .participantList {
+                .participant {
+                    grid-template-columns: 36px minmax(0, 1fr);
 
-            em {
-                grid-column: 2;
-                width: fit-content;
+                    em {
+                        grid-column: 2;
+                        width: fit-content;
+                    }
+                }
             }
-        }
 
-        .entryBody >div {
-            align-items: flex-start;
-            flex-direction: column;
+            .entries {
+                .entry {
+                    gap: 14px;
+                    padding: 14px;
+
+                    .entryBody {
+                        >div {
+                            display: grid;
+                            justify-items: start;
+                            gap: 8px;
+                        }
+
+                        time,
+                        small,
+                        p {
+                            width: 100%;
+                        }
+                    }
+                }
+            }
         }
     }
 }

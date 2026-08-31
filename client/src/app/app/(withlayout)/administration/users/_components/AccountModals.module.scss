@@ -1,8 +1,16 @@
 .userModal {
-    width: min(550px, 96vw) !important;
+    width: min(550px, 90vw) !important;
+    max-width: 90vw;
+    max-height: 90vh;
     padding: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     border-radius: 24px;
+
+    @supports (height: 100dvh) {
+        max-height: min(90vh, 90dvh);
+    }
 
     .modalTop {
         position: relative;
@@ -415,12 +423,58 @@
     }
 
     @media (max-width: 760px) {
-        width: min(500px, 94vw);
+        width: min(500px, 90vw) !important;
 
         .modalBottom {
+            padding: 24px 20px;
+
             .infoRows,
             .editRows {
                 grid-template-columns: 1fr;
+            }
+
+            .formButtons {
+                grid-template-columns: 1fr;
+            }
+
+            .modalActions {
+                align-items: stretch;
+                flex-direction: column;
+
+                .impersonateButton {
+                    position: static;
+                    transform: none;
+                }
+            }
+        }
+    }
+
+    @media (max-width: 480px) {
+        border-radius: 18px;
+
+        .modalTop {
+            min-height: 150px;
+            margin-bottom: 42px;
+
+            .modalAvatar {
+                --size: 160px !important;
+                transform: translateY(38px);
+            }
+        }
+
+        .modalBottom {
+            h2,
+            .nameInput {
+                font-size: 24px;
+            }
+
+            .profileActions {
+                grid-template-columns: 1fr;
+
+                button,
+                a {
+                    grid-column: 1;
+                }
             }
         }
     }

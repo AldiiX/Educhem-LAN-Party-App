@@ -4,7 +4,7 @@
     z-index: 1000;
     display: grid;
     place-items: center;
-    padding: 24px;
+    padding: clamp(10px, 2.5vw, 24px);
     overflow: auto;
     background: rgba(0, 0, 0, .34);
     animation: layerIn .22s ease both;
@@ -20,15 +20,21 @@
 
     .content {
         position: relative;
-        width: min(400px, 92vw);
-        max-height: calc(100vh - 48px);
+        width: min(400px, 90vw);
+        max-width: 90vw;
+        max-height: 90vh;
         overflow-x: hidden;
         overflow-y: auto;
+        overscroll-behavior: contain;
         border: 1px solid var(--border-color);
         border-radius: 24px;
         background: var(--element-bg);
         box-shadow: 0 0 20px rgba(0, 0, 0, .22);
         animation: modalIn .22s cubic-bezier(.2, .8, .2, 1) both;
+
+        @supports (height: 100dvh) {
+            max-height: min(90vh, 90dvh);
+        }
 
         .closeButton {
             position: absolute;

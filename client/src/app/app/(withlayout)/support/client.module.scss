@@ -1,4 +1,7 @@
 .problem {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     padding-right: 12px;
 
     h1 {
@@ -80,5 +83,28 @@
         background: var(--accent-soft);
         color: var(--accent-color);
         font-weight: 500;
+    }
+
+    @media (max-width: 600px) {
+        padding-right: 0;
+
+        h1 {
+            font-size: 28px;
+        }
+
+        .intro {
+            gap: 14px;
+            padding: 18px;
+
+            >span {
+                width: 40px;
+                height: 40px;
+                flex-basis: 40px;
+            }
+
+            h2 {
+                font-size: 22px;
+            }
+        }
     }
 }

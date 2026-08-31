@@ -370,7 +370,31 @@
         }
     }
 
-    @media (max-width: 760px) {
+    @media (max-width: 1100px) {
         grid-template-columns: 1fr;
+    }
+
+    @media (max-width: 600px) {
+        gap: 16px;
+
+        .settingsCard {
+            padding: 18px;
+
+            .cardHeader {
+                h2 {
+                    font-size: 22px;
+                }
+            }
+
+            form {
+                .buttons {
+                    grid-template-columns: 1fr;
+                }
+            }
+        }
+
+        .buttons {
+            grid-template-columns: 1fr;
+        }
     }
 }

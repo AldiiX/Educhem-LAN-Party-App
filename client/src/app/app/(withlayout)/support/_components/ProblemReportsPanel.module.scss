@@ -408,6 +408,52 @@
             }
         }
     }
+
+    @media (max-width: 720px) {
+        .header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .filters {
+            align-items: stretch;
+
+            label,
+            select,
+            input,
+            button {
+                width: 100%;
+            }
+
+            label {
+                flex: 1 1 100%;
+            }
+        }
+
+        .table {
+            .rowShell {
+                .detailWrap {
+                    .detail {
+                        .meta {
+                            div {
+                                align-items: flex-start;
+                                flex-direction: column;
+                                gap: 6px;
+                            }
+
+                            dd {
+                                text-align: left;
+                            }
+
+                            .person {
+                                justify-content: flex-start;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 .skeletonHeader,

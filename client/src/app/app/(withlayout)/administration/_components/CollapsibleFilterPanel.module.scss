@@ -115,10 +115,15 @@
     }
 
     @media (max-width: 600px) {
+        padding: 14px;
+
         .header {
             align-items: flex-start;
+            flex-wrap: wrap;
 
             .actions {
+                margin-left: auto;
+
                 .toggleButton {
                     span {
                         display: none;

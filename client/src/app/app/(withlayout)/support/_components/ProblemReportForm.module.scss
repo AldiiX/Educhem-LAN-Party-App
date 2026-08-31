@@ -77,4 +77,17 @@
             grid-template-columns: 1fr;
         }
     }
+
+    @media (max-width: 600px) {
+        gap: 14px;
+
+        textarea {
+            min-height: 120px;
+        }
+
+        button {
+            width: 100%;
+            justify-self: stretch;
+        }
+    }
 }
