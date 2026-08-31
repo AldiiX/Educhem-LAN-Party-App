@@ -3,6 +3,9 @@
 import {useMemo, useState} from "react";
 import toast from "react-hot-toast";
 import {PasswordForm} from "./types";
+import {apiFetch} from "@/lib/apiClient";
+import {phrase} from "@/lib/communicationStyle";
+import {Account} from "@/schemas/AccountSchema";
 
 type PasswordRouter = {
     push: (href: string) => void;
@@ -14,7 +17,7 @@ async function getErrorMessage(response: Response, fallback: string) {
     return text.trim() || fallback;
 }
 
-export function useAccountPassword(setAccount: (account: null) => void, router: PasswordRouter) {
+export function useAccountPassword(account: Account, setAccount: (account: null) => void, router: PasswordRouter) {
     const [changingPassword, setChangingPassword] = useState(false);
     const [passwordForm, setPasswordForm] = useState<PasswordForm>({
         oldPassword: "",
@@ -40,7 +43,7 @@ export function useAccountPassword(setAccount: (account: null) => void, router: 
 
         setChangingPassword(true);
         try {
-            const response = await fetch("/api/v1/account/me/password", {
+            const response = await apiFetch("/api/v1/account/me/password", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
@@ -54,7 +57,11 @@ export function useAccountPassword(setAccount: (account: null) => void, router: 
                 return;
             }
 
-            toast.success("Heslo změněno. Přihlas se prosím znovu.");
+            toast.success(phrase(
+                account?.communicationStyle,
+                "Heslo změněno. Přihlas se prosím znovu.",
+                "Heslo bylo změněno. Přihlaste se prosím znovu."
+            ));
             setAccount(null);
             router.push("/app/login");
             router.refresh();

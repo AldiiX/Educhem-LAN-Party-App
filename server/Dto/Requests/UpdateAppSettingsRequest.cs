@@ -1,7 +1,6 @@
-﻿namespace server.Dto.Requests;
+namespace server.Dto.Requests;
 
-public sealed class UpdateAppSettingsRequest
-{
+public sealed class UpdateAppSettingsRequest {
     public bool? ChatEnabled { get; set; }
 
     public DateTime? ReservationsEnabledFrom { get; set; }

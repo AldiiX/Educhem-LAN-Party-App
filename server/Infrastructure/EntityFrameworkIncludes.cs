@@ -4,10 +4,13 @@ using server.Data.Entities;
 
 namespace server.Infrastructure;
 
-public static class EntityFrameworkIncludes {
+internal static class EntityFrameworkIncludes {
 
 	public static IQueryable<Account> AccountsEf(this AppDbContext db) {
 		return db.Accounts
+			.Include(a => a.Enrollment)
+				.ThenInclude(e => e!.School)
+			.Include(a => a.OAuthConnections)
 			.Include(a => a.AccountAchievements)
 				.ThenInclude(x => x.Achievement)
 			.Include(a => a.AccountBadges)

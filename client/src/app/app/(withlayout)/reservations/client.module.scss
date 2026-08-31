@@ -1,13 +1,28 @@
-﻿.title {
+.title {
     margin-bottom: 24px;
 }
 
 .tabs {
     display: flex;
+    align-items: center;
     gap: 16px;
     margin-bottom: 24px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
 
     >button {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        white-space: nowrap;
         min-height: 42px;
         padding: 0 14px;
         border-radius: 8px;
@@ -18,9 +33,13 @@
 
         &:hover,
         &.active {
-            background: var(--accent-soft);
+            background: var(--accent-soft-filled);
             color: var(--accent-color);
         }
+    }
+
+    @media (max-width: 720px) {
+        margin-bottom: 30px;
     }
 }
 
@@ -35,7 +54,7 @@
         background-color: var(--element-bg);
         border: 1px solid var(--border-color);
         box-shadow: 0 16px 38px #00000014;
-        border-radius: 12px;
+        border-radius: var(--radius-panel);
         padding: 24px;
         position: relative;
     }
@@ -91,7 +110,7 @@
         min-width: 260px;
         padding: 14px 16px;
         border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
-        border-radius: 14px;
+        border-radius: var(--radius-panel);
         background: color-mix(in srgb, var(--element-bg) 88%, transparent);
         backdrop-filter: blur(12px);
         transition: min-width .24s ease, padding .24s ease, box-shadow .24s ease;
@@ -522,6 +541,33 @@
                         line-height: 1.05;
                         display: flex;
 
+                        .enrollment {
+                            display: flex;
+                            min-width: 0;
+                            align-items: center;
+                            gap: 6px;
+                            margin-left: auto;
+                            color: var(--text-color-secondary);
+                            font-size: 12px;
+                            line-height: 1;
+
+                            small {
+                                margin-left: 0;
+                                opacity: .7;
+                                font-size: inherit;
+                            }
+
+                            .schoolAvatar {
+                                width: 20px;
+                                height: 20px;
+                                aspect-ratio: 1;
+                                flex: 0 0 20px;
+                                border: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
+                                border-radius: 50%;
+                                object-fit: cover;
+                            }
+                        }
+
                         small {
                             margin-left: auto;
                             opacity: 0.7;
@@ -577,15 +623,8 @@
             }
         }
     }
-}
 
-
-@media (max-width: 720px) {
-    .tabs {
-        margin-bottom: 30px;
-    }
-
-    .flex {
+    @media (max-width: 720px) {
         height: auto;
         max-height: none;
         flex-direction: column;

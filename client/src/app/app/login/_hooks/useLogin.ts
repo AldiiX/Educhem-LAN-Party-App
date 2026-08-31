@@ -2,6 +2,7 @@
 import {redirect} from "next/navigation"
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {AccountSchema} from "@/schemas/AccountSchema";
+import {apiFetch} from "@/lib/apiClient";
 
 async function getErrorMessage(response: Response, fallback: string) {
     const text = await response.text();
@@ -11,12 +12,13 @@ async function getErrorMessage(response: Response, fallback: string) {
 export default function useLogin() {
     const { setAccount } = useAuth();
 
-    async function login(email: string, passwordPlain: string) {
-        const promise = fetch("/api/v1/account/login", {
+    async function login(email: string, passwordPlain: string, rememberMe: boolean) {
+        const promise = apiFetch("/api/v1/auth/login", {
             method: "POST",
             body: JSON.stringify({
                 email,
                 passwordPlain,
+                rememberMe,
             }),
             headers: {
                 "Content-Type": "application/json",
@@ -47,7 +49,7 @@ export default function useLogin() {
     }
 
     async function resetPassword(email: string) {
-        const promise = fetch("/api/v1/account/forgot-password", {
+        const promise = apiFetch("/api/v1/account/forgot-password", {
             method: "POST",
             body: JSON.stringify({email}),
             headers: {

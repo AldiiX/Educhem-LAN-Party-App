@@ -9,3 +9,5 @@ node_modules
 .next
 .build-check
 **.user
+.projectatlas/*
+!.projectatlas/config.toml

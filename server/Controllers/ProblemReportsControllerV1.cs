@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using server.Data;
@@ -11,6 +12,7 @@ namespace server.Controllers;
 
 [ApiController]
 [Route("api/v1/problem-reports")]
+[Authorize]
 public sealed class ProblemReportsControllerV1(
 	IAuthService auth,
 	AppDbContext db,
@@ -21,12 +23,12 @@ public sealed class ProblemReportsControllerV1(
 
 	[HttpGet]
 	public async Task<IActionResult> GetProblemReports(CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
+		var user = auth.GetCurrentUser();
+		if(user == null) return new UnauthorizedResult();
 
 		var query = db.ProblemReportsEf().AsNoTracking();
-		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg)) {
-			query = query.Where(report => report.ReporterId == acc.Id);
+		if(!HasRoleAtLeast(user.Value.Role, AccountType.TeacherOrg)) {
+			query = query.Where(report => report.ReporterId == user.Value.Id);
 		}
 
 		var reports = (await query.ToListAsync(ct))
@@ -38,9 +40,6 @@ public sealed class ProblemReportsControllerV1(
 
 	[HttpGet("availability")]
 	public async Task<IActionResult> GetAvailability(CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-
 		return Ok(new ProblemReportsAvailabilityResponse(
 			await appSettings.GetProblemReportsEnabledAsync(ct)
 		));
@@ -48,9 +47,9 @@ public sealed class ProblemReportsControllerV1(
 
 	[HttpPost]
 	public async Task<IActionResult> CreateProblemReport([FromBody] CreateProblemReportRequest request, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-		if(!HasRoleAtLeast(acc, AccountType.SuperAdmin) && !await appSettings.GetProblemReportsEnabledAsync(ct)) {
+		var user = auth.GetCurrentUser();
+		if(user == null) return new UnauthorizedResult();
+		if(!HasRoleAtLeast(user.Value.Role, AccountType.SuperAdmin) && !await appSettings.GetProblemReportsEnabledAsync(ct)) {
 			return StatusCode(StatusCodes.Status423Locked, "Hlášení problémů je momentálně vypnuté.");
 		}
 
@@ -60,24 +59,27 @@ public sealed class ProblemReportsControllerV1(
 			return BadRequest("Invalid problem report category or priority.");
 		}
 
-		var reporter = await db.Accounts.FirstOrDefaultAsync(a => a.Id == acc.Id, ct);
-		if(reporter == null) return new UnauthorizedResult();
-
-		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg)) {
+		if(!HasRoleAtLeast(user.Value.Role, AccountType.TeacherOrg)) {
 			var nowUtc = DateTime.UtcNow;
 			var latestReportCreatedAtUtc = await db.ProblemReports
 				.AsNoTracking()
-				.Where(r => r.ReporterId == acc.Id)
+				.Where(r => r.ReporterId == user.Value.Id)
 				.OrderByDescending(r => r.CreatedAtUtc)
 				.Select(r => (DateTime?)r.CreatedAtUtc)
 				.FirstOrDefaultAsync(ct);
 			if(latestReportCreatedAtUtc is not null) {
 				var retryAfter = CreateCooldown - (nowUtc - latestReportCreatedAtUtc.Value);
 				if(retryAfter > TimeSpan.Zero) {
-					await dbLogger.LogWarnAsync($"Problem report cooldown hit by account {acc.Id}; retry after {Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds))}s", "problem-report-cooldown", ct);
+					await dbLogger.LogWarnAsync(
+						$"Problem report cooldown hit by account {user.Value.Id}; retry after {Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds))}s",
+						"problem-report-cooldown",
+						user.Value.Id,
+						null,
+						ct
+					);
 					return Cooldown(
 						retryAfter,
-						acc,
+						user.Value.CommunicationStyle,
 						"Další hlášení můžeš vytvořit za {0} sekund.",
 						"Další hlášení můžete vytvořit za {0} sekund."
 					);
@@ -87,8 +89,7 @@ public sealed class ProblemReportsControllerV1(
 
 		var report = new ProblemReport {
 			Id = Guid.Empty,
-			ReporterId = acc.Id,
-			Reporter = reporter,
+			ReporterId = user.Value.Id,
 			Category = request.Category,
 			Priority = request.Priority,
 			Status = ProblemReportStatus.Pending,
@@ -112,11 +113,10 @@ public sealed class ProblemReportsControllerV1(
 	}
 
 	[HttpPut("{id:guid}/status")]
+	[Authorize(Policy = AuthPolicies.TeacherOrg)]
 	public async Task<IActionResult> UpdateProblemReportStatus(Guid id, [FromBody] UpdateProblemReportStatusRequest request, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
-			return Forbid();
+		var accountId = auth.GetCurrentAccountId();
+		if(accountId == null) return new UnauthorizedResult();
 		if(!Enum.IsDefined(request.Status)) {
 			return BadRequest("Invalid problem report status.");
 		}
@@ -132,7 +132,7 @@ public sealed class ProblemReportsControllerV1(
 			report.ResolvedById = null;
 		} else {
 			report.ResolvedAtUtc = DateTime.UtcNow;
-			report.ResolvedById = acc.Id;
+			report.ResolvedById = accountId.Value;
 		}
 
 		await db.SaveChangesAsync(ct);
@@ -145,12 +145,8 @@ public sealed class ProblemReportsControllerV1(
 	}
 
 	[HttpDelete("{id:guid}")]
+	[Authorize(Policy = AuthPolicies.TeacherOrg)]
 	public async Task<IActionResult> DeleteProblemReport(Guid id, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg))
-			return Forbid();
-
 		var report = await db.ProblemReports.FirstOrDefaultAsync(r => r.Id == id, ct);
 		if(report == null) return NotFound();
 
@@ -160,22 +156,22 @@ public sealed class ProblemReportsControllerV1(
 		return NoContent();
 	}
 
-	private static bool HasRoleAtLeast(Account account, AccountType accountType) {
-		return account.AccountType >= accountType;
+	private static bool HasRoleAtLeast(AccountType accountType, AccountType requiredType) {
+		return accountType >= requiredType;
 	}
 
 	private static string? NormalizeOptional(string? value) {
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 	}
 
-	private IActionResult Cooldown(TimeSpan retryAfter, Account account, string informalMessageFormat, string formalMessageFormat) {
+	private IActionResult Cooldown(TimeSpan retryAfter, CommunicationStyle communicationStyle, string informalMessageFormat, string formalMessageFormat) {
 		var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
 		Response.Headers["Retry-After"] = seconds.ToString();
-		return StatusCode(StatusCodes.Status429TooManyRequests, string.Format(Phrase(account, informalMessageFormat, formalMessageFormat), seconds));
+		return StatusCode(StatusCodes.Status429TooManyRequests, string.Format(Phrase(communicationStyle, informalMessageFormat, formalMessageFormat), seconds));
 	}
 
-	private static string Phrase(Account account, string informal, string formal) {
-		return account.CommunicationStyle == CommunicationStyle.Informal ? informal : formal;
+	private static string Phrase(CommunicationStyle communicationStyle, string informal, string formal) {
+		return communicationStyle == CommunicationStyle.Informal ? informal : formal;
 	}
 
 	public sealed record CreateProblemReportRequest(

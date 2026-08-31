@@ -1,15 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using server.Data.Entities;
 using System.Globalization;
 
 namespace server.Data.Seeders;
 
-public static class AppSettingsItemSeeder
-{
+internal static class AppSettingsItemSeeder {
     private const string DateFormat = "O";
 
-    public static async Task SeedAsync(WebApplication app)
-    {
+    public static async Task SeedAsync(WebApplication app) {
         using var scope = app.Services.CreateScope();
 
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -18,8 +16,7 @@ public static class AppSettingsItemSeeder
 
         var now = DateTime.UtcNow;
 
-        var defaults = new Dictionary<string, string>
-        {
+        var defaults = new Dictionary<string, string> {
             ["ChatEnabled"] = "false",
             ["ReservationsStatus"] = "Closed",
             ["ReservationsEnabledFrom"] = now.ToString(DateFormat, CultureInfo.InvariantCulture),
@@ -29,15 +26,12 @@ public static class AppSettingsItemSeeder
             ["ProblemReportsEnabled"] = "false"
         };
 
-        foreach (var item in defaults)
-        {
+        foreach (var item in defaults) {
             var exists = await db.AppSettings
                 .AnyAsync(x => x.Property == item.Key);
 
-            if (!exists)
-            {
-                db.AppSettings.Add(new AppSettingsItem
-                {
+            if (!exists) {
+                db.AppSettings.Add(new AppSettingsItem {
                     Property = item.Key,
                     Value = item.Value
                 });

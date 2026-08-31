@@ -44,7 +44,7 @@
 
 **EDUCHEM LAN Party App** je full-stack aplikace pro přípravu a správu LAN party událostí na škole EDUCHEM. Projekt spojuje veřejnou prezentační část pro účastníky s přihlášenou aplikací pro studenty, organizátory a administrátory.
 
-Veřejný web ukazuje informace o aktuální akci, historii, pravidla, harmonogram, FAQ a vstup do rezervací. Přihlášená část řeší dashboard, správu účtu, profily, administraci účastníků, bezpečnostní logy, nastavení aplikace, docházku účastníků a samotné rezervace počítačů nebo místností. Backend poskytuje REST API, SignalR hub pro realtime rezervace, session přihlašování, PostgreSQL databázi, Redis sessions, aplikační cache a HTML emaily renderované přes Razor šablony.
+Veřejný web ukazuje informace o aktuální akci, historii, pravidla, harmonogram, FAQ a vstup do rezervací. Přihlášená část řeší dashboard, správu účtu, profily, administraci účastníků, bezpečnostní logy, nastavení aplikace, docházku účastníků a samotné rezervace počítačů nebo místností. Backend poskytuje REST API, SignalR hub pro realtime rezervace, JWT přihlašování s access a refresh cookies, PostgreSQL databázi, Redis cache, aplikační cache a HTML emaily renderované přes Razor šablony.
 
 ## Aktuální vývojáři
 
@@ -82,7 +82,7 @@ Veřejný web ukazuje informace o aktuální akci, historii, pravidla, harmonogr
 ## Funkcionality
 
 - **Prezentační web události**: hlavní stránka, informace, historie, pravidla, harmonogram, FAQ a veřejný vstup do rezervací.
-- **Uživatelské účty**: session přihlášení, odhlášení, změna hesla, reset hesla přes email a přihlašovací link.
+- **Uživatelské účty**: JWT přihlášení s databázovými refresh sessions, CSRF ochranou, správou přihlášených zařízení, změnou hesla, resetem hesla přes email a přihlašovacím linkem.
 - **Profily účastníků**: vlastní profil, veřejné profily podle UUID, avatar, banner, třída, škola a role.
 - **Administrace účtů**: vytváření, úprava, mazání, reset hesla, impersonace, odeslání přihlašovacích údajů a filtrování účtů.
 - **Bezpečnostní logy**: databázové logování důležitých akcí, filtrování a administrátorský přehled v aplikaci.
@@ -130,7 +130,7 @@ Rezervace jsou postavené na kombinaci SignalR, PostgreSQL a aplikační cache:
 - **Cache pro mapová data**: místnosti a počítače se načítají přes cache klíč `reservations:rooms-and-computers`.
 - **Krátká status cache**: souhrnný status rezervací se cachuje na 30 sekund.
 - **Anti-stampede zámky**: cache používá `SemaphoreSlim`, aby se při prázdné cache nespustilo více stejných DB dotazů najednou.
-- **Redis**: používá se pro ASP.NET session cache a Data Protection keys, aby byly session a cookies stabilní i při restartu aplikace.
+- **Redis**: používá se pro Data Protection keys a evidenci použitých jednorázových přihlašovacích odkazů.
 - **Nginx cache headers**: statické Next.js assety z `/_next/static/` mají dlouhou immutable cache.
 - **Build cache**: Docker build používá cache mounty pro npm i NuGet balíčky.
 
@@ -164,7 +164,7 @@ Docházka běží na `/app/attendance` a zapisuje záznamy do schématu `attenda
 - ASP.NET Core controllers a SignalR hub
 - Entity Framework Core 10
 - PostgreSQL 18, mimo jiné kvůli `uuidv7()`
-- Redis pro session cache a Data Protection keys
+- Redis pro Data Protection keys a distribuovanou cache jednorázových přihlašovacích odkazů
 - IMemoryCache pro rychlé rezervační snapshoty
 - MailKit pro SMTP emaily
 - BCrypt pro hashování hesel
@@ -213,23 +213,29 @@ Docházka běží na `/app/attendance` a zapisuje záznamy do schématu `attenda
 ```text
 .
 |-- client/                                  # Next.js frontend
-|   |-- public/                              # obrázky, ikony, fonty, PDF
-|   |-- src/app/                             # App Router routy
+|   |-- public/                              # obrázky, ikony a fonty
+|   |-- src/app/(presentation)/              # veřejné prezentační routy
+|   |-- src/app/%5Fapi/payment-qr/route.ts   # serverový handler pro platební QR
+|   |-- src/app/app/(withlayout)/account/    # účet, nastavení, achievementy a sessions
 |   |-- src/app/app/(withlayout)/reservations # přihlášené rezervace
 |   |-- src/app/app/(withlayout)/attendance  # evidence příchodů a odchodů
-|   |-- src/app/app/(withlayout)/administration # uživatelé, logy a nastavení
+|   |-- src/app/app/(withlayout)/administration # správa uživatelů, logů a nastavení
 |   |-- src/components/reservation_areas/    # mapové oblasti pro rezervace
 |   |-- src/hooks/useSignalRHub.ts           # obecný SignalR hook
+|   |-- src/lib/apiClient.ts                 # CSRF, refresh a opakování API požadavků
 |   |-- src/schemas/                         # Zod schémata API odpovědí
 |   `-- package.json
 |-- server/                                  # ASP.NET Core backend
 |   |-- Controllers/                         # REST API v1
-|   |-- Data/Entities/                       # účty, školy, místnosti, počítače, rezervace
+|   |-- Data/Entities/                       # databázové entity všech domén
 |   |-- Dto/                                 # datové modely API
 |   |-- Hubs/ReservationsHub.cs              # realtime rezervace
+|   |-- Infrastructure/AuthConstants.cs      # JWT konfigurace, cookies a auth policies
 |   |-- Migrations/                          # EF Core migrace
+|   |-- Services/AuthService.cs              # access tokeny a refresh sessions
 |   |-- Services/AppSettingsService.cs       # globální nastavení aplikace
 |   |-- Services/DbLoggerService.cs          # databázové bezpečnostní logy
+|   |-- Services/OAuth/                      # jednotlivé OAuth platformy
 |   |-- Services/ReservationCacheService.cs  # cache rezervačních dat
 |   |-- Views/Emails/                        # HTML emailové šablony
 |   `-- server.csproj
@@ -279,6 +285,16 @@ docker run --name edulp-redis -p 6379:6379 -d redis:8
 
 Vytvoř soubor `server/.env`:
 
+Nejdřív v PowerShellu vygeneruj náhodný JWT secret:
+
+```powershell
+$bytes = [byte[]]::new(32)
+[Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+[Convert]::ToBase64String($bytes)
+```
+
+Výstup vlož do `JWT_SECRET`:
+
 ```dotenv
 PSQL_DB_HOST=localhost
 PSQL_DB_PORT=5432
@@ -290,7 +306,16 @@ REDIS_IP=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=
 
+JWT_SECRET=vloz-sem-vygenerovanou-base64-hodnotu
 WEB_URL=http://localhost:3547
+
+STEAM_WEB_API_KEY=change-me
+
+# apple je ted vypnuty, tyhle hodnoty se budou hodit az pak
+# APPLE_CLIENT_ID=cz.example.educhemlanparty.web
+# APPLE_TEAM_ID=change-me
+# APPLE_KEY_ID=change-me
+# APPLE_PRIVATE_KEY_BASE64=change-me
 
 SMTP_HOST=smtp.example.com
 SMTP_PORT=465
@@ -346,13 +371,39 @@ Backend načítá proměnné z `server/.env` přes `dotenv.net`.
 | `REDIS_IP` | Host Redis serveru |
 | `REDIS_PORT` | Port Redis serveru |
 | `REDIS_PASSWORD` | Redis heslo, může být prázdné |
-| `WEB_URL` | Veřejná URL aplikace pro emailové odkazy |
+| `JWT_SECRET` | Náhodný Base64 secret pro podepisování access JWT; po dekódování musí mít alespoň 32 bajtů |
+| `WEB_URL` | Pevný veřejný HTTP(S) origin aplikace pro emailové odkazy a OAuth callbacky |
+| `STEAM_WEB_API_KEY` | Steam Web API klíč pro načtení jména a avataru propojeného Steam účtu |
+| `APPLE_CLIENT_ID` | Apple Services ID použité jako OAuth `client_id` |
+| `APPLE_TEAM_ID` | Team ID z Apple Developer účtu |
+| `APPLE_KEY_ID` | ID privátního klíče s povoleným Sign in with Apple |
+| `APPLE_PRIVATE_KEY_BASE64` | Celý Apple `.p8` privátní klíč zakódovaný v Base64; neukládat do Gitu |
 | `SMTP_HOST` | SMTP server |
 | `SMTP_PORT` | SMTP port, typicky `465` |
 | `SMTP_EMAIL_USERNAME` | Odesílací email a SMTP login |
 | `SMTP_EMAIL_PASSWORD` | SMTP heslo |
 
 Nastavení jako `ChatEnabled`, `ReservationsStatus`, `ReservationsEnabledFrom`, `ReservationsEnabledTo` a `ReservationsEnabledRightNow` se ukládají do databázové tabulky `administration.AppSettings` a při startu aplikace se seedují výchozí hodnoty.
+
+### Sign in with Apple
+
+Integrace je v kódu připravená a v UI záměrně vypnutá. Pro pozdější zpřístupnění změň u Apple platformy v `client/src/data/platforms.ts` hodnotu `disabled` na `false` a nastav níže popsané `APPLE_*` proměnné. Backend Apple provider automaticky zaregistruje, jakmile najde úplnou konfiguraci.
+
+Sign in with Apple neposkytuje profilovou fotku ani URL avataru. Apple proto zůstává mimo nabídku synchronizace avataru a propojení může sloužit jen k přihlášení a identifikaci účtu.
+
+Apple webové přihlášení vyžaduje členství v Apple Developer Programu, primární App ID s povoleným Sign in with Apple, navázané Services ID a privátní `.p8` klíč. V Apple Developer portálu zaregistruj produkční doménu a přesnou návratovou URL:
+
+```text
+https://tvoje-domena.cz/api/v1/apple/callback
+```
+
+Apple nepovoluje jako návratovou URL `localhost`, IP adresu ani nezabezpečené HTTP. Proto Apple přihlášení při lokálním `WEB_URL=http://localhost:3547` záměrně vrátí stav `503`; ověřuje se až přes registrovanou HTTPS doménu.
+
+Hodnotu `APPLE_PRIVATE_KEY_BASE64` vytvoř z obsahu staženého `.p8` klíče, například v PowerShellu:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("AuthKey_CHANGE_ME.p8"))
+```
 
 ## Databáze a migrace
 
@@ -375,10 +426,14 @@ dotnet ef migrations add NazevMigrace
 Aktuální model obsahuje hlavně:
 
 - `Accounts` pro uživatelské účty, role, profily a povolení rezervací.
-- `Schools` pro školy zobrazované u profilu.
+- `AuthSessions` pro refresh sessions, jejich expiraci a revokaci přihlášených zařízení.
+- `OAuthConnections` pro propojené Discord, Google, GitHub, Steam a připravené Apple účty.
+- `Enrollments` a `Schools` pro školu a volitelnou třídu zobrazovanou u profilu.
+- `Achievements`, `Badges`, `AccountAchievements` a `AccountBadges` pro achievement systém.
 - `Computers` v databázovém schématu `reservations`.
 - `Rooms` v databázovém schématu `reservations`.
 - `Reservations` jako společný základ pro `ComputerReservation` a `RoomReservation`.
+- `ProblemReports` pro hlášení problémů a jejich stav.
 - `AttendanceEntries` ve schématu `attendance` pro příchody a odchody účastníků.
 - `Logs` ve schématu `administration` pro bezpečnostní a provozní logy.
 - `AppSettings` ve schématu `administration` pro globální nastavení aplikace.
@@ -421,6 +476,7 @@ docker run --name educhem-lan-party-app -p 80:80 educhem-lan-party-app
 - `http://localhost:3547/rules` - pravidla
 - `http://localhost:3547/schedule` - harmonogram
 - `http://localhost:3547/faq` - často kladené otázky
+- `http://localhost:3547/organizers` - organizátoři akce
 
 ### Přihlášená aplikace
 
@@ -428,14 +484,19 @@ docker run --name educhem-lan-party-app -p 80:80 educhem-lan-party-app
 - `http://localhost:3547/app` - dashboard
 - `http://localhost:3547/app/announcements` - oznámení
 - `http://localhost:3547/app/map` - mapa rezervací bez hlavního rezervačního panelu
-- `http://localhost:3547/app/account` - nastavení účtu
+- `http://localhost:3547/app/account` - přehled účtu
+- `http://localhost:3547/app/account/settings` - nastavení profilu, hesla a propojených platforem
+- `http://localhost:3547/app/account/achievements` - achievementy a odznaky účtu
+- `http://localhost:3547/app/account/devices` - správa aktivních přihlášení
 - `http://localhost:3547/app/profile` - vlastní profil
 - `http://localhost:3547/app/profile/{uuid}` - veřejný profil účastníka
 - `http://localhost:3547/app/reservations` - realtime rezervace míst
 - `http://localhost:3547/app/attendance` - docházka účastníků
 - `http://localhost:3547/app/tournaments` - turnaje
-- `http://localhost:3547/app/problem` - nahlášení problému
-- `http://localhost:3547/app/administration` - administrace účtů
+- `http://localhost:3547/app/support` - nahlášení problému; původní `/app/problem` sem přesměruje
+- `http://localhost:3547/app/administration/users` - administrace účtů
+- `http://localhost:3547/app/administration/logs` - bezpečnostní logy
+- `http://localhost:3547/app/administration/settings` - globální nastavení aplikace
 - `http://localhost:3547/app/reset-password` - reset hesla
 - `http://localhost:3547/app/system-disabled` - systémová stránka pro vypnutou aplikaci
 
@@ -451,11 +512,20 @@ docker run --name educhem-lan-party-app -p 80:80 educhem-lan-party-app
 - `DELETE /api/v1/account/{id}` - smazání účtu
 - `POST /api/v1/account/{id}/reset-password` - reset hesla účtu administrátorem
 - `POST /api/v1/account/{id}/impersonate` - přihlášení jako jiný účet podle oprávnění
-- `POST /api/v1/account/login` - přihlášení
+- `GET /api/v1/auth/csrf` - vystavení CSRF tokenu
+- `POST /api/v1/auth/login` - přihlášení a vytvoření access a refresh cookies
+- `POST /api/v1/auth/refresh` - obnova access tokenu přes refresh session
+- `POST /api/v1/auth/logout` - odhlášení a revokace aktuální refresh session
 - `GET /api/v1/account/login-link` - přihlášení přes link z emailu
 - `PUT /api/v1/account/me` - úprava vlastního účtu
+- `PUT /api/v1/account/avatar-sync-platform` - nastavení synchronizace avataru z propojené platformy
 - `POST /api/v1/account/me/password` - změna vlastního hesla
-- `POST /api/v1/account/logout` - odhlášení
+- `GET /api/v1/account/sessions` - seznam aktivních přihlášení účtu
+- `DELETE /api/v1/account/sessions/{id}` - revokace vybraného přihlášení
+- `DELETE /api/v1/account/sessions/other` - revokace všech ostatních přihlášení
+- `GET /api/v1/{provider}/login` - zahájení přihlášení přes externí platformu
+- `GET /api/v1/{provider}/connect` - propojení platformy s přihlášeným účtem
+- `DELETE /api/v1/{provider}/connection` - odpojení platformy od účtu
 - `POST /api/v1/account/forgot-password` - odeslání reset odkazu
 - `POST /api/v1/account/reset-password` - potvrzení resetu hesla
 - `PUT /api/v1/account/me/achievements/{id}` - nastavení hlavního achievementu
@@ -473,9 +543,12 @@ docker run --name educhem-lan-party-app -p 80:80 educhem-lan-party-app
 - `PUT /api/v1/appsettings` - úprava nastavení aplikace pro `Admin` a `SuperAdmin`
 - `POST /api/v1/appsettings/cache/clear` - vyčištění memory cache pro `Admin` a `SuperAdmin`
 - `GET /api/v1/problem-reports` - seznam hlášení problémů
+- `GET /api/v1/problem-reports/availability` - dostupnost vytváření hlášení
 - `POST /api/v1/problem-reports` - vytvoření hlášení problému
 - `PUT /api/v1/problem-reports/{id}/status` - změna stavu hlášení
 - `DELETE /api/v1/problem-reports/{id}` - smazání hlášení
+
+Hodnota `{provider}` může být `discord`, `google`, `github`, `steam` nebo `apple`; Apple endpointy jsou dostupné až po zapnutí a úplné konfiguraci provideru.
 
 ### SignalR hub
 

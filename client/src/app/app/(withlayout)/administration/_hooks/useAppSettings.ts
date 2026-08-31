@@ -1,14 +1,17 @@
-﻿import {FormEvent, useEffect, useMemo, useState} from "react";
+import {FormEvent, useEffect, useMemo, useState} from "react";
 import useSWR from "swr";
 import {toast} from "react-hot-toast";
+import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {hasRoleAtLeast} from "@/lib/roles";
 import {
     AppSettingsResponse,
     mapAppSettings,
     ReservationStatusType
 } from "@/schemas/AppSettingsSchema";
+import {apiFetch} from "@/lib/apiClient";
 
 const fetcher = async (url: string) => {
-    const res = await fetch(url, {credentials: "include"});
+    const res = await apiFetch(url);
 
     if (!res.ok) {
         throw new Error("Failed to load app settings");
@@ -26,11 +29,18 @@ export type CacheClearResult = {
 };
 
 export function useAppSettings() {
-    const {data, error, isLoading, mutate} = useSWR("/api/v1/appsettings", fetcher, {
-        revalidateOnFocus: false,
-        revalidateOnReconnect: false,
-        refreshInterval: 0
-    });
+    const {account} = useAuth();
+    const canManageApp = hasRoleAtLeast(account, "Admin");
+
+    const {data, error, isLoading, mutate} = useSWR(
+        canManageApp ? "/api/v1/appsettings" : null,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+            refreshInterval: 0
+        }
+    );
 
     const appSettings = useMemo(() => data ? mapAppSettings(data) : null, [data]);
 
@@ -98,7 +108,7 @@ export function useAppSettings() {
 
         setSaving(true);
 
-        const res = await fetch("/api/v1/appsettings", {
+        const res = await apiFetch("/api/v1/appsettings", {
             method: "PUT",
             credentials: "include",
             headers: {"Content-Type": "application/json"},
@@ -128,7 +138,7 @@ export function useAppSettings() {
 
         setSaving(true);
 
-        const res = await fetch("/api/v1/appsettings", {
+        const res = await apiFetch("/api/v1/appsettings", {
             method: "PUT",
             credentials: "include",
             headers: {"Content-Type": "application/json"},
@@ -154,7 +164,7 @@ export function useAppSettings() {
         setClearingCache(true);
 
         try {
-            const res = await fetch("/api/v1/appsettings/cache/clear", {
+            const res = await apiFetch("/api/v1/appsettings/cache/clear", {
                 method: "POST",
                 credentials: "include",
             });

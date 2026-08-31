@@ -4,6 +4,8 @@ import shell from '../page-shell.module.scss'
 import type {Metadata} from "next";
 import {Header} from "@/components/header";
 import {Footer} from "@/components/footer";
+import {connection} from 'next/server'
+import {arePaymentsAllowed, formatPaymentDeadline} from '@/lib/payments'
 
 const event = siteConfig.currentEvent
 
@@ -12,10 +14,12 @@ export const metadata: Metadata = {
     description: `Odpovědi na nejčastější otázky o ${event.title}. Všechny informace vycházejí z oficiálního info PDF.`,
 }
 
-const faqItems = [
+const getFaqItems = (paymentsAllowed: boolean, paymentDeadline: string) => [
     {
         question: 'Kolik stojí vstupné a jak zaplatit?',
-        answer: `Vstupné je ${event.fee}. Zaplaťte převodem na účet ${event.bankAccount} se zprávou: ${event.paymentMessage}. Můžete také použít QR kód na stránce Rezervace. Termín platby: do ${event.paymentDeadline}. Platby přiřazujeme ručně, takže potvrzení může trvat až 2 pracovní dny.`
+        answer: paymentsAllowed
+            ? `Vstupné je ${event.fee}. Zaplaťte převodem na účet ${event.bankAccount} se zprávou: ${event.paymentMessage}. Můžete také použít QR kód na stránce Rezervace. Termín platby: do ${paymentDeadline}. Platby přiřazujeme ručně, takže potvrzení může trvat až 2 pracovní dny.`
+            : `Vstupné je ${event.fee}. Platby již nejsou povoleny.`
     },
     {
         question: 'Kdy akce probíhá?',
@@ -63,7 +67,13 @@ const faqItems = [
     },
 ]
 
-export default function() {
+export default async function() {
+    await connection()
+
+    const paymentsAllowed = arePaymentsAllowed(event.paymentDeadline)
+    const paymentDeadline = formatPaymentDeadline(event.paymentDeadline)
+    const faqItems = getFaqItems(paymentsAllowed, paymentDeadline)
+
     return (
         <>
             <div className={`${shell.page} ${shell.narrow}`}>

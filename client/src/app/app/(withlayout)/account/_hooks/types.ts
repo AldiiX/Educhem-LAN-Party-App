@@ -1,8 +1,8 @@
 import {Dispatch, SetStateAction} from "react";
-import {Account, AccountCommunicationStyle, AccountGender} from "@/schemas/AccountSchema";
+import {Account, AccountCommunicationStyle, AccountGender, AvatarSyncPlatform} from "@/schemas/AccountSchema";
+import {ConnectablePlatform} from "@/data/platforms";
 
-export type AccountTab = "overview" | "achievements" | "settings";
-export type AccountModal = "avatar-info" | "banner-info" | "remove-avatar" | "remove-banner" | null;
+export type AccountModal = "avatar-info" | "banner-info" | "remove-avatar" | "remove-banner" | "platform-error" | null;
 
 export type ProfileDraft = {
     gender: AccountGender | "";
@@ -28,10 +28,10 @@ export type PasswordValidations = {
 
 export type AccountPageState = {
     account: Account;
-    selectedTab: AccountTab;
-    setSelectedTab: Dispatch<SetStateAction<AccountTab>>;
     modal: AccountModal;
     setModal: Dispatch<SetStateAction<AccountModal>>;
+    platformErrorMessage: string | null;
+    showPlatformError: (message: string) => void;
     profileDraft: ProfileDraft;
     setProfileDraft: Dispatch<SetStateAction<ProfileDraft>>;
     passwordForm: PasswordForm;
@@ -49,4 +49,8 @@ export type AccountPageState = {
     badgeUpdatingIds: ReadonlySet<string>;
     toggleAchievementVisibility: (entryId: string, nextHidden: boolean) => Promise<void>;
     toggleBadgeTakenOut: (entryId: string, nextTakenOut: boolean) => Promise<void>;
+    platformLoading: boolean;
+    connectPlatform: (platform: ConnectablePlatform) => void;
+    disconnectPlatform: (platform: ConnectablePlatform) => Promise<void>;
+	setAvatarSyncPlatform: (platform: AvatarSyncPlatform | null) => Promise<void>;
 };

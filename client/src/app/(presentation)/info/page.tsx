@@ -1,129 +1,230 @@
 'use client'
 
 import {useState} from 'react'
+import {Accordion, AccordionItem} from '@/components/accordion'
 import {siteConfig} from '@/data/site'
 import shell from '../page-shell.module.scss'
-import style from './info.module.scss'
-import {Header} from "@/components/header";
-import {Footer} from "@/components/footer";
-import If from "@/components/util/If";
-import isNullOrUndefined from "@/lib/isNullOrUndefined";
+import styles from './info.module.scss'
+import {PaymentQr} from '@/components/paymentQr'
+import {arePaymentsAllowed, formatPaymentDeadline} from '@/lib/payments'
+
+interface RuleCategory {
+    id: string
+    title: string
+    rules: { title: string; content: string }[]
+    image?: { src: string; alt: string; caption: string }
+}
+
+const event = siteConfig.currentEvent
+
+const getReservationSteps = (paymentsAllowed: boolean, paymentDeadline: string) => [
+    {
+        title: `Zaplaťte vstupné ${event.fee}`,
+        details: paymentsAllowed
+            ? [
+                `Číslo účtu: ${event.bankAccount}`,
+                `Částka: ${event.feeDecimal}`,
+                `Zpráva pro příjemce: ${event.paymentMessage}`,
+                'Dodržujte prosím tento formát.',
+                `Termín: do ${paymentDeadline}`,
+                'Můžete zaplatit ručním zadáním, nebo pomocí QR kódu.',
+                'Platby k účastníkům přiřazujeme ručně, proto se přístup může objevit až do 2 pracovních dnů.',
+            ]
+            : [
+                `Číslo účtu: [NEDOSTUPNÉ, PLATBY UKONČENY ${paymentDeadline}]`,
+                `Částka: ${event.feeDecimal}`,
+                `Zpráva pro příjemce: ${event.paymentMessage}`,
+                'Dodržujte prosím tento formát.',
+                `Termín: do ${paymentDeadline}`,
+                'Můžete zaplatit ručním zadáním, nebo pomocí QR kódu.',
+                'Platby k účastníkům přiřazujeme ručně, proto se přístup může objevit až do 2 pracovních dnů.',
+            ],
+    },
+    {
+        title: 'Obdržíte přístupové údaje',
+        details: [
+            'Jakmile zaplatíte, budete mít možnost rezervovat své místo v LAN Party systému.',
+            'Přístupové údaje vám přijdou do emailu, který jste uvedli ve zprávě platby.',
+            'Přiřazování plateb probíhá manuálně a může trvat až 2 pracovní dny.',
+        ],
+    },
+    {
+        title: 'Rezervujte si místo v systému',
+        details: [
+            'V systému na stránce /app/reservations si můžete rezervovat místo nebo počítač.',
+            'Pokud si neplánujete brát s sebou PC ani být na školním PC, nemusíte si místo rezervovat.',
+        ],
+    },
+]
+
+const getReservationFaq = (paymentsAllowed: boolean, paymentDeadline: string) => [
+    {
+        question: 'Musím si rezervovat místo?',
+        answer: 'Kvůli velkému počtu účastníků je ideální rezervovat si počítač nebo místo pro vlastní setup. Pokud si neplánujete brát s sebou PC ani být na školním PC, nemusíte si místo rezervovat.',
+    },
+    {
+        question: 'Může se moje místo změnit?',
+        answer: 'Ano, může se stát, že vaše místo bude změněno, protože ještě mohou proběhnout úpravy. Často dáváme spolužáky vedle sebe nebo do stejných tříd.',
+    },
+    {
+        question: 'Co když budu mít problém se systémem?',
+        answer: 'V případě jakéhokoli problému se systémem kontaktujte správce: Stanislav Škudrna (@aldiix) nebo Serhii Yavorskyi (@_.yavorskiy.s._).',
+    },
+    {
+        question: 'Mohu přijít a odejít kdykoliv?',
+        answer: 'Ano, můžete přijít/odejít kdykoliv během akce. Odchod ale musíte dát vědět někomu z učitelů, ideálně napsat na školní Discord.',
+    },
+    {
+        question: 'Do kdy musím zaplatit?',
+        answer: paymentsAllowed
+            ? `Vstupné ${event.fee} je nutné zaplatit do ${paymentDeadline}.`
+            : `Termín pro platbu skončil ${paymentDeadline}.`,
+    },
+]
+
+const categories: RuleCategory[] = [
+    {
+        id: 'bezpecnost',
+        title: 'Bezpečnost a technika',
+        rules: [
+            {
+                title: 'Bezpečnostní opatření',
+                content: 'Po celou dobu konání akce dodržujte bezpečnostní pokyny. Nepoužívejte elektroniku nebo jiná zařízení tak, aby to ohrozilo vás nebo ostatní.'
+            },
+            {
+                title: 'Odcházení z budovy',
+                content: 'Odcházení během akce z budovy školy je možné, ale učitel musí být informován. Účastník je povinen zapsat svůj odchod i následný příchod v aplikaci v sekci Docházka.'
+            },
+            {
+                title: 'Evidence příchodů a odchodů',
+                content: 'Každý účastník je povinen v aplikaci zapisovat příchody a odchody z akce včetně důvodu odchodu, aby organizátoři měli aktuální přehled o tom, kdo se nachází na akci.'
+            },
+            {
+                title: 'Technická zařízení',
+                content: 'Není dovoleno měnit zapojení školních PC (odpojovat monitory) či jiné periferie včetně myší a klávesnice. Můžete si ale připojit vlastní myš/sluchátka/klávesnice do VOLNÝCH portů.'
+            },
+            {title: 'Cizí vybavení', content: 'Prosíme, nezasahujte do cizího vybavení bez svolení majitele.'},
+            {
+                title: 'Vlastní setup',
+                content: 'Účastníci si mohou vzít vlastní setup. Jsou povinni vzít si vlastní monitor, prodlužovák a veškeré věci potřebné pro chod počítače.'
+            },
+            {
+                title: 'Aktualizovaný software',
+                content: 'Veškerý software nainstalovaný na vašem setupu musí být aktualizovaný, včetně samotného operačního systému.'
+            },
+        ],
+    },
+    {
+        id: 'majetek',
+        title: 'Ochrana majetku a prostředí',
+        rules: [
+            {
+                title: 'Respekt k majetku',
+                content: 'Nepoužívejte věci ostatních účastníků bez jejich souhlasu. Každý účastník nese odpovědnost za své osobní věci.'
+            },
+            {
+                title: 'Čistota a pořádek',
+                content: 'Udržujte prostor, kde se akce koná, v čistotě. Po sobě uklízejte a odstraňujte nepořádek. Předtím, než budete z akce odcházet, si po sobě ukliďte.'
+            },
+        ],
+    },
+    {
+        id: 'chovani',
+        title: 'Komunikace a chování',
+        rules: [
+            {
+                title: 'Respektujte ostatní účastníky',
+                content: 'Buďte ohleduplní a respektujte hranice a pohodlí ostatních. Neprovádějte žádné nevhodné nebo rušivé chování.'
+            },
+            {
+                title: 'Hlučnost a klidová doba',
+                content: 'V noci snižte hlasitost, abyste minimalizovali rušení okolního prostředí během nočního klidu.'
+            },
+        ],
+    },
+    {
+        id: 'jidlo',
+        title: 'Jídlo a nápoje',
+        rules: [
+            {
+                title: 'Pokyny ke stravování',
+                content: 'Dodržujte pokyny ohledně jídla a pití stanovené školou/pořadatelem. Jezte a pijte tak, abyste neohrozili majetek účastníků a školy.'
+            },
+            {
+                title: 'Čas jídla',
+                content: 'Na jídlo není stanoven přesný čas, jíst se bude v daný čas, kdy to vyjde. Jídlo na grilování a pití je v ceně.'
+            },
+            {title: 'Výdej jídla', content: 'Jídlo vám vždy vydá grillmaster.'},
+            {
+                title: 'Kontrola masa',
+                content: 'Zkontrolujte si, především ve večerních hodinách, že maso není syrové. Pokud bude syrové, vraťte ho grillmasterovi na dodělání.'
+            },
+            {title: 'Chování u grilu', content: 'Dodržujte zásady slušného chování u grilu.'},
+        ],
+    },
+    {
+        id: 'hry',
+        title: 'Jakým způsobem stahovat hry',
+        image: {
+            src: '/images/guides/steam-download-settings.webp',
+            alt: 'Nastavení Steamu pro povolení přenosu her po místní síti pro kohokoli',
+            caption: 'Ve Steamu otevřete Nastavení, Stahování a povolte přenos souborů her po místní síti pro kohokoli.',
+        },
+        rules: [
+            {
+                title: 'Opatření pro stahování',
+                content: 'Kvůli přetížení sítě jsme museli udělat opatření pro stahování her. Pro snížení přetížení sítě si zkontrolujte a případně zapněte příslušné nastavení na Steamu na školním počítači.'
+            },
+            {
+                title: 'Doporučení - vlastní disk',
+                content: 'Doporučujeme mít vlastní externí HDD/SSD, na kterém máte nainstalované hry. Disk si můžete přinést a hry spustit přímo z něj.'
+            },
+        ],
+    },
+    {
+        id: 'zaverecne',
+        title: 'Závěrečné pokyny',
+        rules: [
+            {
+                title: 'Pravomoc organizátorů',
+                content: 'Organizátoři mají právo řešit jakékoliv problémy nebo nesrovnalosti, aby zajistili plynulý průběh akce a pohodu všech účastníků.'
+            },
+            {title: 'Poděkování', content: 'Děkujeme vám za vaši účast!'},
+        ],
+    },
+]
 
 const tocItems = [
-    {id: 'ucitele', label: 'Učitelé'},
-    {id: 'spravci', label: 'Správci LAN Party systému'},
-    {id: 'organizatoriturnaju', label: 'Organizátoři turnajů'},
-    {id: 'grillmasteri', label: 'Grillmasteři'},
-    {id: 'kontakt', label: 'Kontakt'},
-    //{id: 'stazeni', label: 'Stažení PDF'},
+    {id: 'reservation', label: 'Rezervace'},
+    {id: 'instructions', label: 'Pokyny pro účastníky'},
+    ...categories.map((cat) => ({id: cat.id, label: cat.title})),
 ]
-
-interface Organizer {
-    name: string;
-    role: string;
-    phone?: string;
-    instagram?: string | null;
-    discord?: string | null;
-    avatarUrl?: string | null;
-    category: 'teacher' | 'admin' | 'grillmaster' | "tournaments";
-}
-
-const organizers: Organizer[] = [ // TODO: tahat toto z db, ne takto hardcoded
-    {
-        name: 'Michaela Mudrochová',
-        role: 'Učitelka',
-        phone: '+420 777 131 303',
-        discord: 'micha_cz',
-        category: 'teacher',
-        avatarUrl: "https://cloud02.emsio.cz/public/avatars/17111c13-da60-47c0-b436-64b2c39e584e.jpg",
-    },
-    {
-        name: 'Michal Mudroch Bureš',
-        role: 'Učitel',
-        phone: '+420 777 116 567',
-        discord: 'deathwalker_cz',
-        category: 'teacher',
-        avatarUrl: "https://cloud02.emsio.cz/public/avatars/874350a8-a348-4036-9af4-4e10b4780861.png",
-    },
-    {
-        name: 'Sebastian Netolický',
-        role: 'Učitel',
-        discord: 'internal_server_error.',
-        category: 'teacher',
-        avatarUrl: "https://cloud02.emsio.cz/public/avatars/1682759192302.jpg",
-    },
-    {name: 'David Chlad', role: 'Učitel', discord: 'ampercz1', category: 'teacher', avatarUrl: "https://cloud02.emsio.cz/public/avatars/649d2825-ca12-4b48-8e00-391b42422897.png"},
-    {name: 'Karel Honsig', role: 'Učitel', phone: '+420 724 478 552', discord: 'karelhonsig', category: 'teacher', avatarUrl: "https://cloud02.emsio.cz/public/avatars/f997e1dc-2467-45be-bc13-3d0c58a0c424.png",},
-    {name: 'Stanislav Škudrna', role: 'Správce LAN Party systému', instagram: 'stanley.sku', discord: 'aldiix', category: 'admin', avatarUrl: "https://cloud02.emsio.cz/public/avatars/stanislavskudrna.png"},
-    {name: 'Serhii Yavorskyi', role: 'Správce LAN Party systému', discord: '_.yavorskiy.s._', instagram: '_.yavorskiy.s._', category: 'admin', avatarUrl: "https://cloud02.emsio.cz/public/avatars/serhii.png"},
-    {name: 'Prokop Veselý', role: 'Organizátor CS2 turnaje', discord: 'prokyss', instagram: 'prokyzz', category: 'tournaments', avatarUrl: "https://cloud02.emsio.cz/public/avatars/proky.webp" },
-    //{name: 'Jáchym Klír', role: 'Organizátor CS2 turnaje', instagram: '@klirakk', category: 'tournaments', avatarUrl: "https://cloud02.emsio.cz/public/avatars/DSC_4222.jpg"},
-    //{name: 'Sebastien Prejza', role: 'Organizátor CS2 turnaje', instagram: null, discord: null, category: 'tournaments', avatarUrl: null},
-]
-
-function OrganizerCard({org}: { org: Organizer }) {
-    const initials = org.name
-        .split(' ')
-        .map((part) => part[0])
-        .slice(0, 2)
-        .join('')
-
-    return (
-        <div className={`${shell.card} ${style.organizerCard}`}>
-            <div className={style.avatar} aria-hidden={! org.avatarUrl}>
-                {org.avatarUrl ? (
-                    <img src={org.avatarUrl} alt={`Avatar: ${org.name}`} className={style.avatarImage}/>
-                ) : (
-                    <span>{initials}</span>
-                )}
-            </div>
-            <h3 className={style.name}>{org.name}</h3>
-            <p className={style.role}>{org.role}</p>
-
-            <If condition={!isNullOrUndefined(org.instagram) || !isNullOrUndefined(org.discord) || !isNullOrUndefined(org.phone) } as="div" className={style.socials}>
-                <If condition={!isNullOrUndefined(org.phone)} as="div" className={style.social}>
-                    <div style={{ '--icon': `url(/icons/phone.svg)`} as React.CSSProperties} className={style.icon}/>
-                    <span className={style.val}>{org.phone}</span>
-                </If>
-
-                <If condition={!isNullOrUndefined(org.discord)} as="div" className={style.social}>
-                    <div style={{ '--icon': `url(/icons/discord.svg)`} as React.CSSProperties} className={style.icon}/>
-                    <span className={style.val}>{org.discord}</span>
-                </If>
-                
-                <If condition={!isNullOrUndefined(org.instagram)} as="div" className={style.social}>
-                    <div style={{ '--icon': `url(/icons/instagram.svg)`} as React.CSSProperties} className={style.icon}/>
-                    <span className={style.val}>{org.instagram}</span>
-                </If>
-            </If>
-        </div>
-    )
-}
 
 export default function() {
+    const paymentsAllowed = arePaymentsAllowed(event.paymentDeadline)
+    const paymentDeadline = formatPaymentDeadline(event.paymentDeadline)
+    const reservationSteps = getReservationSteps(paymentsAllowed, paymentDeadline)
+    const reservationFaq = getReservationFaq(paymentsAllowed, paymentDeadline)
     const [search, setSearch] = useState('')
     const query = search.toLowerCase()
-    const event = siteConfig.currentEvent
-
-    const teachers = organizers.filter((o) => o.category === 'teacher')
-    const admins = organizers.filter((o) => o.category === 'admin')
-    const grillmasters = organizers.filter((o) => o.category === 'grillmaster')
-    const tournaments = organizers.filter((o) => o.category === 'tournaments')
-
-    const filterOrg = (list: Organizer[]) =>
-        list.filter((o) => o.name.toLowerCase().includes(query) || o.role.toLowerCase().includes(query))
-
-    const filteredTeachers = filterOrg(teachers)
-    const filteredAdmins = filterOrg(admins)
-    const filteredGrillmasters = filterOrg(grillmasters)
-    const filteredTournamentsOrgs = filterOrg(tournaments);
+    const filteredCategories = categories
+        .map((cat) => ({
+            ...cat,
+            rules: cat.rules.filter(
+                (r) =>
+                    r.title.toLowerCase().includes(query) ||
+                    r.content.toLowerCase().includes(query) ||
+                    cat.title.toLowerCase().includes(query)
+            ),
+        }))
+        .filter((cat) => cat.rules.length > 0)
 
     return (
         <>
             <div className={shell.page}>
                 <div className={shell.pageHeader}>
-                    <span className={shell.eyebrow}>Informace</span>
-                    <h1 className={shell.title}>{event.name} - {event.year}</h1>
+                    <span className={shell.eyebrow}>Info</span>
+                    <h1 className={shell.title}>Důležité informace</h1>
                     <p className={shell.description}>
                         {event.venueFull}. Akce probíhá od {event.startDate} {event.startTime} do {event.endDate}{' '}
                         {event.endTime} a časy jsou orientační.
@@ -145,104 +246,168 @@ export default function() {
                     </aside>
 
                     <div>
-                        <div className={shell.search}>
-                            <span className={shell.searchIcon} aria-hidden="true"/>
-                            <input
-                                type="text"
-                                className={shell.input}
-                                placeholder="Hledat organizátory..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
-                        </div>
-
-                        <section id="ucitele" className={shell.section}>
+                        <section id="reservation" className={`${shell.section} ${styles.reservation}`}>
                             <h2 className={shell.sectionTitle}>
                                 <span className={shell.sectionMark} aria-hidden="true"/>
-                                Učitelé
+                                Rezervace a platba
                             </h2>
-                            {filteredTeachers.length > 0 ? (
-                                <div className={shell.grid2}>
-                                    {filteredTeachers.map((org) => (
-                                        <OrganizerCard key={org.name} org={org}/>
-                                    ))}
+                            <p className={styles.reservationIntro}>
+                                Rezervace je určená pro účastníky, kteří chtějí mít jistotu školního PC nebo místa pro
+                                vlastní setup.
+                            </p>
+                            <a href="/app/reservations" className={`${shell.button} ${shell.primaryButton}`}>
+                                Vstup do rezervačního systému
+                            </a>
+
+                            <div className={styles.steps}>
+                                {reservationSteps.map((step, idx) => (
+                                    <div key={idx} className={`${shell.card} ${styles.step}`}>
+                                        <div className={styles.number}>{idx + 1}</div>
+                                        <div>
+                                            <h3 className={styles.stepTitle}>{step.title}</h3>
+                                            <ul className={styles.details}>
+                                                {step.details.map((detail, detailIndex) => (
+                                                    <li key={detailIndex} className={styles.detail}>
+                                                        <span className={styles.bullet} aria-hidden="true"/>
+                                                        {detail}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            {idx === 0 && (
+                                                <div className={styles.stepQr}>
+                                                    <div>
+                                                        <p className={styles.stepQrTitle}>Platba QR kódem</p>
+                                                        <p className={styles.stepQrText}>
+                                                            {paymentsAllowed ? (
+                                                                <>
+                                                                    Naskenujte QR kód a před odesláním zkontrolujte
+                                                                    zprávu pro příjemce. Platba musí být odeslaná
+                                                                    do {paymentDeadline}.
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    Naskenujte QR kód a před odesláním zkontrolujte
+                                                                    zprávu pro příjemce. Termín pro platbu skončil {paymentDeadline}.
+                                                                </>
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                    <PaymentQr
+                                                        enabled={paymentsAllowed}
+                                                        imageClassName={styles.qrCode}
+                                                        placeholderClassName={styles.qrPlaceholder}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <figure className={shell.contentMedia}>
+                                <img
+                                    src="/images/guides/reservation-system.webp"
+                                    alt="Ukázka výběru počítače a tlačítka Rezervovat v LAN Party systému"
+                                    className={shell.contentImage}
+                                />
+                                <figcaption className={shell.contentCaption}>
+                                    Po výběru volného místa nebo počítače použijte tlačítko Rezervovat.
+                                </figcaption>
+                            </figure>
+
+                            <div className={styles.alerts}>
+                                {paymentsAllowed && (
+                                    <div className={`${shell.alert} ${shell.alertError}`}>
+                                        <div className={shell.alertIcon} aria-hidden="true">!</div>
+                                        <div>
+                                            <p className={shell.alertTitle}>Důležité upozornění</p>
+                                            <p className={shell.alertDescription}>
+                                                Ve zprávě pro příjemce dodržujte formát: {event.paymentMessage}. Bez
+                                                správného formátu nemusí být platba přiřazena. Potvrzení může kvůli
+                                                ručnímu přiřazování trvat až 2 pracovní dny.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                <div className={shell.alert}>
+                                    <div className={shell.alertIcon} aria-hidden="true">!</div>
+                                    <div>
+                                        <p className={shell.alertTitle}>Změna místa</p>
+                                        <p className={shell.alertDescription}>
+                                            Vaše místo může být změněno kvůli úpravám rozložení, například když dáváme
+                                            spolužáky vedle sebe.
+                                        </p>
+                                    </div>
                                 </div>
-                            ) : (
-                                <p className={shell.empty}>Žádné výsledky.</p>
-                            )}
+                            </div>
+
+                            <section className={styles.faq}>
+                                <h3 className={shell.sectionTitle}>
+                                    <span className={shell.sectionMark} aria-hidden="true"/>
+                                    Časté dotazy k rezervaci
+                                </h3>
+                                <Accordion>
+                                    {reservationFaq.map((item, idx) => (
+                                        <AccordionItem key={idx} title={item.question}>
+                                            <p>{item.answer}</p>
+                                        </AccordionItem>
+                                    ))}
+                                </Accordion>
+                            </section>
                         </section>
 
-                        <section id="spravci" className={shell.section}>
+                        <section id="instructions" className={shell.section}>
                             <h2 className={shell.sectionTitle}>
                                 <span className={shell.sectionMark} aria-hidden="true"/>
-                                Správci LAN Party systému
+                                Pokyny pro účastníky
                             </h2>
-                            {filteredAdmins.length > 0 ? (
-                                <div className={shell.grid2}>
-                                    {filteredAdmins.map((org) => (
-                                        <OrganizerCard key={org.name} org={org}/>
-                                    ))}
+                            <div className={shell.search}>
+                                <span className={shell.searchIcon} aria-hidden="true"/>
+                                <input
+                                    type="text"
+                                    className={shell.input}
+                                    placeholder="Hledat v pokynech..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                />
+                            </div>
+                            <div className={`${shell.alert} ${shell.leadAlert}`}>
+                                <div className={shell.alertIcon} aria-hidden="true">!</div>
+                                <div>
+                                    <p className={shell.alertTitle}>Důležité</p>
+                                    <p className={shell.alertDescription}>
+                                        Dodržování pokynů je povinné pro všechny účastníky. Organizátoři mají právo
+                                        řešit problémy a nesrovnalosti pro zajištění plynulého průběhu akce.
+                                    </p>
                                 </div>
-                            ) : (
-                                <p className={shell.empty}>Žádné výsledky.</p>
-                            )}
-                        </section>
-
-
-                        <section id="organizatoriturnaju" className={shell.section}>
-                            <h2 className={shell.sectionTitle}>
-                                <span className={shell.sectionMark} aria-hidden="true"/>
-                                Organizátoři turnajů
-                            </h2>
-                            {filteredTournamentsOrgs.length > 0 ? (
-                                <div className={shell.grid2}>
-                                    {filteredTournamentsOrgs.map((org) => (
-                                        <OrganizerCard key={org.name} org={org}/>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className={shell.empty}>Zatím zde nikdo není :)</p>
-                            )}
-                        </section>
-
-                        <section id="grillmasteri" className={shell.section}>
-                            <h2 className={shell.sectionTitle}>
-                                <span className={shell.sectionMark} aria-hidden="true"/>
-                                Grillmasteři
-                            </h2>
-                            {filteredGrillmasters.length > 0 ? (
-                                <div className={shell.grid2}>
-                                    {filteredGrillmasters.map((org) => (
-                                        <OrganizerCard key={org.name} org={org}/>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className={shell.empty}>Grillmasteři budou k dispozici u grilu během akce.</p>
-                            )}
-                        </section>
-
-
-                        <section id="kontakt" className={shell.section}>
-                            <h2 className={shell.sectionTitle}><span className={shell.sectionMark} aria-hidden="true"/>Kontakt
-                            </h2>
-                            <div className={`${shell.card} ${shell.copyCard}`}>
-                                <p>
-                                    Pokud budete mít v průběhu akce nějaký problém (nebo budete mít hlad), neváhejte
-                                    organizátory kontaktovat ať osobně, tak na Discordu.
-                                </p>
-                                <p>
-                                    Pokud máte nějaké dotazy, napište na školní Discord, nebo přímo organizátorům.
-                                </p>
                             </div>
                         </section>
 
-                        {/*<section id="stazeni">*/}
-                        {/*    <h2 className={shell.sectionTitle}><span className={shell.sectionMark} aria-hidden="true"/>Stažení*/}
-                        {/*        PDF</h2>*/}
-                        {/*    <a href="/info.pdf" download className={`${shell.button} ${shell.secondaryButton}`}>*/}
-                        {/*        Stáhnout originální info.pdf*/}
-                        {/*    </a>*/}
-                        {/*</section>*/}
+                        {filteredCategories.length === 0 ? (
+                            <p className={shell.empty}>Žádné výsledky pro zadaný hledaný výraz.</p>
+                        ) : (
+                            filteredCategories.map((cat) => (
+                                <section key={cat.id} id={cat.id} className={shell.section}>
+                                    <h2 className={shell.sectionTitle}>
+                                        <span className={shell.sectionMark} aria-hidden="true"/>
+                                        {cat.title}
+                                    </h2>
+                                    <Accordion>
+                                        {cat.rules.map((rule, idx) => (
+                                            <AccordionItem key={idx} title={rule.title} defaultOpen={idx === 0}>
+                                                <p>{rule.content}</p>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                                    {cat.image && (
+                                        <figure className={shell.contentMedia}>
+                                            <img src={cat.image.src} alt={cat.image.alt} className={shell.contentImage}/>
+                                            <figcaption className={shell.contentCaption}>{cat.image.caption}</figcaption>
+                                        </figure>
+                                    )}
+                                </section>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>

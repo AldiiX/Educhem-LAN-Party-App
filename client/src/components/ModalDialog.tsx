@@ -61,6 +61,29 @@ export function ModalInformative({
     </Modal>;
 }
 
+export function ModalError({
+                               open,
+                               title,
+                               description,
+                               confirmText = "Zavřít",
+                               cancelText = "Zavřít",
+                               loading = false,
+                               onClose,
+                               onConfirm,
+                           }: ModalDialogProps) {
+    return <Modal open={open} onClose={onClose} className={`${style.dialog} ${style.destructiveDialog} ${style.errorDialog}`}>
+        <DialogContent
+            title={title}
+            description={description}
+            confirmText={confirmText}
+            cancelText={cancelText}
+            loading={loading}
+            onClose={onClose}
+            onConfirm={onConfirm}
+        />
+    </Modal>;
+}
+
 function DialogContent({
                            title,
                            description,

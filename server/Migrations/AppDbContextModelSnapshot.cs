@@ -18,7 +18,7 @@ namespace server.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "public", "AccountGender", new[] { "Female", "Male", "Other" });
@@ -38,6 +38,9 @@ namespace server.Migrations
                         .HasColumnType("public.\"AccountType\"")
                         .HasDefaultValue(AccountType.Student);
 
+                    b.Property<string>("AvatarSyncPlatform")
+                        .HasColumnType("text");
+
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
@@ -45,10 +48,6 @@ namespace server.Migrations
                     b.Property<string>("BannerUrl")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
-
-                    b.Property<string>("Class")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
 
                     b.Property<string>("CommunicationStyle")
                         .IsRequired()
@@ -94,9 +93,6 @@ namespace server.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
-                    b.Property<int?>("SchoolId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("UpdatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -106,8 +102,6 @@ namespace server.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
-
-                    b.HasIndex("SchoolId");
 
                     b.ToTable("Accounts", "public");
                 });
@@ -272,8 +266,8 @@ namespace server.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Reason")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -291,6 +285,75 @@ namespace server.Migrations
                     b.HasIndex("AccountId", "CreatedAtUtc");
 
                     b.ToTable("AttendanceEntries", "attendance");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.AuthSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("uuidv7()");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Browser")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<bool>("IsPersistent")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LastActiveUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OperatingSystem")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("RefreshTokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("RefreshTokenHash")
+                        .IsUnique();
+
+                    b.ToTable("AuthSessions", "public");
                 });
 
             modelBuilder.Entity("server.Data.Entities.Badge", b =>
@@ -378,6 +441,25 @@ namespace server.Migrations
                     b.ToTable("Computers", "reservations");
                 });
 
+            modelBuilder.Entity("server.Data.Entities.Enrollment", b =>
+                {
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Class")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<int>("SchoolId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("AccountId");
+
+                    b.HasIndex("SchoolId");
+
+                    b.ToTable("Enrollments", "public");
+                });
+
             modelBuilder.Entity("server.Data.Entities.LogEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -386,6 +468,9 @@ namespace server.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid?>("ActorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
@@ -409,6 +494,10 @@ namespace server.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<string>("TargetId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -423,6 +512,54 @@ namespace server.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Logs", "administration");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.OAuthConnection", b =>
+                {
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Provider")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AccessToken")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<DateTime?>("AccessTokenExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AvatarUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTime?>("LastValidatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProfileUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("ProviderUserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("RefreshToken")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("AccountId", "Provider");
+
+                    b.HasIndex("Provider", "ProviderUserId")
+                        .IsUnique();
+
+                    b.ToTable("OAuthConnections", "public");
                 });
 
             modelBuilder.Entity("server.Data.Entities.ProblemReport", b =>
@@ -628,15 +765,6 @@ namespace server.Migrations
                     b.HasDiscriminator().HasValue("RoomReservation");
                 });
 
-            modelBuilder.Entity("server.Data.Entities.Account", b =>
-                {
-                    b.HasOne("server.Data.Entities.School", "School")
-                        .WithMany()
-                        .HasForeignKey("SchoolId");
-
-                    b.Navigation("School");
-                });
-
             modelBuilder.Entity("server.Data.Entities.AccountAchievement", b =>
                 {
                     b.HasOne("server.Data.Entities.Account", "Account")
@@ -694,6 +822,17 @@ namespace server.Migrations
                     b.Navigation("CreatedBy");
                 });
 
+            modelBuilder.Entity("server.Data.Entities.AuthSession", b =>
+                {
+                    b.HasOne("server.Data.Entities.Account", "Account")
+                        .WithMany("AuthSessions")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
             modelBuilder.Entity("server.Data.Entities.BadgeRequirement", b =>
                 {
                     b.HasOne("server.Data.Entities.Achievement", "Achievement")
@@ -721,6 +860,36 @@ namespace server.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.Enrollment", b =>
+                {
+                    b.HasOne("server.Data.Entities.Account", "Account")
+                        .WithOne("Enrollment")
+                        .HasForeignKey("server.Data.Entities.Enrollment", "AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("server.Data.Entities.School", "School")
+                        .WithMany()
+                        .HasForeignKey("SchoolId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("School");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.OAuthConnection", b =>
+                {
+                    b.HasOne("server.Data.Entities.Account", "Account")
+                        .WithMany("OAuthConnections")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
                 });
 
             modelBuilder.Entity("server.Data.Entities.ProblemReport", b =>
@@ -777,6 +946,12 @@ namespace server.Migrations
                     b.Navigation("AccountAchievements");
 
                     b.Navigation("AccountBadges");
+
+                    b.Navigation("AuthSessions");
+
+                    b.Navigation("Enrollment");
+
+                    b.Navigation("OAuthConnections");
                 });
 
             modelBuilder.Entity("server.Data.Entities.Achievement", b =>

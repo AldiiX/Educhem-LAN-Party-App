@@ -26,15 +26,30 @@ export default function({ account }: { account: Account }) {
                 <p>{ accountTypeLabel(profile.accountType, profile.gender) }</p>
 
                 <div className={style.items}>
-                    <If condition={profile.class != null} as="div" className={style.item} title={`Třída: ${profile.class}`}>
+                    <If condition={profile.enrollment?.class != null} as="div" className={style.item} title={`Třída: ${profile.enrollment?.class}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/class.svg)` }}></div>
-                        <p>{ profile.class }</p>
+                        <p>{ profile.enrollment?.class }</p>
                     </If>
 
                     <If condition={profile.gender != null} as="div" className={style.item} title={`Pohlaví: ${translateGender(profile.gender)}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/gender.svg)` }}></div>
                         <p>{ genderLabel(profile.gender) }</p>
                     </If>
+
+                    <If condition={profile.discordUsername != null} as="div" className={style.item} title="Discord">
+                        <div className={style.icon} style={{ maskImage: "url(/icons/discord.svg)" }}></div>
+                        <p>{ profile.discordUsername }</p>
+                    </If>
+
+                    <If condition={profile.githubUsername != null && profile.githubProfileUrl != null} as="div" className={style.item} title="GitHub">
+                        <div className={style.icon} style={{ maskImage: "url(/icons/github.svg)" }}></div>
+                        <a className={style.githubLink} href={profile.githubProfileUrl ?? undefined} target="_blank" rel="noreferrer">{ profile.githubUsername }</a>
+                    </If>
+
+					<If condition={profile.steamUsername != null && profile.steamProfileUrl != null} as="div" className={style.item} title="Steam">
+						<div className={style.icon} style={{ maskImage: "url(/icons/steam.svg)" }}></div>
+						<a className={style.githubLink} href={profile.steamProfileUrl ?? undefined} target="_blank" rel="noreferrer">{ profile.steamUsername }</a>
+					</If>
 
                     <If condition={profile.createdAtUtc != null} as="div" className={style.item} title={`Datum registrace: ${profile.createdAtUtc.toLocaleDateString()}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/login.svg)` }}></div>
@@ -58,9 +73,9 @@ export default function({ account }: { account: Account }) {
                             ))
                         }
                     </If>
-                    <If condition={profile.school != null} as="div" className={style.school}>
-                        <div className={style.img} style={{ backgroundImage: `url(${profile.school?.iconUrl})` }}></div>
-                        <p>{ profile.school?.displayName }</p>
+                    <If condition={profile.enrollment != null} as="div" className={style.school}>
+                        <div className={style.img} style={{ backgroundImage: `url(${profile.enrollment?.school.iconUrl})` }}></div>
+                        <p>{ profile.enrollment?.school.displayName }</p>
                     </If>
                 </div>
 

@@ -1,6 +1,6 @@
 ﻿namespace server.Dto.Responses;
 
-public class AppSettingsResponse {
+public sealed class AppSettingsResponse {
 	public bool ChatEnabled { get; set; }
 	public DateTime ServerNow { get; set; }
 	public DateTime ReservationsEnabledFrom { get; set; }

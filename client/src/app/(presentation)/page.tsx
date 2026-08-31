@@ -5,18 +5,25 @@ import shell from './page-shell.module.scss'
 import styles from './page.module.scss'
 import {Header} from "@/components/header";
 import {Footer} from "@/components/footer";
+import {PaymentQr} from '@/components/paymentQr'
+import {connection} from 'next/server'
+import {arePaymentsAllowed, formatPaymentDeadline} from '@/lib/payments'
 
-export default function HomePage() {
+export default async function HomePage() {
+    await connection()
+
     const event = siteConfig.currentEvent
+    const paymentsAllowed = arePaymentsAllowed(event.paymentDeadline)
+    const paymentDeadline = formatPaymentDeadline(event.paymentDeadline)
 
     return (
         <>
             <section className={styles.hero}>
                 <div className={`${styles.heroImage} ${styles.heroImageDark}`}>
-                    <img src="/images/banner3.jpeg" alt=""/>
+                    <img src="/images/banner3.webp" alt=""/>
                 </div>
                 <div className={`${styles.heroImage} ${styles.heroImageLight}`}>
-                    <img src="/images/history/summer2024/IMG_20240607_195534.jpg" alt=""/>
+                    <img src="/images/history/summer2024/3.webp" alt=""/>
                 </div>
                 <div className={styles.heroOverlay}/>
                 <div className={styles.heroContent}>
@@ -33,7 +40,7 @@ export default function HomePage() {
                         {/*<a href="/app/" className={`${shell.button} ${shell.primaryButton}`}>*/}
                         {/*    Vstup do systému*/}
                         {/*</a>*/}
-                        <Link href="/reservation" className={`${shell.button} ${shell.primaryButton}`}>
+                        <Link href="/info#reservation" className={`${shell.button} ${shell.primaryButton}`}>
                             Rezervovat místo
                         </Link>
                         <Link href="/info" className={`${shell.button} ${shell.secondaryButton}`}>
@@ -71,7 +78,7 @@ export default function HomePage() {
                     </div>
 
                     <div className={styles.feature}>
-                        <img src="/images/img1.jpg"/>
+                        <img src="/images/img1.webp"/>
                         <div className={styles.featureCaption}>
                             <strong>Jedna noc, jedna síť, hodně her.</strong>
                             <span>Školní PC, vlastní setupy, společný prostor a grilování v ceně vstupného.</span>
@@ -102,10 +109,16 @@ export default function HomePage() {
                             <div className={styles.step}>
                                 <div className={styles.stepNumber}>1</div>
                                 <div>
-                                    <h3 className={styles.stepTitle}>Zaplatit vstupné</h3>
+                                     <h3 className={styles.stepTitle}>Zaplatit vstupné</h3>
                                     <p className={styles.stepText}>
-                                        Převodem {event.fee} na účet {event.bankAccount} nebo QR kódem. Do zprávy
-                                        napište {event.paymentMessage}.
+                                        {paymentsAllowed ? (
+                                            <>
+                                                Převodem {event.fee} na účet {event.bankAccount} nebo QR kódem. Do
+                                                zprávy napište {event.paymentMessage}.
+                                            </>
+                                        ) : (
+                                            <>Převodem {event.fee} na účet nebo QR kódem. Termín pro platbu skončil {paymentDeadline}.</>
+                                        )}
                                     </p>
                                 </div>
                             </div>
@@ -113,11 +126,24 @@ export default function HomePage() {
                                 <div>
                                     <p className={styles.homeQrKicker}>Platba QR kódem</p>
                                     <p className={styles.homeQrText}>
-                                        Naskenujte QR kód a před odesláním zkontrolujte zprávu pro příjemce.
-                                        Platba musí být odeslaná do {event.paymentDeadline}.
+                                        {paymentsAllowed ? (
+                                            <>
+                                                Naskenujte QR kód a před odesláním zkontrolujte zprávu pro příjemce.
+                                                Platba musí být odeslaná do {paymentDeadline}.
+                                            </>
+                                        ) : (
+                                            <>
+                                                Naskenujte QR kód a před odesláním zkontrolujte zprávu pro příjemce.
+                                                Termín pro platbu skončil {paymentDeadline}.
+                                            </>
+                                        )}
                                     </p>
                                 </div>
-                                <img className={styles.homeQrImage} src="/qr.svg" alt="QR kód pro platbu vstupného"/>
+                                <PaymentQr
+                                    enabled={paymentsAllowed}
+                                    imageClassName={styles.homeQrImage}
+                                    placeholderClassName={styles.homeQrPlaceholder}
+                                />
                             </div>
                             <div className={styles.step}>
                                 <div className={styles.stepNumber}>2</div>
@@ -150,7 +176,7 @@ export default function HomePage() {
                             </div>
                         </div>
                         <div className={styles.setupImage}>
-                            <img src="/images/img2.jpg" alt="Herní setup s počítačem"/>
+                            <img src="/images/img2.webp" alt="Herní setup s počítačem"/>
                         </div>
                     </div>
                 </div>

@@ -9,18 +9,18 @@ namespace server.Data.Entities;
 [Table("AttendanceEntries", Schema = "attendance")]
 [Index(nameof(AccountId), nameof(CreatedAtUtc))]
 [UuidV7]
-public class AttendanceEntry : AuditableEntity<Guid> {
+public sealed class AttendanceEntry : AuditableEntity<Guid> {
 	[ForeignKey(nameof(Account))]
 	public required Guid AccountId { get; set; }
 
 	[AutoInclude]
 	[DeleteBehavior(DeleteBehavior.Cascade)]
-	public required Account Account { get; set; }
+	public Account Account { get; set; } = null!;
 
 	[StringEnum]
 	public required AttendanceEntryType Type { get; set; }
 
-	[MaxLength(256)]
+	[MaxLength(64)]
 	public string? Reason { get; set; }
 
 	[ForeignKey(nameof(CreatedBy))]
@@ -28,7 +28,7 @@ public class AttendanceEntry : AuditableEntity<Guid> {
 
 	[AutoInclude]
 	[DeleteBehavior(DeleteBehavior.Restrict)]
-	public required Account CreatedBy { get; set; }
+	public Account CreatedBy { get; set; } = null!;
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]

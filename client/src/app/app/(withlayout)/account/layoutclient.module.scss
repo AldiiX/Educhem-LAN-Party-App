@@ -1,0 +1,62 @@
+.accountPage {
+    min-height: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+
+    >h1 {
+        font-size: 36px;
+        line-height: 1;
+        margin-bottom: 28px;
+    }
+
+    .tabs {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 46px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 4px;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
+        >a {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            white-space: nowrap;
+            min-height: 42px;
+            padding: 0 14px;
+            border-radius: 8px;
+            background: var(--element-bg);
+            color: var(--text-color);
+            font-weight: 700;
+            transition: background .2s ease, color .2s ease;
+
+            &:hover,
+            &.active {
+                background: var(--accent-soft-filled);
+                color: var(--accent-color);
+            }
+        }
+    }
+
+    .tabContent {
+        min-width: 0;
+    }
+
+    @media (max-width: 720px) {
+        >h1 {
+            padding-right: 92px;
+        }
+
+        .tabs {
+            margin-bottom: 30px;
+        }
+    }
+}

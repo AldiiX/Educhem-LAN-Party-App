@@ -1,4 +1,4 @@
-﻿.errordiv {
+.errordiv {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -41,7 +41,7 @@
         }
     }
 
-    h2,p {
+    h2, p {
         color: var(--text-color);
         font-family: Gabarito, sans-serif;
         margin: 0;
@@ -68,11 +68,9 @@
             padding: 12px 48px;
         }
     }
-}
 
-
-@media (max-width: 768px) {
-    .errordiv {
+    @media (max-width: 768px) {
+        >.errorNadpis,
         >.error-nadpis {
             gap: 32px;
 

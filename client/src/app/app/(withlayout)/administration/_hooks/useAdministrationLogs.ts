@@ -1,4 +1,5 @@
-﻿import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {useEffect} from "react";
+import {useAuth} from "@/app/app/_providers/AuthProvider";
 
 import {useLogsQuery} from "./useLogsQuery";
 import {useLogsFilters} from "./useLogsFilters";
@@ -6,31 +7,20 @@ import {useLogsFilters} from "./useLogsFilters";
 export function useLogsAdministration() {
     const {account} = useAuth();
 
-    const logsQuery = useLogsQuery();
+    const logsFilters = useLogsFilters();
+    const logsQuery = useLogsQuery(logsFilters.queryString);
 
-    const logsFilters = useLogsFilters({
-        logs: logsQuery.logs,
-
-        searchTerm: logsQuery.searchTerm,
-        setSearchTerm: logsQuery.setSearchTerm,
-
-        selectedLogTypes: logsQuery.selectedLogTypes,
-        setSelectedLogTypes: logsQuery.setSelectedLogTypes,
-
-        selectedExactTypes: logsQuery.selectedExactTypes,
-        setSelectedExactTypes: logsQuery.setSelectedExactTypes,
-
-        dateFrom: logsQuery.dateFrom,
-        setDateFrom: logsQuery.setDateFrom,
-
-        dateTo: logsQuery.dateTo,
-        setDateTo: logsQuery.setDateTo,
-    });
+    useEffect(() => {
+        if(!logsQuery.logsValidating && logsQuery.pagination.page !== logsFilters.page) {
+            logsFilters.setPage(logsQuery.pagination.page);
+        }
+    }, [logsFilters.page, logsFilters.setPage, logsQuery.logsValidating, logsQuery.pagination.page]);
 
     return {
         account,
 
         ...logsQuery,
         ...logsFilters,
+        filteredLogs: logsQuery.logs,
     };
 }

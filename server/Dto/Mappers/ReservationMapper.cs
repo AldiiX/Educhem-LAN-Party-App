@@ -2,7 +2,7 @@
 
 namespace server.Dto.Mappers;
 
-public static class ReservationMapper {
+internal static class ReservationMapper {
 	public static ComputerDto ToDto(this Computer computer, bool deep = true) {
 		return new ComputerDto() {
 			Id = computer.Id,

@@ -2,7 +2,7 @@
 
 namespace server.Dto.Mappers;
 
-public static class AccountMapper {
+internal static class AccountMapper {
 	extension(Account account) {
 		public ProfileDto ToProfileDto(bool deep = true) {
 			var achievements = account.AccountAchievements
@@ -18,10 +18,14 @@ public static class AccountMapper {
 				Id = account.Id,
 				FirstName = account.FirstName,
 				LastName = account.LastName,
-				Class = account.Class,
-				School = deep ? account.School?.ToDto(false) : null,
+				Enrollment = account.Enrollment?.ToDto(),
 				AvatarUrl = account.AvatarUrl,
 				BannerUrl = account.BannerUrl,
+				DiscordUsername = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Discord)?.Username,
+				GitHubUsername = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.GitHub)?.Username,
+				GitHubProfileUrl = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.GitHub)?.ProfileUrl,
+				SteamUsername = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Steam)?.Username,
+				SteamProfileUrl = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Steam)?.ProfileUrl,
 				Gender = account.Gender,
 				CreatedAtUtc = account.CreatedAtUtc,
 				AccountType = account.AccountType,
@@ -42,10 +46,16 @@ public static class AccountMapper {
 				Id = account.Id,
 				FirstName = account.FirstName,
 				LastName = account.LastName,
-				Class = account.Class,
-				School = deep ? account.School?.ToDto() : null,
+				Enrollment = account.Enrollment?.ToDto(),
 				AvatarUrl = account.AvatarUrl,
 				BannerUrl = account.BannerUrl,
+				DiscordUsername = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Discord)?.Username,
+				GitHubUsername = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.GitHub)?.Username,
+				GitHubProfileUrl = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.GitHub)?.ProfileUrl,
+				GoogleName = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Google)?.Username,
+				AppleName = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Apple)?.Username,
+				SteamUsername = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Steam)?.Username,
+				SteamProfileUrl = account.OAuthConnections.FirstOrDefault(item => item.Provider == OAuthProvider.Steam)?.ProfileUrl,
 				UpdatedAtUtc = account.UpdatedAtUtc,
 				CreatedAtUtc = account.CreatedAtUtc,
 				LastActiveUtc = account.LastActiveUtc,
@@ -56,6 +66,7 @@ public static class AccountMapper {
 				Achievements = achievements,
 				Badges = badges,
 				CommunicationStyle = account.CommunicationStyle,
+				AvatarSyncPlatform = account.AvatarSyncPlatform,
 			};
 		}
 
@@ -71,8 +82,7 @@ public static class AccountMapper {
 				Id = account.Id,
 				FirstName = account.FirstName,
 				LastName = account.LastName,
-				Class = account.Class,
-				School = deep ? account.School?.ToDto() : null,
+				Enrollment = account.Enrollment?.ToDto(),
 				AvatarUrl = account.AvatarUrl,
 				BannerUrl = account.BannerUrl,
 				UpdatedAtUtc = account.UpdatedAtUtc,

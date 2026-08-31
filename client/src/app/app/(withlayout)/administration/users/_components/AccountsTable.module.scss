@@ -1,0 +1,231 @@
+.tableWrap {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 24px;
+    border-radius: var(--radius-panel);
+    background: var(--element-bg);
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+
+    table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+
+        tbody {
+            transition: opacity .18s ease;
+        }
+
+        .nameColumn {
+            width: 18%;
+        }
+
+        .emailColumn {
+            width: 20%;
+        }
+
+        .compactColumn {
+            width: 7%;
+        }
+
+        .schoolColumn {
+            width: 12%;
+        }
+
+        .typeColumn {
+            width: 12%;
+        }
+
+        .dateColumn {
+            width: 8%;
+        }
+
+        th,
+        td {
+            padding: 15px 14px;
+            text-align: left;
+            white-space: nowrap;
+            font-weight: 400;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        th {
+            color: var(--accent-color);
+            font-size: 16px;
+            border-bottom: 1px solid var(--border-color);
+
+            button {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                max-width: 100%;
+                color: inherit;
+                font-weight: 500;
+                text-align: left;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+
+                &.sorted {
+                    color: var(--accent-color);
+                }
+            }
+
+            span {
+                width: 12px;
+                color: var(--text-color-secondary);
+            }
+        }
+
+        td {
+            font-size: 16px;
+            border-top: 1px solid rgba(255, 255, 255, .03);
+        }
+
+        tbody tr {
+            cursor: pointer;
+            background: var(--background-bg-2);
+            transition: background .16s ease;
+
+            &:nth-child(even) {
+                background: color-mix(in srgb, var(--element-bg) 96%, black 4%);
+            }
+
+            &:hover {
+                background: var(--element-bg-colored);
+            }
+
+            &.currentUser {
+                .userCell {
+                    .currentAccountLabel {
+                        margin-left: 10px;
+                        color: var(--accent-color);
+                        font-size: inherit;
+                        font-weight: 500;
+                    }
+                }
+            }
+
+            .userCell {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                min-width: 0;
+
+                span {
+                    min-width: 0;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+            }
+        }
+    }
+
+    &.loading {
+        tbody {
+            opacity: .62;
+        }
+    }
+
+    .sorted {
+        color: var(--accent-color);
+    }
+
+    .userCell {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+
+        span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    .nameColumn {
+        width: 18%;
+    }
+
+    .emailColumn {
+        width: 20%;
+    }
+
+    .compactColumn {
+        width: 7%;
+    }
+
+    .schoolColumn {
+        width: 12%;
+    }
+
+    .typeColumn {
+        width: 12%;
+    }
+
+    .dateColumn {
+        width: 8%;
+    }
+
+    @media (max-width: 1280px) {
+        table {
+            width: 1120px;
+            min-width: 1120px;
+
+            .nameColumn {
+                width: 220px;
+            }
+
+            .emailColumn {
+                width: 260px;
+            }
+
+            .compactColumn {
+                width: 76px;
+            }
+
+            .schoolColumn {
+                width: 132px;
+            }
+
+            .typeColumn {
+                width: 150px;
+            }
+
+            .dateColumn {
+                width: 94px;
+            }
+        }
+
+        .nameColumn {
+            width: 220px;
+        }
+
+        .emailColumn {
+            width: 260px;
+        }
+
+        .compactColumn {
+            width: 76px;
+        }
+
+        .schoolColumn {
+            width: 132px;
+        }
+
+        .typeColumn {
+            width: 150px;
+        }
+
+        .dateColumn {
+            width: 94px;
+        }
+    }
+}

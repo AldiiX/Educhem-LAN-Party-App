@@ -100,11 +100,17 @@
                 margin-top: 18px;
             }
         }
-    }
-}
 
-@media (max-width: 520px) {
-    .dialog {
+        &.errorDialog {
+            .content {
+                .actions {
+                    grid-template-columns: 1fr;
+                }
+            }
+        }
+    }
+
+    @media (max-width: 520px) {
         width: min(100%, calc(100vw - 28px));
         border-radius: 24px;
 

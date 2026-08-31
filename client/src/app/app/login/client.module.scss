@@ -1,14 +1,14 @@
-﻿.parent{
+.parent{
     position: relative;
     display: flex;
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
     background-repeat: no-repeat;
     background-size: cover;
     background-position: center;
 
     :global(html[data-theme='dark']) & {
-        background-image: url('../../../../public/images/banner3.jpeg');
+        background-image: url('../../../../public/images/banner3.webp');
 
         &::after {
             position: absolute;
@@ -25,7 +25,7 @@
     }
 
     :global(html[data-theme='light']) & {
-        background-image: url('../../../../public/images/history/summer2024/IMG_20240607_195534.jpg');
+        background-image: url('../../../../public/images/history/summer2024/3.webp');
 
         &::after {
             position: absolute;
@@ -128,15 +128,178 @@
                 }
             }
 
-            .forgotPassword {
-                justify-self: center;
+            .passwordHeader {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+
+                .forgotPassword {
+                    color: var(--text-color-secondary);
+                    opacity: 0.5;
+                    font-size: 12px;
+                    transition: color .2s ease;
+                    font-weight: lighter;
+
+                    &:hover {
+                        color: var(--accent-color);
+                    }
+                }
+            }
+
+            .rememberMe {
+                position: relative;
+                display: inline-flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+                cursor: pointer;
+                user-select: none;
                 width: fit-content;
-                color: var(--text-color-secondary);
-                font-size: 15px;
-                transition: color .2s ease;
+                padding: 2px 0;
+
+                >input {
+                    position: absolute;
+                    opacity: 0;
+                    width: 0;
+                    height: 0;
+                    margin: 0;
+                    pointer-events: none;
+                }
+
+                .checkboxControl {
+                    width: 20px;
+                    height: 20px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    border: 1.5px solid var(--border-color);
+                    border-radius: 6px;
+                    background: var(--background-bg-2);
+                    transition:
+                        background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                        border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                        box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 0.15s ease;
+
+                    svg {
+                        width: 13px;
+                        height: 13px;
+                        color: var(--accent-color-text);
+                        transform: scale(0.5);
+                        opacity: 0;
+                        transition:
+                            transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                            opacity 0.15s ease;
+                    }
+                }
+
+                .rememberMeText {
+                    color: var(--text-color-secondary);
+                    font-size: 14px;
+                    font-weight: 500;
+                    transition: color 0.2s ease;
+                    line-height: 1.3;
+                }
 
                 &:hover {
-                    color: var(--accent-color);
+                    .checkboxControl {
+                        border-color: var(--accent-line);
+                        background: var(--accent-soft);
+                    }
+
+                    .rememberMeText {
+                        color: var(--text-color);
+                    }
+                }
+
+                &:active .checkboxControl {
+                    transform: scale(0.92);
+                }
+
+                >input:focus-visible + .checkboxControl {
+                    border-color: var(--accent-color);
+                    box-shadow: 0 0 0 3px var(--accent-soft);
+                }
+
+                >input:checked + .checkboxControl {
+                    background: var(--accent-color);
+                    border-color: var(--accent-color);
+                    box-shadow: 0 0 14px var(--accent-soft), 0 2px 6px rgba(0, 0, 0, 0.2);
+
+                    svg {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+            }
+
+            .socialLogins {
+                display: grid;
+                justify-items: center;
+                gap: 10px;
+
+                >p {
+                    color: var(--text-color-secondary);
+                    font-size: 15px;
+                    font-weight: 700;
+                }
+
+                .socialLoginIcons {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-direction: row;
+                    gap: 14px;
+
+                    .socialLogin {
+                        display: grid;
+                        place-items: center;
+                        width: 42px;
+                        height: 42px;
+                        border: 1px solid var(--border-color);
+                        border-radius: 50%;
+                        background: var(--element-bg);
+                        transition: border-color .2s ease, background .2s ease;
+
+                        &:hover:not(:disabled) {
+                            border-color: var(--accent-color);
+                            background: var(--background-bg);
+                        }
+
+                        &:disabled {
+                            cursor: not-allowed;
+                            opacity: .45;
+                        }
+
+                        >span {
+                            width: 22px;
+                            height: 22px;
+                            background: var(--platform-icon-background);
+                            mask-position: center;
+                            mask-repeat: no-repeat;
+                            mask-size: contain;
+
+                            &[data-platform="steam"] {
+                                :global(html[data-theme='dark']) & {
+                                    background: #f0f6fc;
+                                }
+                            }
+
+                            &[data-platform="apple"] {
+                                :global(html[data-theme='dark']) & {
+                                    background: #f0f6fc;
+                                }
+                            }
+
+                            &[data-platform="github"] {
+                                :global(html[data-theme='light']) & {
+                                    background: #24292f;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -157,6 +320,18 @@
     >.right-side {
         >.PC-count{
 
+        }
+    }
+
+    @media (max-width: 768px) {
+        >.left-side {
+            width: 100%;
+            border-radius: 0;
+            height: 100%;
+            max-width: 100vw;
+        }
+        >.right-side {
+            display: none;
         }
     }
 }
@@ -292,10 +467,8 @@
                 linear-gradient(180deg, rgba(255, 131, 0, .12), transparent 34%),
                 var(--element-bg);
     }
-}
 
-@media (max-width: 520px) {
-    .resetModal {
+    @media (max-width: 520px) {
         width: min(100%, calc(100vw - 28px));
 
         form {
@@ -319,21 +492,6 @@
                     }
                 }
             }
-        }
-    }
-}
-
-
-@media (max-width: 768px) {
-    .parent{
-        >.left-side {
-            width: 100%;
-            border-radius: 0;
-            height: 100%;
-            max-width: 100vw;
-        }
-        >.right-side {
-            display: none;
         }
     }
 }

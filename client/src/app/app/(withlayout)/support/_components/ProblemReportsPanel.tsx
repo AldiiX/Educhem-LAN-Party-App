@@ -2,6 +2,8 @@ import {useState} from "react";
 import {Avatar} from "@/components/Avatar";
 import style from "./ProblemReportsPanel.module.scss";
 import type {ProblemReportHook, ProblemReportItem, ProblemReportPriority, ProblemReportStatus} from "../_hooks/useProblemReport";
+import {useAuth} from "@/app/app/_providers/AuthProvider";
+import {phrase} from "@/lib/communicationStyle";
 
 type ProblemReportsPanelProps = {
     report: ProblemReportHook;
@@ -9,6 +11,7 @@ type ProblemReportsPanelProps = {
 };
 
 export function ProblemReportsPanel({report, canManageReports}: ProblemReportsPanelProps) {
+    const {account} = useAuth();
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
     const toggleReport = (id: string) => {
@@ -19,7 +22,7 @@ export function ProblemReportsPanel({report, canManageReports}: ProblemReportsPa
     return <section className={style.panel}>
         <div className={style.header}>
             <div>
-                <h2>{canManageReports ? "Všechna nahlášení" : "Vaše nahlášení"}</h2>
+                <h2>{canManageReports ? "Všechna nahlášení" : phrase(account?.communicationStyle, "Tvoje nahlášení", "Vaše nahlášení")}</h2>
                 <p>{report.filteredReports.length} z {report.reports.length} celkem</p>
             </div>
             {report.isLoadingReports && <span>Načítám...</span>}
@@ -121,7 +124,7 @@ function ProblemReportRow({item, report, canManageReports, expanded, onToggle}: 
                     <Meta label="Kontakt" value={item.contact ?? "Neuvedeno"} />
                     <Meta label="Vytvořeno" value={formatDate(item.createdAtUtc)} />
                     <Meta label="Vyřešeno" value={item.resolvedAtUtc ? formatDate(item.resolvedAtUtc) : "Zatím ne"} />
-                    {item.resolvedBy && <PersonMeta label="Vyřešil/a" account={item.resolvedBy} />}
+                    {item.resolvedBy && <PersonMeta label={item.resolvedBy.gender === "Female" ? "Vyřešila" : item.resolvedBy.gender === "Male" ? "Vyřešil" : "Vyřešil/a"} account={item.resolvedBy} />}
                 </dl>
 
                 {item.resolutionNote && <div className={style.note}>

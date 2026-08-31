@@ -2,7 +2,7 @@ using server.Data.Entities;
 
 namespace server.Dto;
 
-public class ProblemReportDto : AuditableEntityDto<Guid> {
+public sealed class ProblemReportDto : AuditableEntityDto<Guid> {
 	public required ProblemReportCategory Category { get; set; }
 	public required ProblemReportPriority Priority { get; set; }
 	public required ProblemReportStatus Status { get; set; }

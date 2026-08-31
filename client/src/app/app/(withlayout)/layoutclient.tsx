@@ -10,6 +10,7 @@ import {Button} from "@/components/Button";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {useWebTheme} from "@/app/_providers/WebThemeProvider";
 import {hasRoleAtLeast} from "@/lib/roles";
+import {apiFetch} from "@/lib/apiClient";
 
 
 
@@ -87,7 +88,7 @@ export default function({ children }: { children: ReactNode }) {
     }, []);
 
     const logout = async () => {
-        await fetch("/api/v1/account/logout", {method: "POST"});
+        await apiFetch("/api/v1/auth/logout", {method: "POST"});
         setAccount(null);
         router.push("/app/login");
         router.refresh();
@@ -119,9 +120,9 @@ export default function({ children }: { children: ReactNode }) {
             </nav>
 
             <footer>
-                <p>© { new Date().getFullYear() } EDUCHEM LAN Party</p>
+                <p><a href="https://github.com/AldiiX/Educhem-LAN-Party-App" target="_blank">© { new Date().getFullYear() } EDUCHEM LAN Party</a></p>
                 <p>Vytvořili: <a href="https://stanislavskudrna.cz" target="_blank">Stanislav Škudrna</a>, <a href="https://serhii.cz" target="_blank">Serhii Yavorskyi</a></p>
-                <p>v{appVersion}</p>
+                <p><a href="https://github.com/AldiiX/Educhem-LAN-Party-App/releases" target="_blank">v{appVersion}</a></p>
             </footer>
         </div>
 
@@ -145,13 +146,13 @@ export default function({ children }: { children: ReactNode }) {
                             <p>Přihlášen{loggedAccount?.gender === "Female" ? "a" : ''} jako</p>
                             <h2>{ loggedAccount?.fullName }</h2>
                         </div>
-                        <Avatar name={loggedAccount?.fullName ?? ""} size="48px" src={loggedAccount?.avatarUrl} />
+                        <Avatar name={loggedAccount?.fullName ?? ""} size="48px" src={loggedAccount?.avatarUrl} fallbackOnImageError={true} />
                     </If>
                 </div>
 
                 <If condition={loggedAccount !== null}>
                     <div className={style.accountPopover}>
-                        <Avatar name={loggedAccount?.fullName ?? ""} size="128px" src={loggedAccount?.avatarUrl} className={style.popoverAvatar} />
+                        <Avatar name={loggedAccount?.fullName ?? ""} size="128px" src={loggedAccount?.avatarUrl} className={style.popoverAvatar} fallbackOnImageError={true} />
                         <h2>{ loggedAccount?.fullName }</h2>
                         <p>{ loggedAccount?.email }</p>
 

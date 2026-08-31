@@ -1,8 +1,8 @@
-﻿using server.Data.Entities;
+using server.Data.Entities;
 
 namespace server.Dto.Mappers;
 
-public static class LogEntryMapper {
+internal static class LogEntryMapper {
     public static LogEntryDto ToDto(this LogEntry log) {
         return new LogEntryDto {
             Id = log.Id,
@@ -12,6 +12,8 @@ public static class LogEntryMapper {
             Message = log.Message,
             Type = log.Type,
             ExactType = log.ExactType,
+            ActorId = log.ActorId,
+            TargetId = log.TargetId,
         };
     }
 }

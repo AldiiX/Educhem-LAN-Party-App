@@ -1,15 +1,15 @@
-﻿.banner {
+.banner {
     top: 0;
     left: 0;
     width: 100%;
     height: 364px;
     background-color: var(--background-bg-2);
     position: relative;
-    border-radius: 16px;
+    border-radius: var(--radius-panel);
 
     &::after {
         content: "";
-        border-radius: 16px;
+        border-radius: var(--radius-panel);
         position: absolute;
         top: 0;
         left: 0;
@@ -22,7 +22,6 @@
         background-repeat: no-repeat;
     }
 
-
     .avatar {
         box-sizing: content-box;
         position: absolute;
@@ -30,6 +29,27 @@
         left: 64px;
         border: 16px solid var(--background-bg);
         z-index: 1;
+    }
+
+    @media (max-width: 960px) {
+        height: 240px;
+
+        .avatar {
+            --size: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: -90px;
+            border-width: 10px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        height: 200px;
+
+        .avatar {
+            --size: 150px;
+            bottom: -76px;
+        }
     }
 }
 
@@ -55,6 +75,15 @@
                 display: flex;
                 gap: 8px;
                 align-items: center;
+
+                >.githubLink {
+                    color: inherit;
+                    text-decoration: none;
+
+                    &:hover {
+                        text-decoration: underline;
+                    }
+                }
 
                 >.icon {
                     width: 16px;
@@ -86,7 +115,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            border-radius: 12px;
+            border-radius: var(--radius-panel);
             background: var(--element-bg);
         }
 
@@ -136,8 +165,9 @@
 
         .achievementBar {
             padding: 16px;
-            border-radius: 12px;
+            border-radius: var(--radius-panel);
             background: var(--element-bg);
+            max-height: 320px;
         }
 
         .barHeader {
@@ -160,10 +190,6 @@
             color: var(--text-muted);
         }
 
-        .achievementBar {
-            max-height: 320px;
-        }
-
         .achievementList {
             display: flex;
             flex-direction: column;
@@ -178,7 +204,7 @@
             flex-direction: column;
             gap: 10px;
             padding: 12px 14px;
-            border-radius: 12px;
+            border-radius: var(--radius-panel);
             background: var(--background-bg-2);
         }
 
@@ -233,22 +259,8 @@
             white-space: nowrap;
         }
     }
-}
 
-@media (max-width: 960px) {
-    .banner {
-        height: 240px;
-
-        .avatar {
-            --size: 180px;
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: -90px;
-            border-width: 10px;
-        }
-    }
-
-    .flex {
+    @media (max-width: 960px) {
         flex-direction: column;
         padding: 0 24px;
 
@@ -279,19 +291,8 @@
             }
         }
     }
-}
 
-@media (max-width: 640px) {
-    .banner {
-        height: 200px;
-
-        .avatar {
-            --size: 150px;
-            bottom: -76px;
-        }
-    }
-
-    .flex {
+    @media (max-width: 640px) {
         padding: 0 16px;
 
         .right {

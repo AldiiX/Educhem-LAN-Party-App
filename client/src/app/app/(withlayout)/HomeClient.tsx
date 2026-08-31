@@ -80,15 +80,32 @@ export default function HomeClient({account, dashboard, status}: HomeClientProps
                     </div>
                 </div>
                 <div className={styles.bars}>
-                    {(dashboard?.classBreakdown.length ? dashboard.classBreakdown : [{class: "Bez dat", count: 0}]).map(item => (
-                        <div key={item.class} className={styles.barRow}>
-                            <span>{item.class}</span>
-                            <div>
+                    {dashboard?.classBreakdown.length ? dashboard.classBreakdown.map(item => (
+                        <div key={`${item.school.id}-${item.class}`} className={styles.barRow}>
+                            <div className={styles.barLabel}>
+                                <Avatar
+                                    name={item.school.shortName}
+                                    src={item.school.iconUrl}
+                                    size="30px"
+                                    title={item.school.displayName}
+                                    className={styles.schoolAvatar}
+                                />
+                                <span>{item.class}</span>
+                            </div>
+                            <div className={styles.barTrack}>
                                 <span style={{width: `${maxClassCount > 0 ? (item.count / maxClassCount) * 100 : 0}%`}}></span>
                             </div>
                             <strong>{item.count}</strong>
                         </div>
-                    ))}
+                    )) : (
+                        <div className={styles.barRow}>
+                            <div className={styles.barLabel}>
+                                <span>Bez dat</span>
+                            </div>
+                            <div className={styles.barTrack}></div>
+                            <strong>0</strong>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -109,7 +126,7 @@ export default function HomeClient({account, dashboard, status}: HomeClientProps
                                 
                                 <div>
                                     <strong>{item.fullName}</strong>
-                                    <p>{item.class ?? "Bez třídy"} · {item.createdAtUtc.toLocaleDateString("cs-CZ")}</p>
+                                    <p>{item.enrollment?.class ?? "Bez třídy"} · {item.createdAtUtc.toLocaleDateString("cs-CZ")}</p>
                                 </div>
                             </Link>
                             </ProfileHoverCard>

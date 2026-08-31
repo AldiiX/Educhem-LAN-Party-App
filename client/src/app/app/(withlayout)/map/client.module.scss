@@ -1,13 +1,28 @@
-﻿.title {
+.title {
     margin-bottom: 24px;
 }
 
 .tabs {
     display: flex;
+    align-items: center;
     gap: 16px;
     margin-bottom: 24px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
 
     >button {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        white-space: nowrap;
         min-height: 42px;
         padding: 0 14px;
         border-radius: 8px;
@@ -22,6 +37,10 @@
             color: var(--accent-color);
         }
     }
+
+    @media (max-width: 720px) {
+        margin-bottom: 30px;
+    }
 }
 
 .flex {
@@ -35,7 +54,7 @@
         background-color: var(--element-bg);
         border: 1px solid var(--border-color);
         box-shadow: 0 16px 38px #00000014;
-        border-radius: 12px;
+        border-radius: var(--radius-panel);
         padding: 24px;
         position: relative;
     }
@@ -69,13 +88,233 @@
                 --line-color: #585858;
             }
         }
+
+        .legend {
+            min-width: 260px;
+            padding: 14px 16px;
+            border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+            border-radius: var(--radius-panel);
+            background: color-mix(in srgb, var(--element-bg) 88%, transparent);
+            backdrop-filter: blur(12px);
+            transition: min-width .24s ease, padding .24s ease, box-shadow .24s ease;
+
+            .legendToggle {
+                display: flex;
+                width: 100%;
+                align-items: center;
+                justify-content: space-between;
+                gap: 18px;
+                color: var(--accent-color);
+                font-size: 16px;
+                line-height: 1;
+                font-weight: 600;
+
+                >span:last-child {
+                    display: grid;
+                    width: 24px;
+                    height: 24px;
+                    place-items: center;
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    color: var(--text-color);
+                    font-size: 18px;
+                    transition: background .2s ease, color .2s ease, transform .24s ease;
+                }
+
+                &:hover >span:last-child {
+                    background: var(--accent-soft);
+                    color: var(--accent-color);
+                }
+            }
+
+            .legendItems {
+                display: grid;
+                gap: 10px;
+                max-height: 130px;
+                margin-top: 14px;
+                overflow: hidden;
+                transition: max-height .24s ease, opacity .2s ease, margin .24s ease, transform .24s ease;
+
+                >p {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    color: var(--text-color-secondary);
+                    font-size: 16px;
+                    line-height: 1.1;
+                }
+            }
+
+            &:is(.collapsed) {
+                min-width: 172px;
+
+                .legendItems {
+                    max-height: 0;
+                    margin-top: 0;
+                    opacity: 0;
+                    transform: translateY(-6px);
+                    pointer-events: none;
+                }
+
+                .legendToggle >span:last-child {
+                    transform: rotate(180deg);
+                }
+            }
+
+            .legendDot {
+                width: 18px;
+                height: 18px;
+                flex: 0 0 18px;
+                border-radius: 50%;
+
+                &.setup {
+                    background: var(--room-available);
+                }
+
+                &.pc {
+                    background: var(--pc-available);
+                }
+
+                &.unavailable {
+                    background: var(--pc-unavailable);
+                }
+
+                &.mine {
+                    background: var(--pc-taken-by-you);
+                }
+            }
+        }
+
+        .legendDot {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 18px;
+            border-radius: 50%;
+
+            &.setup {
+                background: var(--room-available);
+            }
+
+            &.pc {
+                background: var(--pc-available);
+            }
+
+            &.unavailable {
+                background: var(--pc-unavailable);
+            }
+
+            &.mine {
+                background: var(--pc-taken-by-you);
+            }
+        }
+
+        .statusBadges {
+            display: flex;
+            gap: 12px;
+            pointer-events: none !important;
+
+            .badge {
+                display: flex;
+                min-width: 56px;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 6px 12px;
+                border-radius: 10px;
+                background: transparent;
+                color: var(--text-color-secondary);
+                border: 1px solid var(--border-color);
+                font-size: 16px;
+
+                &:is(.connected) {
+                    opacity: 0;
+                    animation: oidjfsdiofodjgfdojg 2s ease forwards;
+
+                    @keyframes oidjfsdiofodjgfdojg {
+                        from {
+                            opacity: 1;
+                        }
+
+                        80% {
+                            opacity: 1;
+                        }
+
+                        to {
+                            opacity: 0;
+                        }
+                    }
+                }
+
+                &:is(.disconnected) {
+                    border-color: var(--error-color);
+                    background: var(--error-background);
+                    color: var(--error-color);
+                    animation: osdifjdjofidjgdiofeizzz 1s ease forwards;
+                    animation-iteration-count: infinite;
+
+                    .icon {
+                        background: var(--error-color);
+                    }
+
+                    @keyframes osdifjdjofidjgdiofeizzz {
+                        0% {
+                            opacity: 1;
+                        }
+
+                        30% {
+                            opacity: 1;
+                        }
+
+                        70% {
+                            opacity: 0;
+                        }
+
+                        100% {
+                            opacity: 1;
+                        }
+                    }
+                }
+
+                .icon {
+                    mask: var(--icon);
+                    mask-position: center;
+                    mask-repeat: no-repeat;
+                    mask-size: contain;
+                    width: 18px;
+                    height: 18px;
+                    background: var(--text-color-secondary);
+                }
+
+                p {}
+            }
+
+            .connectedBadge {
+                display: flex;
+                min-width: 56px;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 6px 12px;
+                border-radius: 10px;
+                background: color-mix(in srgb, var(--accent-color) 18%, var(--element-bg));
+                color: var(--accent-color);
+                font-size: 16px;
+
+                .eyeIcon {
+                    width: 18px;
+                    height: 18px;
+                    background: currentColor;
+                    mask: url("../../../../../public/icons/eye.svg") center / contain no-repeat;
+                }
+            }
+        }
     }
 
     .legend {
         min-width: 260px;
         padding: 14px 16px;
         border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
-        border-radius: 14px;
+        border-radius: var(--radius-panel);
         background: color-mix(in srgb, var(--element-bg) 88%, transparent);
         backdrop-filter: blur(12px);
         transition: min-width .24s ease, padding .24s ease, box-shadow .24s ease;
@@ -267,7 +506,6 @@
             }
         }
     }
-
 
     .right {
         position: relative;
@@ -515,15 +753,8 @@
             }
         }
     }
-}
 
-
-@media (max-width: 720px) {
-    .tabs {
-        margin-bottom: 30px;
-    }
-
-    .flex {
+    @media (max-width: 720px) {
         height: auto;
         max-height: none;
         flex-direction: column;

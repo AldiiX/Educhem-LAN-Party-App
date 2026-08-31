@@ -26,9 +26,6 @@ export function Footer() {
                         <a href="/app/" className={styles.systemLink}>
                             Vstup do systému
                         </a>
-                        {/*<a href="/info.pdf" target="_blank" className={styles.download}>*/}
-                        {/*    Zobrazit info.pdf*/}
-                        {/*</a>*/}
                     </div>
                 </div>
 

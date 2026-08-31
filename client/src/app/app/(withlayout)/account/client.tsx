@@ -1,33 +1,24 @@
 "use client";
 
 import styles from "./client.module.scss";
+import {Avatar} from "@/components/Avatar";
+import {Button} from "@/components/Button";
 import {Account} from "@/schemas/AccountSchema";
-import {useAccountPage} from "./_hooks/useAccountPage";
-import {AccountOverview} from "./_components/AccountOverview";
-import {AccountSettings} from "./_components/AccountSettings";
-import {AccountModals} from "./_components/AccountModals";
-import {AccountAchievements} from "./_components/AccountAchievements";
+import {accountTypeLabel} from "@/lib/enumLabels";
+import {useAccountPageContext} from "@/app/app/(withlayout)/account/layoutclient";
 
-export default function AccountClient({initialAccount}: {initialAccount: Account}) {
-    const state = useAccountPage(initialAccount);
+export default function AccountOverview() {
+    const {account, logout, toggleTheme} = useAccountPageContext();
+    
+    return <section className={styles.overview}>
+        <Avatar name={account.fullName} src={account.avatarUrl} size="200px" className={styles.avatar} />
+        <h2>{account.fullName}</h2>
+        <p className={styles.email}>{account.email}</p>
+        <p className={styles.role}>{accountTypeLabel(account.accountType, account.gender)}</p>
 
-    return <main className={styles.accountPage}>
-        <h1>Můj účet</h1>
-
-        <div className={styles.tabs}>
-            <button type="button" className={state.selectedTab === "overview" ? styles.active : ""} onClick={() => state.setSelectedTab("overview")}>Přehled</button>
-            <button type="button" className={state.selectedTab === "achievements" ? styles.active : ""} onClick={() => state.setSelectedTab("achievements")}>Achievementy</button>
-            <button type="button" className={state.selectedTab === "settings" ? styles.active : ""} onClick={() => state.setSelectedTab("settings")}>Nastavení</button>
+        <div className={styles.actions}>
+            <Button type="secondary" text="Změnit theme" icon="/icons/theme.svg" onClick={toggleTheme} />
+            <Button type="primary" text="Odhlásit" icon="/icons/logout.svg" onClick={logout} />
         </div>
-
-        {state.selectedTab === "overview" ? (
-            <AccountOverview account={state.account} onToggleTheme={state.toggleTheme} onLogout={state.logout} />
-        ) : state.selectedTab === "achievements" ? (
-            <AccountAchievements account={state.account} state={state} />
-        ) : (
-            <AccountSettings state={state} />
-        )}
-
-        <AccountModals state={state} />
-    </main>;
+    </section>;
 }

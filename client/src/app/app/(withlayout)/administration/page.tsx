@@ -1,19 +1,14 @@
-import {Metadata} from "next";
-import {getCachedCurrentLoggedAccount} from "@/lib/auth";
-import {redirect} from "next/navigation";
-import Client from "@/app/app/(withlayout)/administration/client";
-import {hasRoleAtLeast} from "@/lib/roles";
+import type {Metadata} from "next";
+import style from "./layoutclient.module.scss";
 
 export const metadata: Metadata = {
-    title: "Administrace",
+    title: "Přehled administrace",
+};
+
+export default function AdministrationOverviewPage() { // !!! STRANKA JE VYPLA V NEXT.CONFIG.TS
+    return <section className={style.overview}>
+        <h2>Přehled</h2>
+        <p>Přehled administrace zatím připravujeme.</p>
+    </section>;
 }
 
-export default async function() {
-    const account = await getCachedCurrentLoggedAccount();
-    if(!account) redirect("/app");
-    if(!hasRoleAtLeast(account, "TeacherOrg")) {
-        redirect("/app");
-    }
-
-    return <Client />
-}

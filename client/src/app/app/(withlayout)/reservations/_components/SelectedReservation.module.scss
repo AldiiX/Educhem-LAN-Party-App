@@ -1,10 +1,10 @@
 ﻿.component {
     position: absolute;
-    width: 274px;
+    width: 288px;
     background-color: var(--element-bg);
     border: 1px solid var(--border-color);
     box-shadow: 0 16px 38px #00000014;
-    border-radius: 12px;
+    border-radius: var(--radius-panel);
     right: 28px;
     top: 50%;
     transform: translateY(-50%);
@@ -51,10 +51,42 @@
     }
 
     >.content {
+        position: relative;
+        isolation: isolate;
         padding: 24px;
         display: flex;
         flex-direction: column;
         gap: 16px;
+
+        >.bannerWallpaper {
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: -1;
+            width: 90%;
+            height: 156px;
+            background-position: center;
+            background-size: cover;
+            opacity: .52;
+            pointer-events: none;
+
+            &::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background:
+                    linear-gradient(90deg, var(--element-bg) 0%, color-mix(in srgb, var(--element-bg) 84%, transparent) 24%, color-mix(in srgb, var(--element-bg) 32%, transparent) 70%, transparent 100%),
+                    linear-gradient(180deg, transparent 0%, transparent 32%, color-mix(in srgb, var(--element-bg) 62%, transparent) 68%, var(--element-bg) 100%);
+            }
+
+            &::after {
+                content: "";
+                position: absolute;
+                inset: 48% -8px -18px 34%;
+                background: var(--element-bg);
+                filter: blur(18px);
+            }
+        }
 
         >.roomDesc {
             margin: 0;
@@ -91,10 +123,27 @@
             >p {
             }
 
-            >small {
+            >.enrollment {
                 margin-left: auto;
-                font-size: 12px;
+                display: flex;
+                min-width: 0;
+                align-items: center;
+                gap: 6px;
                 color: var(--text-color-darker);
+
+                >small {
+                    font-size: 12px;
+                }
+
+                >.schoolAvatar {
+                    width: 20px;
+                    height: 20px;
+                    flex: 0 0 20px;
+                    border: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
+                    border-radius: 50%;
+                    background: var(--element-bg);
+                    object-fit: contain;
+                }
             }
         }
 
@@ -130,8 +179,8 @@
             }*/
 
             .user {
-                >small {
-                    margin-left: 0;
+                >.enrollment {
+                    margin-left: auto;
                 }
             }
         }

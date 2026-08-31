@@ -10,7 +10,7 @@ namespace server.Data.Entities;
 [Table("Accounts", Schema = "public")]
 [Index(nameof(Email), IsUnique = true)]
 [UuidV7]
-public class Account : AuditableEntity<Guid> {
+public sealed class Account : AuditableEntity<Guid> {
 	[MaxLength(32)]
 	public required string FirstName { get; set; }
 
@@ -23,13 +23,10 @@ public class Account : AuditableEntity<Guid> {
 	[MaxLength(512)]
 	public required string PasswordHash { get; set; }
 
-	[MaxLength(16)]
-	public string? Class { get; set; }
-
 	public Gender? Gender { get; set; }
 
 	[AutoInclude]
-	public School? School { get; set; }
+	public Enrollment? Enrollment { get; set; }
 
 	[Column(TypeName = "timestamp with time zone")]
 	[DefaultValueSql("now()")]
@@ -41,8 +38,16 @@ public class Account : AuditableEntity<Guid> {
 	[MaxLength(512)]
 	public string? AvatarUrl  { get; set; }
 
+	[StringEnum]
+	public OAuthProvider? AvatarSyncPlatform { get; set; }
+
 	[MaxLength(512)]
 	public string? BannerUrl  { get; set; }
+
+	[AutoInclude]
+	public ICollection<OAuthConnection> OAuthConnections { get; set; } = new List<OAuthConnection>();
+
+	public ICollection<AuthSession> AuthSessions { get; set; } = new List<AuthSession>();
 
 	[DefaultValue(false)]
 	public bool EnableReservations { get; set; } = false;

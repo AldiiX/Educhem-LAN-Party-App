@@ -1,27 +1,48 @@
-﻿"use client";
+"use client";
 
 import style from "./client.module.scss"
 import Link from "next/link";
-import { useState } from "react";
+import {type CSSProperties, useEffect, useState} from "react";
+import {useRouter, useSearchParams} from "next/navigation";
+import toast from "react-hot-toast";
 import useLogin from "@/app/app/login/_hooks/useLogin";
 import {Modal} from "@/components/Modal";
 import {Button} from "@/components/Button";
+import {platforms} from "@/data/platforms";
 
 export default function() {
     const { login, resetPassword } = useLogin();
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [rememberMe, setRememberMe] = useState(false);
     const [resetEmail, setResetEmail] = useState("");
     const [resetOpen, setResetOpen] = useState(false);
     const [resetLoading, setResetLoading] = useState(false);
     const [loginLoading, setLoginLoading] = useState(false);
+
+    useEffect(() => {
+        const socialProvider = (["discord", "github", "google", "apple", "steam"] as const).find(provider => searchParams.get(provider) != null);
+        if(!socialProvider) return;
+
+        const socialStatus = searchParams.get(socialProvider);
+		const platformName = platforms.find(platform => platform.id === socialProvider)?.name ?? socialProvider;
+        const message = {
+            "not-linked": `${platformName} účet není propojený s Educhem LAN Party účtem. Přihlas se e-mailem a propoj ho v nastavení.`,
+            cancelled: `Přihlášení přes ${platformName} bylo zrušeno.`,
+            error: `Přihlášení přes ${platformName} se nepodařilo.`,
+        }[socialStatus ?? ""];
+        if(message) toast.error(message, {id: `oauth-${socialProvider}-${socialStatus}`});
+        router.replace("/app/login");
+    }, [router, searchParams]);
 
     async function submitLogin() {
         if(loginLoading) return;
 
         setLoginLoading(true);
         try {
-            await login(email, password);
+            await login(email, password, rememberMe);
         } finally {
             setLoginLoading(false);
         }
@@ -55,15 +76,50 @@ export default function() {
                     </div>
 
                     <div>
-                        <p>Heslo</p>
+                        <div className={style.passwordHeader}>
+                            <p>Heslo</p>
+                            <button type="button" className={style.forgotPassword} onClick={() => {
+                                setResetEmail(email);
+                                setResetOpen(true);
+                            }}>Zapomenuté heslo?</button>
+                        </div>
                         <input type="password" placeholder="•••••••" onChange={(e) => setPassword(e.currentTarget.value)} />
                     </div>
+                    <label className={style.rememberMe}>
+                        <input
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={event => setRememberMe(event.target.checked)}
+                        />
+                        <span className={style.checkboxControl}>
+                            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M3.5 8.5L6.5 11.5L12.5 4.5"
+                                    stroke="currentColor"
+                                    strokeWidth="2.2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
+                        </span>
+                        <span className={style.rememberMeText}>Zapamatovat přihlášení</span>
+                    </label>
                     <Button type="primary" text="Přihlásit se" buttonType="submit" className={style.submitBtn} disabled={loginLoading} loading={loginLoading} />
 
-                    <button type="button" className={style.forgotPassword} onClick={() => {
-                        setResetEmail(email);
-                        setResetOpen(true);
-                    }}>Zapoměl jsem heslo</button>
+                    <div className={style.socialLogins}>
+                        <p>Jiné možnosti přihlášení</p>
+                        <div className={style.socialLoginIcons}>
+                            {platforms.map(platform => <button key={platform.id} type="button" className={style.socialLogin} disabled={platform.disabled} aria-label={`Přihlásit se přes ${platform.name}`} title={platform.disabled ? `${platform.name} zatím není dostupný` : `Přihlásit se přes ${platform.name}`} onClick={() => {
+								if(platform.disabled) return;
+                                window.location.assign(`/api/v1/${platform.id}/login`);
+                            }}>
+                                <span data-platform={platform.id} style={{
+                                    maskImage: `url(${platform.icon})`,
+                                    "--platform-icon-background": platform.iconBackground,
+                                } as CSSProperties}></span>
+                            </button>)}
+                        </div>
+                    </div>
 
                 </form>
             </div>

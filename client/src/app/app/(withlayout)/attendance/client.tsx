@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {useEffect, useState} from "react";
 import styles from "./client.module.scss";
 import {Avatar} from "@/components/Avatar";
 import {ProfileHoverCard} from "@/components/ProfileHoverCard";
@@ -10,9 +11,19 @@ import {
 } from "@/schemas/AttendanceSchema";
 import {attendanceActionLabels, useAttendance} from "./_hooks/useAttendance";
 
+type AttendanceTab = "entries" | "participants";
+
 export default function AttendanceClient() {
     const attendance = useAttendance();
+    const [activeTab, setActiveTab] = useState<AttendanceTab | null>(null);
     const isInitialLoading = attendance.isLoading && !attendance.data;
+    const selectedTab = activeTab
+        ?? (attendance.data?.pagination.totalEntries === 0 ? "participants" : "entries");
+
+    useEffect(() => {
+        if(activeTab !== null || !attendance.data) return;
+        setActiveTab(attendance.data.pagination.totalEntries === 0 ? "participants" : "entries");
+    }, [activeTab, attendance.data]);
 
     if(attendance.error) {
         return <main className={styles.attendance}>
@@ -58,7 +69,7 @@ export default function AttendanceClient() {
                             <option value="">Já</option>
                             {attendance.data?.participants.map(participant => (
                                 <option key={participant.profile.id} value={participant.profile.id}>
-                                    {participant.profile.fullName}{participant.profile.class ? `, ${participant.profile.class}` : ""}
+                                    {participant.profile.fullName}{participant.profile.enrollment?.class ? `, ${participant.profile.enrollment.class}` : ""}
                                 </option>
                             ))}
                         </select>
@@ -74,6 +85,7 @@ export default function AttendanceClient() {
                         onChange={event => attendance.setReason(event.target.value)}
                         placeholder={attendance.nextType === "CheckOut" ? "Např. jdu si něco koupit" : "Volitelné"}
                         required={attendance.nextType === "CheckOut"}
+                        maxLength={64}
                     />
                 </label>
 
@@ -85,37 +97,102 @@ export default function AttendanceClient() {
                 </button>
             </form>
 
-            <section className={styles.participants}>
-                <div className={styles.sectionHeader}>
-                    <h2>Účastníci</h2>
-                    <span>{attendance.data?.participants.length ?? 0}</span>
+            <section className={styles.tabPanel}>
+                <div className={styles.tabs} role="tablist" aria-label="Přehled docházky">
+                    <button
+                        id="attendance-entries-tab"
+                        type="button"
+                        role="tab"
+                        aria-selected={selectedTab === "entries"}
+                        aria-controls="attendance-entries-panel"
+                        className={`${styles.tab} ${selectedTab === "entries" ? styles.activeTab : ""}`}
+                        onClick={() => setActiveTab("entries")}
+                    >
+                        Záznamy
+                        <span>{attendance.data?.pagination.totalEntries ?? 0}</span>
+                    </button>
+                    <button
+                        id="attendance-participants-tab"
+                        type="button"
+                        role="tab"
+                        aria-selected={selectedTab === "participants"}
+                        aria-controls="attendance-participants-panel"
+                        className={`${styles.tab} ${selectedTab === "participants" ? styles.activeTab : ""}`}
+                        onClick={() => setActiveTab("participants")}
+                    >
+                        Účastníci
+                        <span>{attendance.data?.participants.length ?? 0}</span>
+                    </button>
                 </div>
 
-                <div className={styles.participantList}>
-                    {attendance.data?.participants.map(participant => (
-                        <ParticipantRow key={participant.profile.id} participant={participant} />
-                    ))}
-                    {attendance.isLoading && <p className={styles.muted}>Načítám docházku...</p>}
-                </div>
+                {selectedTab === "entries" ? (
+                    <div
+                        id="attendance-entries-panel"
+                        className={styles.tabContent}
+                        role="tabpanel"
+                        aria-labelledby="attendance-entries-tab"
+                    >
+                        <div className={styles.recordsToolbar}>
+                            <div>
+                                <h2>Záznamy</h2>
+                                <p>{attendance.data?.pagination.totalEntries ?? 0} záznamů</p>
+                            </div>
+                            <div className={styles.searchBox}>
+                                <span style={{maskImage: "url(/icons/account.svg)"}} />
+                                <input
+                                    value={attendance.search}
+                                    onChange={event => attendance.setSearch(event.target.value)}
+                                    placeholder="Hledat..."
+                                    aria-label="Hledat v záznamech"
+                                />
+                            </div>
+                        </div>
+
+                        <div className={styles.entries} aria-busy={attendance.isValidating}>
+                            {attendance.data?.entries.map(entry => <AttendanceEntryRow key={entry.id} entry={entry} />)}
+                            {!attendance.isLoading && attendance.data?.entries.length === 0 && (
+                                <p className={styles.muted}>Zatím tu nejsou žádné záznamy.</p>
+                            )}
+                        </div>
+
+                        {(attendance.data?.pagination.totalPages ?? 0) > 1 && (
+                            <div className={styles.pagination}>
+                                <button
+                                    type="button"
+                                    disabled={attendance.data?.pagination.page === 1 || attendance.isValidating}
+                                    onClick={() => attendance.setPage(Math.max(1, (attendance.data?.pagination.page ?? 1) - 1))}
+                                >
+                                    Předchozí
+                                </button>
+                                <span>
+                                    Strana {attendance.data?.pagination.page ?? 1} z {attendance.data?.pagination.totalPages ?? 1}
+                                </span>
+                                <button
+                                    type="button"
+                                    disabled={attendance.data?.pagination.page === attendance.data?.pagination.totalPages || attendance.isValidating}
+                                    onClick={() => attendance.setPage((attendance.data?.pagination.page ?? 1) + 1)}
+                                >
+                                    Další
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div
+                        id="attendance-participants-panel"
+                        className={styles.tabContent}
+                        role="tabpanel"
+                        aria-labelledby="attendance-participants-tab"
+                    >
+                        <div className={styles.participantList}>
+                            {attendance.data?.participants.map(participant => (
+                                <ParticipantRow key={participant.profile.id} participant={participant} />
+                            ))}
+                            {attendance.isLoading && <p className={styles.muted}>Načítám docházku...</p>}
+                        </div>
+                    </div>
+                )}
             </section>
-        </section>
-
-        <section className={styles.timeline}>
-            <div className={styles.timelineHeader}>
-                <div>
-                    <h2>Záznamy</h2>
-                    <p>{attendance.filteredEntries.length} záznamů</p>
-                </div>
-                <div className={styles.searchBox}>
-                    <span style={{maskImage: "url(/icons/account.svg)"}} />
-                    <input value={attendance.search} onChange={event => attendance.setSearch(event.target.value)} placeholder="Hledat..." />
-                </div>
-            </div>
-
-            <div className={styles.entries}>
-                {attendance.filteredEntries.map(entry => <AttendanceEntryRow key={entry.id} entry={entry} />)}
-                {!attendance.isLoading && attendance.filteredEntries.length === 0 && <p className={styles.muted}>Zatím tu nejsou žádné záznamy.</p>}
-            </div>
         </section>
     </main>;
 }
@@ -151,42 +228,26 @@ function AttendanceSkeleton() {
                 <SkeletonBlock className={styles.skeletonButton} />
             </div>
 
-            <section className={`${styles.participants} ${styles.skeletonPanel}`}>
-                <div className={styles.sectionHeader}>
-                    <SkeletonBlock className={styles.skeletonHeading} />
-                    <SkeletonBlock className={styles.skeletonPill} />
+            <section className={`${styles.tabPanel} ${styles.skeletonPanel}`}>
+                <div className={styles.tabs}>
+                    <SkeletonBlock className={styles.skeletonTab} />
+                    <SkeletonBlock className={styles.skeletonTab} />
                 </div>
-                <div className={styles.participantList}>
-                    {Array.from({length: 5}).map((_, index) => <SkeletonRow key={index} />)}
+                <div className={styles.tabContent}>
+                    <div className={styles.recordsToolbar}>
+                        <div>
+                            <SkeletonBlock className={styles.skeletonHeading} />
+                            <SkeletonBlock className={styles.skeletonTextShort} />
+                        </div>
+                        <SkeletonBlock className={styles.skeletonSearch} />
+                    </div>
+                    <div className={styles.entries}>
+                        {Array.from({length: 4}).map((_, index) => <SkeletonEntry key={index} />)}
+                    </div>
                 </div>
             </section>
         </section>
-
-        <section className={`${styles.timeline} ${styles.skeletonPanel}`}>
-            <div className={styles.timelineHeader}>
-                <div>
-                    <SkeletonBlock className={styles.skeletonHeading} />
-                    <SkeletonBlock className={styles.skeletonTextShort} />
-                </div>
-                <SkeletonBlock className={styles.skeletonSearch} />
-            </div>
-
-            <div className={styles.entries}>
-                {Array.from({length: 4}).map((_, index) => <SkeletonEntry key={index} />)}
-            </div>
-        </section>
     </main>;
-}
-
-function SkeletonRow() {
-    return <div className={styles.skeletonRow}>
-        <SkeletonBlock className={styles.skeletonAvatar} />
-        <div>
-            <SkeletonBlock className={styles.skeletonText} />
-            <SkeletonBlock className={styles.skeletonTextTiny} />
-        </div>
-        <SkeletonBlock className={styles.skeletonPill} />
-    </div>;
 }
 
 function SkeletonEntry() {
@@ -239,7 +300,7 @@ function ParticipantRow({participant}: {participant: AttendanceParticipant}) {
             <Avatar name={participant.profile.fullName} src={participant.profile.avatarUrl} size="36px" />
             <span>
                 <strong>{participant.profile.fullName}</strong>
-                <small>{participant.profile.class ?? "Bez třídy"}</small>
+                <small>{participant.profile.enrollment?.class ?? "Bez třídy"}</small>
             </span>
             <em className={isPresent ? styles.arrival : styles.departure}>{isPresent ? "Na akci" : "Pryč"}</em>
         </Link>
@@ -255,7 +316,7 @@ function AttendanceEntryRow({entry}: {entry: AttendanceEntry}) {
                 <Avatar name={entry.profile.fullName} src={entry.profile.avatarUrl} size="42px" />
                 <span>
                     <strong>{entry.profile.fullName}</strong>
-                    <small>{entry.profile.class ?? "Bez třídy"}</small>
+                    <small>{entry.profile.enrollment?.class ?? "Bez třídy"}</small>
                 </span>
             </Link>
         </ProfileHoverCard>
@@ -266,7 +327,7 @@ function AttendanceEntryRow({entry}: {entry: AttendanceEntry}) {
                 <time>{entry.createdAtUtc.toLocaleString("cs-CZ")}</time>
             </div>
             {entry.reason && <p>{entry.reason}</p>}
-            {entry.createdBy.id !== entry.profile.id && <small>Zapsal/a {entry.createdBy.fullName}</small>}
+            {entry.createdBy.id !== entry.profile.id && <small>{entry.createdBy.gender === "Female" ? "Zapsala" : entry.createdBy.gender === "Male" ? "Zapsal" : "Zapsal/a"} {entry.createdBy.fullName}</small>}
         </div>
     </article>;
 }

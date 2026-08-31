@@ -1,39 +1,24 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using server.Data.Entities;
 using server.Dto.Requests;
 using server.Dto.Responses;
 using server.Services;
+using server.Infrastructure;
 using System.Globalization;
 
 namespace server.Controllers;
 
 [ApiController]
 [Route("api/v1/appsettings")]
+[Authorize(Policy = AuthPolicies.Admin)]
 public sealed class AppSettingsControllerV1(
     IAuthService auth,
     IAppSettingsService settings,
     AppCacheService cache,
     IDbLoggerService dbLogger
-) : ControllerBase
-{
+) : ControllerBase {
     [HttpGet]
-    public async Task<ActionResult> Get(CancellationToken ct)
-    {
-        var acc = await auth.ReAuthFromContextOrNullAsync(ct);
-
-        if (acc == null || acc.AccountType < AccountType.Admin)
-        {
-            return Unauthorized(new
-            {
-                success = false,
-                message = Phrase(
-                    acc,
-                    "Nelze zobrazit nastavení aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva.",
-                    "Nelze zobrazit nastavení aplikace, pokud nejste přihlášený, nebo nemáte dostatečná práva."
-                )
-            });
-        }
-
+    public async Task<ActionResult> Get(CancellationToken ct) {
         var reservationsStatus = await settings.GetReservationsStatusAsync(ct);
         var reservationsEnabledRightNow = await settings.SyncReservationsEnabledRightNowAsync(ct);
         var reservationsEnabledFrom = DateTime.SpecifyKind(
@@ -46,8 +31,7 @@ public sealed class AppSettingsControllerV1(
             DateTimeKind.Utc
         );
 
-        return Ok(new AppSettingsResponse
-        {
+        return Ok(new AppSettingsResponse {
             ChatEnabled = await settings.GetChatEnabledAsync(ct),
             ServerNow = DateTime.UtcNow,
             ReservationsEnabledFrom = reservationsEnabledFrom,
@@ -62,36 +46,18 @@ public sealed class AppSettingsControllerV1(
     [HttpPut]
     public async Task<IActionResult> Update(
         [FromBody] UpdateAppSettingsRequest request,
-        CancellationToken ct)
-    {
-        var acc = await auth.ReAuthFromContextOrNullAsync(ct);
-
-        if (acc == null || acc.AccountType < AccountType.Admin)
-        {
-            return Unauthorized(new
-            {
-                success = false,
-                message = Phrase(
-                    acc,
-                    "Nelze upravit nastavení aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva.",
-                    "Nelze upravit nastavení aplikace, pokud nejste přihlášený, nebo nemáte dostatečná práva."
-                )
-            });
-        }
-
+        CancellationToken ct) {
+        var actorId = auth.GetCurrentAccountId();
         var changes = new List<string>();
 
         await UpdateFeatureSettingsAsync(request, changes, ct);
 
-        if (!string.IsNullOrWhiteSpace(request.ReservationsStatus))
-        {
+        if (!string.IsNullOrWhiteSpace(request.ReservationsStatus)) {
             if (!Enum.TryParse<IAppSettingsService.ReservationStatusType>(
                     request.ReservationsStatus,
                     ignoreCase: true,
-                    out var status))
-            {
-                return BadRequest(new
-                {
+                    out var status)) {
+                return BadRequest(new {
                     success = false,
                     message = "Neplatný status rezervací."
                 });
@@ -102,25 +68,24 @@ public sealed class AppSettingsControllerV1(
             AddChange(changes, "ReservationsStatus", previousValue, status);
         }
 
-        if (request.ReservationsEnabledFrom.HasValue)
-        {
+        if (request.ReservationsEnabledFrom.HasValue) {
             var previousValue = await settings.GetReservationsEnabledFromAsync(ct);
             await settings.SetReservationsEnabledFromAsync(request.ReservationsEnabledFrom.Value, ct);
             AddChange(changes, "ReservationsEnabledFrom", previousValue, request.ReservationsEnabledFrom.Value);
         }
 
-        if (request.ReservationsEnabledTo.HasValue)
-        {
+        if (request.ReservationsEnabledTo.HasValue) {
             var previousValue = await settings.GetReservationsEnabledToAsync(ct);
             await settings.SetReservationsEnabledToAsync(request.ReservationsEnabledTo.Value, ct);
             AddChange(changes, "ReservationsEnabledTo", previousValue, request.ReservationsEnabledTo.Value);
         }
 
-        if (changes.Count > 0)
-        {
+        if (changes.Count > 0) {
             await dbLogger.LogInfoAsync(
-                $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "upravil", "upravila")} časy a nastavení rezervací: {string.Join("; ", changes)}.",
+                $"Uživatel ({actorId}) upravil časy a nastavení rezervací: {string.Join("; ", changes)}.",
                 "app-settings-edit",
+                actorId,
+                "app_settings",
                 ct
             );
         }
@@ -131,24 +96,20 @@ public sealed class AppSettingsControllerV1(
     private async Task UpdateFeatureSettingsAsync(
         UpdateAppSettingsRequest request,
         ICollection<string> changes,
-        CancellationToken ct)
-    {
-        if (request.ChatEnabled.HasValue)
-        {
+        CancellationToken ct) {
+        if (request.ChatEnabled.HasValue) {
             var previousValue = await settings.GetChatEnabledAsync(ct);
             await settings.SetChatEnabledAsync(request.ChatEnabled.Value, ct);
             AddChange(changes, "ChatEnabled", previousValue, request.ChatEnabled.Value);
         }
 
-        if (request.AttendanceEnabled.HasValue)
-        {
+        if (request.AttendanceEnabled.HasValue) {
             var previousValue = await settings.GetAttendanceEnabledAsync(ct);
             await settings.SetAttendanceEnabledAsync(request.AttendanceEnabled.Value, ct);
             AddChange(changes, "AttendanceEnabled", previousValue, request.AttendanceEnabled.Value);
         }
 
-        if (request.ProblemReportsEnabled.HasValue)
-        {
+        if (request.ProblemReportsEnabled.HasValue) {
             var previousValue = await settings.GetProblemReportsEnabledAsync(ct);
             await settings.SetProblemReportsEnabledAsync(request.ProblemReportsEnabled.Value, ct);
             AddChange(changes, "ProblemReportsEnabled", previousValue, request.ProblemReportsEnabled.Value);
@@ -156,51 +117,34 @@ public sealed class AppSettingsControllerV1(
     }
 
     [HttpPost("cache/clear")]
-    public async Task<IActionResult> ClearCache(CancellationToken ct)
-    {
-        var acc = await auth.ReAuthFromContextOrNullAsync(ct);
-
-        if (acc == null || acc.AccountType < AccountType.Admin)
-        {
-            return Unauthorized(new
-            {
-                success = false,
-                message = Phrase(
-                    acc,
-                    "Nelze smazat cache aplikace, pokud nejsi přihlášený, nebo nemáš dostatečná práva.",
-                    "Nelze smazat cache aplikace, pokud nejste přihlášený, nebo nemáte dostatečná práva."
-                )
-            });
-        }
-
+    public async Task<IActionResult> ClearCache(CancellationToken ct) {
+        var actorId = auth.GetCurrentAccountId();
         var result = cache.Clear();
 
         await dbLogger.LogWarnAsync(
-            $"{UserNoun(acc)} {FormatAccount(acc)} {PastVerb(acc, "vyčistil", "vyčistila")} aplikační cache ({result.RemovedKeys} klíčů).",
+            $"Uživatel ({actorId}) vyčistil aplikační cache ({result.RemovedKeys} klíčů).",
             "app-cache-clear",
+            actorId,
+            "cache",
             ct
         );
 
         return Ok(result);
     }
 
-    private static void AddChange<T>(ICollection<string> changes, string name, T previousValue, T nextValue)
-    {
+    private static void AddChange<T>(ICollection<string> changes, string name, T previousValue, T nextValue) {
         var previous = FormatValue(previousValue);
         var next = FormatValue(nextValue);
 
-        if (previous == next)
-        {
+        if (previous == next) {
             return;
         }
 
         changes.Add($"{FormatChangeName(name)}: {previous} -> {next}");
     }
 
-    private static string FormatChangeName(string name)
-    {
-        return name switch
-        {
+    private static string FormatChangeName(string name) {
+        return name switch {
             "ReservationsEnabledFrom" => "Začátek rezervací",
             "ReservationsEnabledTo" => "Konec rezervací",
             "ReservationsStatus" => "Stav rezervací",
@@ -211,33 +155,11 @@ public sealed class AppSettingsControllerV1(
         };
     }
 
-    private static string FormatValue<T>(T value)
-    {
-        return value switch
-        {
+    private static string FormatValue<T>(T value) {
+        return value switch {
             DateTime date => date.ToLocalTime().ToString("dd. MM. yyyy HH:mm:ss", CultureInfo.GetCultureInfo("cs-CZ")),
             null => "(null)",
             _ => value.ToString() ?? "(null)"
         };
-    }
-
-    private static string FormatAccount(Account account)
-    {
-        return $"{account.FirstName} {account.LastName} ({account.Email})";
-    }
-
-    private static string UserNoun(Account account)
-    {
-        return account.Gender == Gender.Female ? "Uživatelka" : "Uživatel";
-    }
-
-    private static string PastVerb(Account account, string masculine, string feminine)
-    {
-        return account.Gender == Gender.Female ? feminine : masculine;
-    }
-
-    private static string Phrase(Account? account, string informal, string formal)
-    {
-        return account?.CommunicationStyle == CommunicationStyle.Informal ? informal : formal;
     }
 }

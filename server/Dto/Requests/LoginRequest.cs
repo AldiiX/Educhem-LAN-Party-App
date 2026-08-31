@@ -8,4 +8,6 @@ public sealed class LoginRequest {
 
 	[Length(1,255), Required]
 	public required string PasswordPlain { get; init; }
+
+	public bool RememberMe { get; init; }
 }

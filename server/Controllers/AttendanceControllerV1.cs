@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using server.Data;
@@ -11,6 +12,7 @@ namespace server.Controllers;
 
 [ApiController]
 [Route("api/v1/attendance")]
+[Authorize]
 public sealed class AttendanceControllerV1(
 	IAuthService auth,
 	AppDbContext db,
@@ -19,18 +21,20 @@ public sealed class AttendanceControllerV1(
 	IDbLoggerService dbLogger
 ) : Controller {
 	private const string AttendanceOverviewCacheKey = "attendance:overview";
+	private const int AttendancePageSize = 25;
 	private static readonly TimeSpan CreateCooldown = TimeSpan.FromMinutes(2);
 
 	[HttpGet]
-	public async Task<IActionResult> GetAttendance(CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-
+	public async Task<IActionResult> GetAttendance(
+		[FromQuery] int page = 1,
+		[FromQuery] string? search = null,
+		CancellationToken ct = default
+	) {
 		var attendanceEnabled = await appSettings.GetAttendanceEnabledAsync(ct);
-		if(cache.TryGetValue(AttendanceOverviewCacheKey, out AttendanceOverviewDto? cachedOverview)
+		if(cache.TryGetValue(AttendanceOverviewCacheKey, out AttendanceOverviewCache? cachedOverview)
 		   && cachedOverview is not null
 		   && cachedOverview.AttendanceEnabled == attendanceEnabled) {
-			return Ok(cachedOverview);
+			return Ok(BuildOverview(cachedOverview, page, search));
 		}
 
 		var entries = await db.AttendanceEntriesEf()
@@ -58,7 +62,7 @@ public sealed class AttendanceControllerV1(
 			.ToList();
 		var present = participantDtos.Count(p => p.CurrentState == AttendanceEntryType.CheckIn);
 
-		var overview = new AttendanceOverviewDto(
+		var overview = new AttendanceOverviewCache(
 			entries.Select(e => e.ToDto()).ToList(),
 			participantDtos,
 			new AttendanceStatsDto(present, Math.Max(0, participants.Count - present), participants.Count),
@@ -66,21 +70,21 @@ public sealed class AttendanceControllerV1(
 		);
 		cache.Set(AttendanceOverviewCacheKey, overview);
 
-		return Ok(overview);
+		return Ok(BuildOverview(overview, page, search));
 	}
 
 	[HttpPost]
 	public async Task<IActionResult> CreateAttendanceEntry([FromBody] CreateAttendanceEntryRequest request, CancellationToken ct = default) {
-		var acc = await auth.ReAuthAsync(ct);
-		if(acc == null) return new UnauthorizedResult();
-		if(!HasRoleAtLeast(acc, AccountType.SuperAdmin) && !await appSettings.GetAttendanceEnabledAsync(ct)) {
+		var user = auth.GetCurrentUser();
+		if(user == null) return new UnauthorizedResult();
+		if(!HasRoleAtLeast(user.Value.Role, AccountType.SuperAdmin) && !await appSettings.GetAttendanceEnabledAsync(ct)) {
 			return StatusCode(StatusCodes.Status423Locked, "Docházka je momentálně uzamčena.");
 		}
 
-		var targetAccountId = request.AccountId ?? acc.Id;
-		var isSelfEntry = targetAccountId == acc.Id;
+		var targetAccountId = request.AccountId ?? user.Value.Id;
+		var isSelfEntry = targetAccountId == user.Value.Id;
 
-		if(!isSelfEntry && !HasRoleAtLeast(acc, AccountType.TeacherOrg)) {
+		if(!isSelfEntry && !HasRoleAtLeast(user.Value.Role, AccountType.TeacherOrg)) {
 			return Forbid();
 		}
 
@@ -90,7 +94,7 @@ public sealed class AttendanceControllerV1(
 			return BadRequest("Účet nemá povolenou účast na akci.");
 		}
 
-		if(!isSelfEntry && !CanManageAccount(acc, targetAccount)) {
+		if(!isSelfEntry && !CanManageAccount(user.Value.Role, targetAccount)) {
 			return Forbid();
 		}
 
@@ -99,13 +103,19 @@ public sealed class AttendanceControllerV1(
 			.Where(e => e.AccountId == targetAccount.Id)
 			.OrderByDescending(e => e.CreatedAtUtc)
 			.FirstOrDefaultAsync(ct);
-		if(!HasRoleAtLeast(acc, AccountType.TeacherOrg) && latestEntry is not null) {
+		if(!HasRoleAtLeast(user.Value.Role, AccountType.TeacherOrg) && latestEntry is not null) {
 			var retryAfter = CreateCooldown - (DateTime.UtcNow - latestEntry.CreatedAtUtc);
 			if(retryAfter > TimeSpan.Zero) {
-				await dbLogger.LogWarnAsync($"Attendance cooldown hit by account {acc.Id} for target account {targetAccount.Id}; retry after {Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds))}s", "attendance-cooldown", ct);
+				await dbLogger.LogWarnAsync(
+					$"Attendance cooldown hit by account {user.Value.Id} for target account {targetAccount.Id}; retry after {Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds))}s",
+					"attendance-cooldown",
+					user.Value.Id,
+					targetAccount.Id.ToString(),
+					ct
+				);
 				return Cooldown(
 					retryAfter,
-					acc,
+					user.Value.CommunicationStyle,
 					"Další záznam docházky můžeš zapsat za {0} s.",
 					"Další záznam docházky můžete zapsat za {0} s."
 				);
@@ -118,8 +128,8 @@ public sealed class AttendanceControllerV1(
 
 		if(request.Type != expectedType) {
 			return BadRequest(expectedType == AttendanceEntryType.CheckIn
-				? Phrase(acc, "Účastník aktuálně není na akci, můžeš zapsat jen příchod.", "Účastník aktuálně není na akci, můžete zapsat jen příchod.")
-				: Phrase(acc, "Účastník aktuálně je na akci, můžeš zapsat jen odchod.", "Účastník aktuálně je na akci, můžete zapsat jen odchod."));
+				? Phrase(user.Value.CommunicationStyle, "Účastník aktuálně není na akci, můžeš zapsat jen příchod.", "Účastník aktuálně není na akci, můžete zapsat jen příchod.")
+				: Phrase(user.Value.CommunicationStyle, "Účastník aktuálně je na akci, můžeš zapsat jen odchod.", "Účastník aktuálně je na akci, můžete zapsat jen odchod."));
 		}
 
 		var reason = NormalizeOptional(request.Reason);
@@ -127,17 +137,12 @@ public sealed class AttendanceControllerV1(
 			return BadRequest("U odchodu je potřeba vyplnit důvod.");
 		}
 
-		var actor = isSelfEntry ? targetAccount : await db.AccountsEf().FirstOrDefaultAsync(a => a.Id == acc.Id, ct);
-		if(actor == null) return new UnauthorizedResult();
-
 		var entry = new AttendanceEntry {
 			Id = Guid.Empty,
 			AccountId = targetAccount.Id,
-			Account = targetAccount,
 			Type = request.Type,
 			Reason = reason,
-			CreatedById = acc.Id,
-			CreatedBy = actor,
+			CreatedById = user.Value.Id,
 		};
 
 		db.AttendanceEntries.Add(entry);
@@ -192,7 +197,7 @@ public sealed class AttendanceControllerV1(
 	}
 
 	private void UpdateCachedOverview(AttendanceDeltaDto delta) {
-		if(!cache.TryGetValue(AttendanceOverviewCacheKey, out AttendanceOverviewDto? overview)
+		if(!cache.TryGetValue(AttendanceOverviewCacheKey, out AttendanceOverviewCache? overview)
 		   || overview is null) {
 			return;
 		}
@@ -216,35 +221,73 @@ public sealed class AttendanceControllerV1(
 		});
 	}
 
-	private static bool HasRoleAtLeast(Account account, AccountType accountType) {
-		return account.AccountType >= accountType;
+	private static AttendanceOverviewDto BuildOverview(AttendanceOverviewCache overview, int page, string? search) {
+		var normalizedSearch = NormalizeOptional(search);
+		var matchingEntries = normalizedSearch is null
+			? overview.Entries
+			: overview.Entries.Where(entry => MatchesSearch(entry, normalizedSearch)).ToList();
+		var totalEntries = matchingEntries.Count;
+		var totalPages = totalEntries == 0 ? 0 : (int)Math.Ceiling(totalEntries / (double)AttendancePageSize);
+		var currentPage = totalPages == 0 ? 1 : Math.Clamp(page, 1, totalPages);
+		var entries = matchingEntries
+			.Skip((currentPage - 1) * AttendancePageSize)
+			.Take(AttendancePageSize)
+			.ToList();
+
+		return new AttendanceOverviewDto(
+			entries,
+			overview.Participants,
+			overview.Stats,
+			overview.AttendanceEnabled,
+			new AttendancePaginationDto(currentPage, AttendancePageSize, totalEntries, totalPages)
+		);
 	}
 
-	private static bool CanManageRole(Account actor, AccountType targetAccountType) {
-		return actor.AccountType == AccountType.SuperAdmin || actor.AccountType > targetAccountType;
+	private static bool MatchesSearch(AttendanceEntryDto entry, string search) {
+		return entry.Profile.FullName.Contains(search, StringComparison.CurrentCultureIgnoreCase)
+		       || (entry.Profile.Enrollment?.Class?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false)
+		       || (entry.Reason?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false)
+		       || entry.CreatedBy.FullName.Contains(search, StringComparison.CurrentCultureIgnoreCase)
+		       || (entry.Type == AttendanceEntryType.CheckIn ? "Příchod" : "Odchod")
+		       .Contains(search, StringComparison.CurrentCultureIgnoreCase);
 	}
 
-	private static bool CanManageAccount(Account actor, Account target) {
-		return CanManageRole(actor, target.AccountType);
+	private static bool HasRoleAtLeast(AccountType accountType, AccountType requiredType) {
+		return accountType >= requiredType;
+	}
+
+	private static bool CanManageRole(AccountType actorRole, AccountType targetAccountType) {
+		return actorRole == AccountType.SuperAdmin || actorRole > targetAccountType;
+	}
+
+	private static bool CanManageAccount(AccountType actorRole, Account target) {
+		return CanManageRole(actorRole, target.AccountType);
 	}
 
 	private static string? NormalizeOptional(string? value) {
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 	}
 
-	private IActionResult Cooldown(TimeSpan retryAfter, Account account, string informalMessageFormat, string formalMessageFormat) {
+	private IActionResult Cooldown(TimeSpan retryAfter, CommunicationStyle communicationStyle, string informalMessageFormat, string formalMessageFormat) {
 		var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
 		Response.Headers["Retry-After"] = seconds.ToString();
-		return StatusCode(StatusCodes.Status429TooManyRequests, string.Format(Phrase(account, informalMessageFormat, formalMessageFormat), seconds));
+		return StatusCode(StatusCodes.Status429TooManyRequests, string.Format(Phrase(communicationStyle, informalMessageFormat, formalMessageFormat), seconds));
 	}
 
-	private static string Phrase(Account account, string informal, string formal) {
-		return account.CommunicationStyle == CommunicationStyle.Informal ? informal : formal;
+	private static string Phrase(CommunicationStyle communicationStyle, string informal, string formal) {
+		return communicationStyle == CommunicationStyle.Informal ? informal : formal;
 	}
 
 	public sealed record CreateAttendanceEntryRequest(
 		AttendanceEntryType Type,
 		Guid? AccountId,
 		string? Reason
+	);
+
+	private sealed record AttendanceOverviewCache(
+		IReadOnlyList<AttendanceEntryDto> Entries,
+		IReadOnlyList<AttendanceParticipantDto> Participants,
+		AttendanceStatsDto Stats,
+		bool AttendanceEnabled
 	);
 }

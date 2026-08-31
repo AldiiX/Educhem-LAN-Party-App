@@ -105,6 +105,12 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
             <div className={style.image} style={{ '--image': `url(${roomOrComputer.imageUrl ?? roomOrComputer.imageUrl})`} as React.CSSProperties}></div>
 
             <div className={style.content}>
+                <If
+                    condition={isComputerReservation && Boolean(reservationProfile?.bannerUrl)}
+                    as="div"
+                    className={style.bannerWallpaper}
+                    style={reservationProfile?.bannerUrl ? {backgroundImage: `url(${reservationProfile.bannerUrl})`} : undefined}
+                />
                 <h2>{roomOrComputer.label ?? roomOrComputer.label ?? roomOrComputer.id}</h2>
                 <If condition={isComputerReservation} as="p" className={style.roomDesc}>{ computer?.room?.label }</If>
 
@@ -118,7 +124,10 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
                                         <Link href={`/app/profile/${reservationProfile.id}`} className={style.profile}>
                                             <Avatar name={reservationProfile.fullName} src={reservationProfile.avatarUrl} size="24px" />
                                             <p>{reservationProfile.fullName}</p>
-                                            <small>{ reservationProfile.class }</small>
+                                            <span className={style.enrollment}>
+                                                <If as="small" condition={reservationProfile.enrollment?.class != null}>{reservationProfile.enrollment?.class}</If>
+                                                {reservationProfile.enrollment?.school.iconUrl && <img className={style.schoolAvatar} src={reservationProfile.enrollment.school.iconUrl} alt="" title={reservationProfile.enrollment.school.displayName} />}
+                                            </span>
                                         </Link>
                                     </ProfileHoverCard>
                                 )}
@@ -141,7 +150,10 @@ export default function SelectedRoomOrComputer({ reservations, reserve, unbook, 
                                     <Link className={style.user} href={`/app/profile/${rr.profile.id}`}>
                                         <Avatar name={rr.profile.fullName} src={rr.profile.avatarUrl} size="24px" />
                                         <p>{rr.profile.fullName}</p>
-                                        <small>{ rr.profile.class }</small>
+                                        <span className={style.enrollment}>
+                                            <If as="small" condition={rr.profile.enrollment?.class != null}>{rr.profile.enrollment?.class}</If>
+                                            {rr.profile.enrollment?.school.iconUrl && <img className={style.schoolAvatar} src={rr.profile.enrollment.school.iconUrl} alt="" title={rr.profile.enrollment.school.displayName} />}
+                                        </span>
                                     </Link>
                                     </ProfileHoverCard>
                                 })

@@ -1,11 +1,28 @@
 ﻿import { z } from "zod";
 import { AccountAchievementSchema, AccountBadgeSchema } from "@/schemas/AchievementBadgeSchema";
+import {avatarSyncPlatformValues} from "@/data/platforms";
+import type {AvatarSyncPlatform} from "@/data/platforms";
 
 export const AccountGenderSchema = z.enum(["Male", "Female", "Other"]);
 
 export const AccountTypeSchema = z.enum(["Student", "Teacher", "TeacherOrg", "Admin", "SuperAdmin"]);
 
 export const AccountCommunicationStyleSchema = z.enum(["Informal", "Formal"]);
+
+export const AvatarSyncPlatformSchema = z.enum(avatarSyncPlatformValues);
+
+export const SchoolSchema = z.object({
+    id: z.uint32(),
+    slug: z.string(),
+    shortName: z.string(),
+    displayName: z.string(),
+    iconUrl: z.string().nullish(),
+});
+
+export const EnrollmentSchema = z.object({
+    school: SchoolSchema,
+    class: z.string().nullish(),
+});
 
 export const AccountSchema = z.object({
     id: z.uuid(),
@@ -15,20 +32,21 @@ export const AccountSchema = z.object({
     email: z.string().nullish(),
     avatarUrl: z.string().nullish(),
     bannerUrl: z.string().nullish(),
+    discordUsername: z.string().nullish(),
+    githubUsername: z.string().nullish(),
+    githubProfileUrl: z.string().url().nullish(),
+    googleName: z.string().nullish(),
+	appleName: z.string().nullish(),
+	steamUsername: z.string().nullish(),
+	steamProfileUrl: z.string().url().nullish(),
+    avatarSyncPlatform: AvatarSyncPlatformSchema.nullish(),
     accountType: AccountTypeSchema.nullish(),
     createdAtUtc: z.coerce.date(),
     updatedAtUtc: z.coerce.date().nullish(),
     lastActiveUtc: z.coerce.date().nullish(),
     gender: AccountGenderSchema.nullish(),
     communicationStyle: AccountCommunicationStyleSchema.default("Formal"),
-    school: z.object({
-        id: z.uint32(),
-        slug: z.string(),
-        shortName: z.string(),
-        displayName: z.string(),
-        iconUrl: z.string().nullish(),
-    }).nullish(),
-    class: z.string().nullish(),
+    enrollment: EnrollmentSchema.nullish(),
     enableReservations: z.boolean().nullish(),
     achievements: z.array(AccountAchievementSchema).optional().default([]),
     badges: z.array(AccountBadgeSchema).optional().default([]),
@@ -38,3 +56,4 @@ export type Account = z.infer<typeof AccountSchema>;
 export type AccountGender = z.infer<typeof AccountGenderSchema>;
 export type AccountType = z.infer<typeof AccountTypeSchema>;
 export type AccountCommunicationStyle = z.infer<typeof AccountCommunicationStyleSchema>;
+export type {AvatarSyncPlatform};
