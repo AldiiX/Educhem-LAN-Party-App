@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using server.Data;
 using server.Dto.Mappers;
@@ -8,10 +9,10 @@ namespace server.Controllers;
 
 [ApiController]
 [Route("api/v1/profile")]
+[Authorize]
 public sealed class ProfileControllerV1(AppDbContext db, IAuthService auth) : Controller {
 
 	[HttpGet]
-	[Microsoft.AspNetCore.Authorization.Authorize]
 	public async Task<IActionResult> Get() {
 		var me = await auth.GetCurrentAccountFullAsync();
 		if(me == null) return new UnauthorizedResult();

@@ -507,7 +507,7 @@ public sealed class AccountControllerV1(
 
 		var email = request.Email.Trim();
 		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Email.ToLower() == email.ToLower(), ct);
-		if(account == null) return Ok(new PasswordResetResponse(false));
+		if(account == null) return Ok(new PasswordResetResponse(true));
 
 		var token = CreatePasswordResetToken(account);
 		var resetLink = GetPasswordResetLink(token);
@@ -541,7 +541,7 @@ public sealed class AccountControllerV1(
 			);
 		}
 
-		return Ok(new PasswordResetResponse(emailSent));
+		return Ok(new PasswordResetResponse(true));
 	}
 
 	[HttpPost("reset-password")]

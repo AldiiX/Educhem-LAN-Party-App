@@ -28,8 +28,7 @@ export async function fetchBackendJson<T>(path: string, init?: RequestInit): Pro
 
     try {
         response = await fetch(baseUrl + path, {
-            cache: "force-cache",
-            next: {revalidate: 5},
+            cache: "no-store",
             ...init,
             headers: {
                 ...(init?.headers ?? {}),
