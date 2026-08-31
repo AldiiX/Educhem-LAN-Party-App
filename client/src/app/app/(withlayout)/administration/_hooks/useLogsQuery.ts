@@ -1,70 +1,48 @@
-import {useState} from "react";
+import {useMemo} from "react";
 import useSWR from "swr";
 import {fetcher} from "@/lib/swr";
-import {useAuth} from "@/app/app/_providers/AuthProvider";
-import {hasRoleAtLeast} from "@/lib/roles";
-import {LogEntry, LogEntrySchema} from "@/schemas/LogEntrySchema";
+import {
+    AdministrationLogsPage,
+    AdministrationLogsPageSchema,
+} from "@/schemas/AdministrationSchema";
 
 const logsFetcher = async (url: string) => {
-    const response = await fetcher<unknown>(url);
-
-    return LogEntrySchema.array().parse(response ?? []);
+    return AdministrationLogsPageSchema.parse(await fetcher<unknown>(url));
 };
 
-export function useLogsQuery() {
-    const {account} = useAuth();
-    const canManageApp = hasRoleAtLeast(account, "Admin");
+const emptyPagination = {
+    page: 1,
+    pageSize: 25,
+    totalEntries: 0,
+    totalPages: 0,
+};
 
-    const {data, error, isLoading, mutate} = useSWR<LogEntry[]>(
-        canManageApp ? "/api/v1/adm/logs" : null,
-        logsFetcher
-    );
-    const logs = data ?? [];
+export function useLogsQuery(queryString: string) {
+    const url = `/api/v1/adm/logs${queryString ? `?${queryString}` : ""}`;
+    const {data, error, isLoading, isValidating, mutate} = useSWR<AdministrationLogsPage>(url, logsFetcher, {
+        keepPreviousData: true,
+    });
+    const logTypeCounts = useMemo(() => new Map(
+        (data?.filterOptions.logTypes ?? []).map(option => [option.value, option.count])
+    ), [data?.filterOptions.logTypes]);
+    const exactTypeCounts = useMemo(() => new Map(
+        (data?.filterOptions.exactTypes ?? []).map(option => [option.value, option.count])
+    ), [data?.filterOptions.exactTypes]);
 
-    const [searchTerm, setSearchTerm] = useState("");
-    const [actorIdFilter, setActorIdFilter] = useState("");
-    const [targetIdFilter, setTargetIdFilter] = useState("");
-
-    const [selectedLogTypes, setSelectedLogTypes] = useState<Set<string>>(
-        () => new Set()
-    );
-
-    const [selectedExactTypes, setSelectedExactTypes] = useState<Set<string>>(
-        () => new Set()
-    );
-
-    const [dateFrom, setDateFrom] = useState("");
-    const [dateTo, setDateTo] = useState("");
-
-    const refreshLogs = async () => await mutate() ?? [];
+    const refreshLogs = async () => (await mutate())?.logs ?? [];
 
     return {
-        logs,
+        exactTypeCounts,
+        logs: data?.logs ?? [],
         logsError: error,
         logsLoading: isLoading,
+        logsValidating: isValidating,
+        logTypeCounts,
         mutateLogs: mutate,
-
+        pagination: data?.pagination ?? emptyPagination,
         refreshLogs,
-
-        searchTerm,
-        setSearchTerm,
-
-        actorIdFilter,
-        setActorIdFilter,
-
-        targetIdFilter,
-        setTargetIdFilter,
-
-        selectedLogTypes,
-        setSelectedLogTypes,
-
-        selectedExactTypes,
-        setSelectedExactTypes,
-
-        dateFrom,
-        setDateFrom,
-
-        dateTo,
-        setDateTo,
+        totalItems: data?.totalItems ?? 0,
+        uniqueExactTypes: (data?.filterOptions.exactTypes ?? []).map(option => option.value),
+        uniqueLogTypes: (data?.filterOptions.logTypes ?? []).map(option => option.value),
     };
 }

@@ -29,6 +29,7 @@ public sealed class AccountControllerV1(
 	IDbLoggerService dbLogger,
 	IOAuthService oauth
 ) : Controller {
+	private const int AdministrationPageSize = 25;
 
 	private readonly IDataProtector passwordResetProtector = dataProtectionProvider.CreateProtector("account-password-reset");
 	private readonly IDataProtector loginLinkProtector = dataProtectionProvider.CreateProtector("account-login-link");
@@ -91,15 +92,99 @@ public sealed class AccountControllerV1(
 
 	[HttpGet("all")]
 	[Authorize(Policy = AuthPolicies.TeacherOrg)]
-	public async Task<IActionResult> GetAllAccounts(CancellationToken ct = default) {
-		var accounts = await db.AccountsEf()
-			.AsNoTracking()
-			.OrderBy(a => a.LastName)
-			.ThenBy(a => a.FirstName)
-			.Select(a => a.ToDto())
-			.ToListAsync(ct);
+	public async Task<IActionResult> GetAllAccounts(
+		[FromQuery] int page = 1,
+		[FromQuery(Name = "q")] string? search = null,
+		[FromQuery] string[]? accountType = null,
+		[FromQuery] string[]? gender = null,
+		[FromQuery(Name = "class")] string[]? classes = null,
+		[FromQuery] ushort[]? school = null,
+		[FromQuery] string? reservations = null,
+		[FromQuery] string? sort = null,
+		[FromQuery] string? direction = null,
+		CancellationToken ct = default
+	) {
+		var accountTypes = EnumFilters.ParseEnumFilters<AccountType>(accountType);
+		var genders = EnumFilters.ParseEnumFilters<Gender>(gender);
+		var classFilters = classes?
+			.Select(value => value.Trim())
+			.Where(value => value.Length > 0)
+			.Distinct(StringComparer.OrdinalIgnoreCase)
+			.ToArray() ?? [];
+		var schoolFilters = school?.Distinct().ToArray() ?? [];
+		var query = db.AccountsEf().AsNoTracking();
 
-		return Ok(accounts);
+		if(!string.IsNullOrWhiteSpace(search)) {
+			var normalizedSearch = search.Trim().ToLower();
+			var studentMaleMatches = "student".Contains(normalizedSearch);
+			var studentFemaleMatches = "studentka".Contains(normalizedSearch);
+			var teacherMaleMatches = "učitel".Contains(normalizedSearch);
+			var teacherFemaleMatches = "učitelka".Contains(normalizedSearch);
+			var teacherOrgMaleMatches = "učitel (org)".Contains(normalizedSearch);
+			var teacherOrgFemaleMatches = "učitelka (org)".Contains(normalizedSearch);
+			var adminMaleMatches = "administrátor".Contains(normalizedSearch);
+			var adminFemaleMatches = "administrátorka".Contains(normalizedSearch);
+			var superAdminMaleMatches = "administrátor (su)".Contains(normalizedSearch);
+			var superAdminFemaleMatches = "administrátorka (su)".Contains(normalizedSearch);
+
+			query = query.Where(account =>
+				(account.FirstName + " " + account.LastName).ToLower().Contains(normalizedSearch)
+				|| account.Email.ToLower().Contains(normalizedSearch)
+				|| (account.Enrollment != null && account.Enrollment.Class != null && account.Enrollment.Class.ToLower().Contains(normalizedSearch))
+				|| (account.Enrollment != null && account.Enrollment.School.DisplayName.ToLower().Contains(normalizedSearch))
+				|| account.OAuthConnections.Any(connection =>
+					connection.Provider == OAuthProvider.Discord
+					&& connection.Username != null
+					&& connection.Username.ToLower().Contains(normalizedSearch)
+				)
+				|| (account.AccountType == AccountType.Student && (
+					(account.Gender == Gender.Female && studentFemaleMatches)
+					|| (account.Gender != Gender.Female && studentMaleMatches)
+				))
+				|| (account.AccountType == AccountType.Teacher && (
+					(account.Gender == Gender.Female && teacherFemaleMatches)
+					|| (account.Gender != Gender.Female && teacherMaleMatches)
+				))
+				|| (account.AccountType == AccountType.TeacherOrg && (
+					(account.Gender == Gender.Female && teacherOrgFemaleMatches)
+					|| (account.Gender != Gender.Female && teacherOrgMaleMatches)
+				))
+				|| (account.AccountType == AccountType.Admin && (
+					(account.Gender == Gender.Female && adminFemaleMatches)
+					|| (account.Gender != Gender.Female && adminMaleMatches)
+				))
+				|| (account.AccountType == AccountType.SuperAdmin && (
+					(account.Gender == Gender.Female && superAdminFemaleMatches)
+					|| (account.Gender != Gender.Female && superAdminMaleMatches)
+				))
+			);
+		}
+
+		if(accountTypes.Length > 0) query = query.Where(account => accountTypes.Contains(account.AccountType));
+		if(genders.Length > 0) query = query.Where(account => account.Gender.HasValue && genders.Contains(account.Gender.Value));
+		if(classFilters.Length > 0) query = query.Where(account => account.Enrollment != null && account.Enrollment.Class != null && classFilters.Contains(account.Enrollment.Class));
+		if(schoolFilters.Length > 0) query = query.Where(account => account.Enrollment != null && schoolFilters.Contains(account.Enrollment.SchoolId));
+		if(string.Equals(reservations, "enabled", StringComparison.OrdinalIgnoreCase)) query = query.Where(account => account.EnableReservations);
+		if(string.Equals(reservations, "disabled", StringComparison.OrdinalIgnoreCase)) query = query.Where(account => !account.EnableReservations);
+
+		var totalItems = await db.Accounts.AsNoTracking().CountAsync(ct);
+		var totalEntries = await query.CountAsync(ct);
+		var totalPages = totalEntries == 0 ? 0 : (int)Math.Ceiling(totalEntries / (double)AdministrationPageSize);
+		var currentPage = totalPages == 0 ? 1 : Math.Clamp(page, 1, totalPages);
+		var orderedQuery = OrderAccounts(query, sort, direction);
+		var accountEntities = await orderedQuery
+			.Skip((currentPage - 1) * AdministrationPageSize)
+			.Take(AdministrationPageSize)
+			.AsSplitQuery()
+			.ToListAsync(ct);
+		var filterOptions = await BuildAccountFilterOptionsAsync(ct);
+
+		return Ok(new AdministrationAccountsPageDto(
+			accountEntities.Select(account => account.ToDto()).ToList(),
+			new PaginationDto(currentPage, AdministrationPageSize, totalEntries, totalPages),
+			totalItems,
+			filterOptions
+		));
 	}
 
 	[HttpPost]
@@ -549,6 +634,96 @@ public sealed class AccountControllerV1(
 	public sealed record ConfirmPasswordResetRequest(string Token, string NewPassword);
 	private sealed record PasswordResetToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc);
 	private sealed record LoginLinkToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc, string TokenId);
+
+	private static IOrderedQueryable<Account> OrderAccounts(IQueryable<Account> query, string? sort, string? direction) {
+		var descending = string.Equals(direction, "desc", StringComparison.OrdinalIgnoreCase);
+		var sortKey = sort?.Trim().ToLowerInvariant();
+
+		return (sortKey, descending) switch {
+			("email", false) => query.OrderBy(account => account.Email).ThenBy(account => account.Id),
+			("email", true) => query.OrderByDescending(account => account.Email).ThenByDescending(account => account.Id),
+			("gender", false) => query.OrderBy(account => account.Gender == Gender.Female ? "Žena" : account.Gender == Gender.Male ? "Muž" : account.Gender == Gender.Other ? "Ostatní" : "Neznámé").ThenBy(account => account.Id),
+			("gender", true) => query.OrderByDescending(account => account.Gender == Gender.Female ? "Žena" : account.Gender == Gender.Male ? "Muž" : account.Gender == Gender.Other ? "Ostatní" : "Neznámé").ThenByDescending(account => account.Id),
+			("school", false) => query.OrderBy(account => account.Enrollment == null ? "" : account.Enrollment.School.DisplayName).ThenBy(account => account.Id),
+			("school", true) => query.OrderByDescending(account => account.Enrollment == null ? "" : account.Enrollment.School.DisplayName).ThenByDescending(account => account.Id),
+			("class", false) => query.OrderBy(account => account.Enrollment == null ? "" : account.Enrollment.Class ?? "").ThenBy(account => account.Id),
+			("class", true) => query.OrderByDescending(account => account.Enrollment == null ? "" : account.Enrollment.Class ?? "").ThenByDescending(account => account.Id),
+			("accounttype", false) => query.OrderBy(account =>
+				account.AccountType == AccountType.Admin ? (account.Gender == Gender.Female ? "Administrátorka" : "Administrátor")
+				: account.AccountType == AccountType.SuperAdmin ? (account.Gender == Gender.Female ? "Administrátorka (SU)" : "Administrátor (SU)")
+				: account.AccountType == AccountType.Teacher ? (account.Gender == Gender.Female ? "Učitelka" : "Učitel")
+				: account.AccountType == AccountType.TeacherOrg ? (account.Gender == Gender.Female ? "Učitelka (ORG)" : "Učitel (ORG)")
+				: account.Gender == Gender.Female ? "Studentka" : "Student"
+			).ThenBy(account => account.Id),
+			("accounttype", true) => query.OrderByDescending(account =>
+				account.AccountType == AccountType.Admin ? (account.Gender == Gender.Female ? "Administrátorka" : "Administrátor")
+				: account.AccountType == AccountType.SuperAdmin ? (account.Gender == Gender.Female ? "Administrátorka (SU)" : "Administrátor (SU)")
+				: account.AccountType == AccountType.Teacher ? (account.Gender == Gender.Female ? "Učitelka" : "Učitel")
+				: account.AccountType == AccountType.TeacherOrg ? (account.Gender == Gender.Female ? "Učitelka (ORG)" : "Učitel (ORG)")
+				: account.Gender == Gender.Female ? "Studentka" : "Student"
+			).ThenByDescending(account => account.Id),
+			("createdatutc", false) => query.OrderBy(account => account.CreatedAtUtc).ThenBy(account => account.Id),
+			("createdatutc", true) => query.OrderByDescending(account => account.CreatedAtUtc).ThenByDescending(account => account.Id),
+			("updatedatutc", false) => query.OrderBy(account => account.UpdatedAtUtc).ThenBy(account => account.Id),
+			("updatedatutc", true) => query.OrderByDescending(account => account.UpdatedAtUtc).ThenByDescending(account => account.Id),
+			("lastactiveutc", false) => query.OrderBy(account => account.LastActiveUtc).ThenBy(account => account.Id),
+			("lastactiveutc", true) => query.OrderByDescending(account => account.LastActiveUtc).ThenByDescending(account => account.Id),
+			(_, true) => query.OrderByDescending(account => account.FirstName).ThenByDescending(account => account.LastName).ThenByDescending(account => account.Id),
+			_ => query.OrderBy(account => account.FirstName).ThenBy(account => account.LastName).ThenBy(account => account.Id),
+		};
+	}
+
+	private async Task<AccountFilterOptionsDto> BuildAccountFilterOptionsAsync(CancellationToken ct) {
+		var accountTypeCounts = await db.Accounts
+			.AsNoTracking()
+			.GroupBy(account => account.AccountType)
+			.Select(group => new {Value = group.Key, Count = group.Count()})
+			.ToListAsync(ct);
+		var accountTypes = accountTypeCounts
+			.OrderBy(option => option.Value)
+			.Select(option => new ValueCountDto<AccountType>(option.Value, option.Count))
+			.ToList();
+		var genderCounts = await db.Accounts
+			.AsNoTracking()
+			.Where(account => account.Gender.HasValue)
+			.GroupBy(account => account.Gender!.Value)
+			.Select(group => new {Value = group.Key, Count = group.Count()})
+			.ToListAsync(ct);
+		var genders = genderCounts
+			.OrderBy(option => option.Value)
+			.Select(option => new ValueCountDto<Gender>(option.Value, option.Count))
+			.ToList();
+		var classCounts = await db.Enrollments
+			.AsNoTracking()
+			.Where(enrollment => enrollment.Class != null && enrollment.Class != "")
+			.GroupBy(enrollment => enrollment.Class!)
+			.Select(group => new {Value = group.Key, Count = group.Count()})
+			.ToListAsync(ct);
+		var classes = classCounts
+			.Select(option => new ValueCountDto<string>(option.Value, option.Count))
+			.ToList();
+		var schoolCounts = await db.Enrollments
+			.AsNoTracking()
+			.GroupBy(enrollment => enrollment.SchoolId)
+			.Select(group => new {SchoolId = group.Key, Count = group.Count()})
+			.ToListAsync(ct);
+		var schoolIds = schoolCounts.Select(option => option.SchoolId).ToArray();
+		var schools = schoolIds.Length == 0
+			? []
+			: await db.Schools
+				.AsNoTracking()
+				.Where(school => schoolIds.Contains(school.Id))
+				.OrderBy(school => school.DisplayName)
+				.ToListAsync(ct);
+		var schoolCountById = schoolCounts.ToDictionary(option => option.SchoolId, option => option.Count);
+
+		return new AccountFilterOptionsDto(
+			accountTypes,
+			genders,
+			classes,
+			schools.Select(school => new AccountSchoolFilterOptionDto(school.ToDto(false), schoolCountById[school.Id])).ToList()
+		);
+	}
 
 	private static string? NormalizeOptional(string? value) {
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();

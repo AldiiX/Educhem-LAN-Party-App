@@ -9,6 +9,7 @@ import {LogsFilters} from "./_components/LogsFilters";
 import {LogsTable} from "./_components/LogsTable";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {hasRoleAtLeast} from "@/lib/roles";
+import {Pagination} from "../_components/Pagination";
 
 export function Logs() {
     const {account} = useAuth();
@@ -42,8 +43,8 @@ export function Logs() {
 
     return <>
         <LogsToolbar
-            totalCount={logsAdministration.logs.length}
-            filteredCount={logsAdministration.filteredLogs.length}
+            totalCount={logsAdministration.totalItems}
+            filteredCount={logsAdministration.pagination.totalEntries}
             searchTerm={logsAdministration.searchTerm}
             onSearchChange={logsAdministration.setSearchTerm}
             onClearFilters={logsAdministration.clearFilters}
@@ -80,8 +81,17 @@ export function Logs() {
         )}
 
         <section className={style.logsContent}>
-            <LogsTable logs={logsAdministration.filteredLogs} />
+            <LogsTable logs={logsAdministration.filteredLogs} loading={logsAdministration.logsValidating} />
         </section>
+
+        <Pagination
+            page={logsAdministration.pagination.page}
+            pageSize={logsAdministration.pagination.pageSize}
+            totalEntries={logsAdministration.pagination.totalEntries}
+            totalPages={logsAdministration.pagination.totalPages}
+            loading={logsAdministration.logsValidating}
+            onPageChange={logsAdministration.setPage}
+        />
     </>;
 }
 

@@ -3,17 +3,20 @@ import {Avatar} from "@/components/Avatar";
 import {accountTypeLabel, genderLabel, schoolLabel} from "@/lib/enumLabels";
 import style from "./AccountsTable.module.scss";
 import {AccountTableSort, SortKey} from "../../_hooks/types";
+import {LoadingBar} from "../../_components/LoadingBar";
 
 type AccountsTableProps = {
     accounts: Account[];
+    loading?: boolean;
     loggedAccountId?: string;
     sort: AccountTableSort;
     onSort: (key: SortKey) => void;
     onOpenDetail: (account: Account) => void;
 };
 
-export function AccountsTable({accounts, loggedAccountId, sort, onSort, onOpenDetail}: AccountsTableProps) {
-    return <section className={style.tableWrap}>
+export function AccountsTable({accounts, loading = false, loggedAccountId, sort, onSort, onOpenDetail}: AccountsTableProps) {
+    return <section className={`${style.tableWrap} ${loading ? style.loading : ""}`} aria-busy={loading}>
+        <LoadingBar active={loading} />
         <table>
             <colgroup>
                 <col className={style.nameColumn} />

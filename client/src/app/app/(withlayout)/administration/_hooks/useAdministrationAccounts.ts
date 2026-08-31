@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {phrase} from "@/lib/communicationStyle";
 import {accountTypeOrder, canManageAccount, canManageAccountRole, hasRoleAtLeast, isSuperAdmin} from "@/lib/roles";
@@ -10,9 +10,15 @@ import {useAccountsQuery} from "./useAccountsQuery";
 export function useAdministrationAccounts() {
     const {account: loggedAccount, setAccount: setLoggedAccount} = useAuth();
     const [saving, setSaving] = useState(false);
-    const accountsQuery = useAccountsQuery();
-    const accountFilters = useAccountFilters(accountsQuery.accounts);
+    const accountFilters = useAccountFilters();
+    const accountsQuery = useAccountsQuery(accountFilters.queryString);
     const modalState = useAccountModalState(saving);
+
+    useEffect(() => {
+        if(!accountsQuery.accountsValidating && accountsQuery.pagination.page !== accountFilters.page) {
+            accountFilters.setPage(accountsQuery.pagination.page);
+        }
+    }, [accountFilters.page, accountFilters.setPage, accountsQuery.accountsValidating, accountsQuery.pagination.page]);
 
     const canCreateUsers = hasRoleAtLeast(loggedAccount, "TeacherOrg");
     const selectedAccountSelfBlocked = Boolean(
@@ -55,6 +61,7 @@ export function useAdministrationAccounts() {
         ...accountFilters,
         ...modalState,
         ...accountMutations,
+        filteredAccounts: accountsQuery.accounts,
         canCreateUsers,
         canImpersonateSelectedAccount,
         canManageSelectedAccount,

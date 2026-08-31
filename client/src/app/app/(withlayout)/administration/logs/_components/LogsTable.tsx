@@ -1,12 +1,15 @@
 import style from "./LogsTable.module.scss";
 import {LogEntry} from "@/schemas/LogEntrySchema";
+import {LoadingBar} from "../../_components/LoadingBar";
 
 type LogsTableProps = {
     logs: LogEntry[];
+    loading?: boolean;
 };
 
-export function LogsTable({logs}: LogsTableProps) {
-    return <section className={style.logsTableWrapper}>
+export function LogsTable({logs, loading = false}: LogsTableProps) {
+    return <section className={`${style.logsTableWrapper} ${loading ? style.loading : ""}`} aria-busy={loading}>
+        <LoadingBar active={loading} />
         <table className={style.logsTable}>
             <thead>
             <tr>

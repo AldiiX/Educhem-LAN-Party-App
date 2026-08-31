@@ -5,6 +5,7 @@ import {useAdministrationAccounts} from "@/app/app/(withlayout)/administration/_
 import {AdministrationFilters} from "./_components/AdministrationFilters";
 import {AccountsTable} from "./_components/AccountsTable";
 import {AccountModals} from "./_components/AccountModals";
+import {Pagination} from "../_components/Pagination";
 
 export function Users() {
     const administration = useAdministrationAccounts();
@@ -19,8 +20,8 @@ export function Users() {
     return <>
         <section className={style.toolbar}>
             <div>
-                <h2>Uživatelé ({administration.filteredAccounts.length})</h2>
-                <p>{administration.accounts.length} celkem</p>
+                <h2>Uživatelé ({administration.pagination.totalEntries})</h2>
+                <p>{administration.totalItems} celkem</p>
             </div>
             <div className={style.searchBox}>
                 <span style={{maskImage: "url(/icons/account.svg)"}}></span>
@@ -40,10 +41,20 @@ export function Users() {
 
         <AccountsTable
             accounts={administration.filteredAccounts}
+            loading={administration.accountsValidating}
             loggedAccountId={administration.loggedAccount?.id}
             sort={administration.sort}
             onSort={administration.changeSort}
             onOpenDetail={account => administration.openModal("detail", account)}
+        />
+
+        <Pagination
+            page={administration.pagination.page}
+            pageSize={administration.pagination.pageSize}
+            totalEntries={administration.pagination.totalEntries}
+            totalPages={administration.pagination.totalPages}
+            loading={administration.accountsValidating}
+            onPageChange={administration.setPage}
         />
 
         <AccountModals

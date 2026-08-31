@@ -1,4 +1,5 @@
 .tableWrap {
+    position: relative;
     margin-top: 24px;
     border-radius: 8px;
     background: var(--element-bg);
@@ -8,6 +9,10 @@
         width: 100%;
         table-layout: fixed;
         border-collapse: collapse;
+
+        tbody {
+            transition: opacity .18s ease;
+        }
 
         .nameColumn {
             width: 18%;
@@ -111,6 +116,12 @@
                     white-space: nowrap;
                 }
             }
+        }
+    }
+
+    &.loading {
+        tbody {
+            opacity: .62;
         }
     }
 
