@@ -95,11 +95,13 @@
             }
 
             &.currentUser {
-                .userCell span::after {
-                    content: "(Ty)";
-                    margin-left: 10px;
-                    color: var(--accent-color);
-                    font-weight: 500;
+                .userCell {
+                    .currentAccountLabel {
+                        margin-left: 10px;
+                        color: var(--accent-color);
+                        font-size: inherit;
+                        font-weight: 500;
+                    }
                 }
             }
 
@@ -127,15 +129,6 @@
 
     .sorted {
         color: var(--accent-color);
-    }
-
-    .currentUser {
-        .userCell span::after {
-            content: "(Ty)";
-            margin-left: 10px;
-            color: var(--accent-color);
-            font-weight: 500;
-        }
     }
 
     .userCell {

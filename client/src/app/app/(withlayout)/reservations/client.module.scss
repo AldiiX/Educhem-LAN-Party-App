@@ -560,11 +560,11 @@
                             .schoolAvatar {
                                 width: 20px;
                                 height: 20px;
+                                aspect-ratio: 1;
                                 flex: 0 0 20px;
                                 border: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
                                 border-radius: 50%;
-                                background: var(--element-bg);
-                                object-fit: contain;
+                                object-fit: cover;
                             }
                         }
 

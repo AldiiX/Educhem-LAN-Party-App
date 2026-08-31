@@ -6,8 +6,11 @@ import {Button} from "@/components/Button";
 import {communicationStyleLabel, genderLabel} from "@/lib/enumLabels";
 import {AvatarSyncPlatform} from "@/schemas/AccountSchema";
 import {AccountPageState} from "../_hooks/types";
-import {avatarSyncPlatforms, platforms} from "@/data/platforms";
+import {avatarSyncPlatforms, ConnectablePlatform, platforms} from "@/data/platforms";
 import {useAccountPageContext} from "@/app/app/(withlayout)/account/layoutclient";
+import {ModalDestructive} from "@/components/ModalDialog";
+import {phrase} from "@/lib/communicationStyle";
+import {useState} from "react";
 
 const genderOptions = [
     {value: "Male", label: "Muž", disabled: false},
@@ -48,6 +51,7 @@ const genderOptions = [
 export default function AccountSettings() {
     const state = useAccountPageContext();
     const {account, profileDraft, setProfileDraft, passwordForm, setPasswordForm} = state;
+    const [disconnectingPlatform, setDisconnectingPlatform] = useState<ConnectablePlatform | null>(null);
 	const connectedPlatforms: Record<string, string | undefined> = {
 		discord: account.discordUsername ?? undefined,
 		github: account.githubUsername ?? undefined,
@@ -62,9 +66,9 @@ export default function AccountSettings() {
             <div className={styles.platforms}>
                 {platforms.map(platform => (
                     <button key={platform.id} type="button" className={`${platform.disabled ? styles.disabled : ""} ${connectedPlatforms[platform.id] ? styles.connected : ""}`} disabled={platform.disabled || state.platformLoading} onClick={() => {
-						if(platform.disabled) return;
+                        if(platform.disabled) return;
                         if(connectedPlatforms[platform.id]) {
-                            state.disconnectPlatform(platform.id);
+                            setDisconnectingPlatform(platform.id);
                         } else {
                             state.connectPlatform(platform.id);
                         }
@@ -79,6 +83,25 @@ export default function AccountSettings() {
                 ))}
             </div>
         </div>
+
+        <ModalDestructive
+            open={disconnectingPlatform !== null}
+            title={`Odpojit ${platforms.find(platform => platform.id === disconnectingPlatform)?.name ?? "platformu"}`}
+            description={phrase(
+                account.communicationStyle,
+                "Opravdu chceš odpojit tuto platformu od svého účtu?",
+                "Opravdu chcete odpojit tuto platformu od svého účtu?",
+            )}
+            confirmText="Odpojit"
+            cancelText="Zrušit"
+            loading={state.platformLoading}
+            onClose={() => setDisconnectingPlatform(null)}
+            onConfirm={async () => {
+                if(disconnectingPlatform === null) return;
+                await state.disconnectPlatform(disconnectingPlatform);
+                setDisconnectingPlatform(null);
+            }}
+        />
 
         <form className={styles.password} onSubmit={event => {
             event.preventDefault();

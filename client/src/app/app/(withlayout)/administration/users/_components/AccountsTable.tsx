@@ -48,7 +48,10 @@ export function AccountsTable({accounts, loading = false, loggedAccountId, sort,
                         <td>
                             <div className={style.userCell}>
                                 <Avatar name={account.fullName} src={account.avatarUrl} size="28px" />
-                                <span>{account.fullName}</span>
+                                <span>
+                                    {account.fullName}
+                                    {loggedAccountId === account.id && <small className={style.currentAccountLabel}>({account.communicationStyle === "Informal" ? "Ty" : "Vy"})</small>}
+                                </span>
                             </div>
                         </td>
                         <td>{account.email}</td>
