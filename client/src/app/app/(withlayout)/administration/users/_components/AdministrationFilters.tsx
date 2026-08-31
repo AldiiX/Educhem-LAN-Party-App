@@ -1,8 +1,10 @@
 import style from "./AdministrationFilters.module.scss";
 import {FilterKey, FilterOption} from "../../_hooks/types";
+import {CollapsibleFilterPanel} from "../../_components/CollapsibleFilterPanel";
 
 type AdministrationFiltersProps = {
     activeFilterCount: number;
+    collapsed: boolean;
     filters: Record<FilterKey, string[]>;
     filterOptions: {
         accountType: FilterOption[];
@@ -12,39 +14,41 @@ type AdministrationFiltersProps = {
     };
     hasSearch: boolean;
     onClear: () => void;
+    onCollapseToggle: () => void;
     onToggle: (key: FilterKey, value: string) => void;
 };
 
-export function AdministrationFilters({activeFilterCount, filters, filterOptions, hasSearch, onClear, onToggle}: AdministrationFiltersProps) {
-    return <section className={style.filterPanel}>
-        <div className={style.filterHeader}>
-            <div>
-                <h3>Filtry</h3>
-                <p>{activeFilterCount > 0 ? `${activeFilterCount} aktivní` : "Bez omezení"}</p>
-            </div>
-            <button type="button" onClick={onClear} disabled={activeFilterCount === 0 && !hasSearch}>Vyčistit</button>
-        </div>
+export function AdministrationFilters({activeFilterCount, collapsed, filters, filterOptions, hasSearch, onClear, onCollapseToggle, onToggle}: AdministrationFiltersProps) {
+    return <CollapsibleFilterPanel
+        activeFilterCount={activeFilterCount}
+        collapsed={collapsed}
+        contentId="administration-users-filters"
+        hasSearch={hasSearch}
+        onClear={onClear}
+        onToggle={onCollapseToggle}
+    >
+        <div className={style.filterGrid}>
+            <FilterGroup title="Typ účtu" options={filterOptions.accountType} selected={filters.accountType} onToggle={value => onToggle("accountType", value)} />
+            <FilterGroup title="Pohlaví" options={filterOptions.gender} selected={filters.gender} onToggle={value => onToggle("gender", value)} />
+            <FilterGroup title="Třída" options={filterOptions.class} selected={filters.class} onToggle={value => onToggle("class", value)} />
+            <FilterGroup title="Škola" options={filterOptions.school} selected={filters.school} onToggle={value => onToggle("school", value)} />
 
-        <FilterGroup title="Typ účtu" options={filterOptions.accountType} selected={filters.accountType} onToggle={value => onToggle("accountType", value)} />
-        <FilterGroup title="Pohlaví" options={filterOptions.gender} selected={filters.gender} onToggle={value => onToggle("gender", value)} />
-        <FilterGroup title="Třída" options={filterOptions.class} selected={filters.class} onToggle={value => onToggle("class", value)} />
-        <FilterGroup title="Škola" options={filterOptions.school} selected={filters.school} onToggle={value => onToggle("school", value)} />
-
-        <div className={style.filterGroup}>
-            <p>Rezervace</p>
-            <div className={style.segmented}>
-                {[
-                    ["all", "Vše"],
-                    ["enabled", "Povolené"],
-                    ["disabled", "Zakázané"],
-                ].map(([value, label]) => (
-                    <button key={value} type="button" className={filters.reservations.includes(value) ? style.activeChip : ""} onClick={() => onToggle("reservations", value)}>
-                        {label}
-                    </button>
-                ))}
+            <div className={style.filterGroup}>
+                <p>Rezervace</p>
+                <div className={style.segmented}>
+                    {[
+                        ["all", "Vše"],
+                        ["enabled", "Povolené"],
+                        ["disabled", "Zakázané"],
+                    ].map(([value, label]) => (
+                        <button key={value} type="button" className={filters.reservations.includes(value) ? style.activeChip : ""} onClick={() => onToggle("reservations", value)}>
+                            {label}
+                        </button>
+                    ))}
+                </div>
             </div>
         </div>
-    </section>
+    </CollapsibleFilterPanel>
 }
 
 function FilterGroup({title, options, selected, onToggle}: {title: string, options: FilterOption[], selected: string[], onToggle: (value: string) => void}) {

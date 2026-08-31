@@ -6,9 +6,18 @@ import {AdministrationFilters} from "./_components/AdministrationFilters";
 import {AccountsTable} from "./_components/AccountsTable";
 import {AccountModals} from "./_components/AccountModals";
 import {Pagination} from "../_components/Pagination";
+import {useRememberedCollapseState} from "@/hooks/useRememberedCollapseState";
 
-export function Users() {
+type UsersProps = {
+    initialFiltersCollapsed?: boolean;
+};
+
+export function Users({initialFiltersCollapsed = false}: UsersProps) {
     const administration = useAdministrationAccounts();
+    const [filtersCollapsed, toggleFiltersCollapsed] = useRememberedCollapseState(
+        initialFiltersCollapsed,
+        "administrationUsersFiltersCollapsed",
+    );
 
     if(administration.accountsError) {
         return <>
@@ -32,10 +41,12 @@ export function Users() {
 
         <AdministrationFilters
             activeFilterCount={administration.activeFilterCount}
+            collapsed={filtersCollapsed}
             filters={administration.filters}
             filterOptions={administration.filterOptions}
             hasSearch={administration.search.length > 0}
             onClear={administration.clearFilters}
+            onCollapseToggle={toggleFiltersCollapsed}
             onToggle={administration.toggleFilter}
         />
 

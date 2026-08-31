@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useState} from "react";
-import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {usePathname, useSearchParams} from "next/navigation";
 
 type UpdateQueryOptions = {
     resetPage?: boolean;
@@ -7,7 +7,6 @@ type UpdateQueryOptions = {
 
 export function useUrlQueryState() {
     const pathname = usePathname();
-    const router = useRouter();
     const searchParams = useSearchParams();
 
     const updateQuery = useCallback((update: (params: URLSearchParams) => void, options: UpdateQueryOptions = {}) => {
@@ -16,8 +15,8 @@ export function useUrlQueryState() {
         if(options.resetPage !== false) params.delete("page");
 
         const query = params.toString();
-        router.replace(query ? `${pathname}?${query}` : pathname, {scroll: false});
-    }, [pathname, router, searchParams]);
+        window.history.replaceState(null, "", query ? `${pathname}?${query}` : pathname);
+    }, [pathname, searchParams]);
 
     return {searchParams, updateQuery};
 }

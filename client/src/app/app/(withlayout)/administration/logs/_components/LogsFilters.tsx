@@ -1,6 +1,9 @@
 import style from "./LogsFilter.module.scss";
+import {CollapsibleFilterPanel} from "../../_components/CollapsibleFilterPanel";
 
 type LogFiltersProps = {
+    activeFilterCount: number;
+    collapsed: boolean;
     logTypes: string[];
     exactTypes: string[];
     selectedLogTypes: Set<string>;
@@ -16,10 +19,13 @@ type LogFiltersProps = {
     onDateFromChange: (value: string) => void;
     onDateToChange: (value: string) => void;
     onActorIdChange: (value: string) => void;
+    onCollapseToggle: () => void;
     onTargetIdChange: (value: string) => void;
 };
 
 export function LogsFilters({
+    activeFilterCount,
+    collapsed,
     logTypes,
     exactTypes,
     selectedLogTypes,
@@ -35,9 +41,16 @@ export function LogsFilters({
     onDateFromChange,
     onDateToChange,
     onActorIdChange,
+    onCollapseToggle,
     onTargetIdChange,
 }: LogFiltersProps) {
-    return <section className={style.logsFilters}>
+    return <CollapsibleFilterPanel
+        activeFilterCount={activeFilterCount}
+        collapsed={collapsed}
+        contentId="administration-logs-filters"
+        onToggle={onCollapseToggle}
+    >
+        <div className={style.logsFilters}>
         <div className={style.logsFilterGroup}>
             <p className={style.logsFilterLabel}>Typ logu:</p>
             <div className={style.logsCheckboxes}>
@@ -123,5 +136,6 @@ export function LogsFilters({
                 </label>
             </div>
         </div>
-    </section>;
+        </div>
+    </CollapsibleFilterPanel>;
 }

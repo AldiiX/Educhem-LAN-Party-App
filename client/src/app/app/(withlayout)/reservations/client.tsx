@@ -20,7 +20,7 @@ import {ProfileHoverCard, closeProfileHoverImmediate} from "@/components/Profile
 import {useReservationStatus} from "@/app/app/(withlayout)/reservations/_hooks/useReservationStatus";
 import {ReservationCountdownStatus} from "@/app/app/(withlayout)/reservations/_components/ReservationCountdownStatus";
 import {useLiveReservationsEnabled} from "@/app/app/(withlayout)/reservations/_hooks/useLiveReservationsEnabled";
-import {useRememberedCollapseState} from "@/app/app/(withlayout)/reservations/_hooks/useRememberedCollapseState";
+import {useRememberedCollapseState} from "@/hooks/useRememberedCollapseState";
 import {useReservationStats} from "@/app/app/(withlayout)/reservations/_hooks/useReservationStats";
 
 export const maps = [

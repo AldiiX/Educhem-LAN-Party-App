@@ -10,8 +10,13 @@ import {LogsTable} from "./_components/LogsTable";
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {hasRoleAtLeast} from "@/lib/roles";
 import {Pagination} from "../_components/Pagination";
+import {useRememberedCollapseState} from "@/hooks/useRememberedCollapseState";
 
-export function Logs() {
+type LogsProps = {
+    initialFiltersCollapsed?: boolean;
+};
+
+export function Logs({initialFiltersCollapsed = false}: LogsProps) {
     const {account} = useAuth();
     const router = useRouter();
     const canManageApp = hasRoleAtLeast(account, "Admin");
@@ -23,6 +28,16 @@ export function Logs() {
     }, [canManageApp, router]);
 
     const logsAdministration = useLogsAdministration();
+    const [filtersCollapsed, toggleFiltersCollapsed] = useRememberedCollapseState(
+        initialFiltersCollapsed,
+        "administrationLogsFiltersCollapsed",
+    );
+    const activeFilterCount = logsAdministration.selectedLogTypes.size
+        + logsAdministration.selectedExactTypes.size
+        + Number(Boolean(logsAdministration.dateFrom))
+        + Number(Boolean(logsAdministration.dateTo))
+        + Number(Boolean(logsAdministration.actorIdFilter))
+        + Number(Boolean(logsAdministration.targetIdFilter));
 
     if (!canManageApp) {
         return null;
@@ -61,6 +76,8 @@ export function Logs() {
 
         {hasRoleAtLeast(logsAdministration.account, "Admin") && (
             <LogsFilters
+                activeFilterCount={activeFilterCount}
+                collapsed={filtersCollapsed}
                 logTypes={logsAdministration.uniqueLogTypes}
                 exactTypes={logsAdministration.uniqueExactTypes}
                 selectedLogTypes={logsAdministration.selectedLogTypes}
@@ -76,6 +93,7 @@ export function Logs() {
                 onDateFromChange={logsAdministration.setDateFrom}
                 onDateToChange={logsAdministration.setDateTo}
                 onActorIdChange={logsAdministration.setActorIdFilter}
+                onCollapseToggle={toggleFiltersCollapsed}
                 onTargetIdChange={logsAdministration.setTargetIdFilter}
             />
         )}
