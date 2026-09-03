@@ -1,0 +1,43 @@
+@model server.Models.EmailChangeModel
+@{
+    Layout = "/Views/Emails/_EmailLayout.cshtml";
+    ViewData["Title"] = Model.Message.Completed ? "E-mail byl změněn" : "Potvrzení změny e-mailu";
+    ViewData["Preheader"] = Model.Message.Completed
+        ? "Nový e-mail je připravený k přihlášení. Heslo zůstává stejné."
+        : "Změnu přihlašovacího e-mailu dokončí potvrzení obou adres.";
+}
+<p style="margin:0 0 12px;color:#171717;line-height:24px">@Model.Greeting,</p>
+<p style="margin:0 0 20px;color:#45413b;line-height:24px">@(Model.Message.Completed
+    ? "Změna přihlašovacího e-mailu je dokončená."
+    : "Změna e-mailu čeká na potvrzení původní i nové adresy. Pořadí potvrzení je libovolné.")</p>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;table-layout:fixed;margin:0 0 20px;border:1px solid #e5e2da;border-radius:8px">
+    <tr><td bgcolor="#f7f6f2" style="padding:14px 16px;background-color:#f7f6f2;border-bottom:1px solid #e5e2da">
+        <p style="margin:0 0 4px;font-size:12px;line-height:18px;color:#625c50">Původní e-mail</p>
+        <p style="margin:0;font-size:16px;line-height:24px;font-weight:700;color:#171717;word-break:break-all">@Model.Message.OldEmail</p>
+    </td></tr>
+    <tr><td bgcolor="#fff8e6" style="padding:14px 16px;background-color:#fff8e6">
+        <p style="margin:0 0 4px;font-size:12px;line-height:18px;color:#625c50">Nový e-mail</p>
+        <p style="margin:0;font-size:16px;line-height:24px;font-weight:700;color:#171717;word-break:break-all">@Model.Message.NewEmail</p>
+    </td></tr>
+</table>
+@if (Model.Message.Completed) {
+    <p style="margin:0 0 12px;color:#171717;line-height:24px"><strong style="color:#171717">@(Model.IsFormal ? "Přihlaste se novou adresou a stejným heslem." : "Přihlas se novou adresou a stejným heslem.")</strong></p>
+    <p style="margin:0 0 20px;color:#45413b;font-size:13px;line-height:21px">Ostatní zařízení se odhlásí po vypršení aktuálního přihlášení, přibližně do 10 minut.</p>
+    <p style="margin:0;padding:14px 16px;border:1px solid #efc9c3;border-radius:8px;background-color:#fff4f2;color:#85251b;font-size:13px;line-height:21px">@(Model.IsFormal ? "Pokud jste tuto změnu neprovedli, kontaktujte ihned administrátora." : "Pokud jsi tuto změnu neprovedl/a, kontaktuj ihned administrátora.")</p>
+} else {
+    <p style="margin:0 0 16px;color:#45413b;line-height:24px">@(Model.IsFormal ? "Tlačítkem otevřete stránku pro potvrzení této adresy." : "Tlačítkem otevři stránku pro potvrzení této adresy.")</p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:0 0 12px">
+        <tr><td align="center" bgcolor="#ffb303" style="padding:14px 20px;background-color:#ffb303;border-radius:8px"><a href="@Model.Message.ConfirmLink" style="display:block;color:white;text-decoration:none;font-size:16px;line-height:22px;font-weight:700">Potvrdit tuto adresu</a></td></tr>
+    </table>
+    <p style="margin:0 0 8px;text-align:center;color:#45413b;font-size:13px;line-height:20px">Platnost do <strong style="color:#171717">@Model.Expires</strong> (Praha)</p>
+    <p style="margin:0 0 24px;text-align:center;color:#625c50;font-size:12px;line-height:19px">Samotné otevření odkazu nic nemění.<br>Do dokončení platí původní přihlašovací e-mail.</p>
+    <div style="border-top:1px solid #ebe8e0;padding-top:18px">
+        @if (Model.Message.CancelLink != null) {
+            <p style="margin:0 0 8px;color:#45413b;font-size:13px;line-height:21px">@(Model.IsFormal ? "Nežádali jste o změnu? Zrušte žádost a změňte si heslo." : "Nežádal/a jsi o změnu? Zruš žádost a změň si heslo.")</p>
+            <p style="margin:0 0 16px;font-size:13px;line-height:21px"><a href="@Model.Message.CancelLink" style="color:#a52a1d;font-weight:700;text-decoration:underline">Zrušit žádost o změnu</a></p>
+        } else {
+            <p style="margin:0 0 12px;color:#45413b;font-size:13px;line-height:21px">@(Model.IsFormal ? "Pokud jste o změnu nepožádali, tento e-mail nepotvrzujte." : "Pokud jsi o změnu nepožádal/a, tento e-mail nepotvrzuj.")</p>
+        }
+        <p style="margin:0;color:#625c50;font-size:12px;line-height:19px">@(Model.IsFormal ? "Nemáte přístup k původnímu e-mailu? Kontaktujte administrátora." : "Nemáš přístup k původnímu e-mailu? Kontaktuj administrátora.")</p>
+    </div>
+}

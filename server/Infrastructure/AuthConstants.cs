@@ -56,6 +56,8 @@ public sealed class JwtAuthConfiguration {
 public static class AuthCookieNames {
 	public const string DevelopmentAccess = "edlp_access";
 	public const string ProductionAccess = "__Host-edlp_access";
+	public const string DevelopmentAccessExpires = "edlp_access_expires";
+	public const string ProductionAccessExpires = "__Host-edlp_access_expires";
 	public const string DevelopmentRefresh = "edlp_refresh";
 	public const string ProductionRefresh = "__Host-edlp_refresh";
 	public const string DevelopmentCsrf = "edlp_csrf";
@@ -64,6 +66,7 @@ public static class AuthCookieNames {
 	public const string ProductionAntiforgery = "__Host-edlp_antiforgery";
 
 	public static string Access => Program.DevelopmentMode ? DevelopmentAccess : ProductionAccess;
+	public static string AccessExpires => Program.DevelopmentMode ? DevelopmentAccessExpires : ProductionAccessExpires;
 	public static string Refresh => Program.DevelopmentMode ? DevelopmentRefresh : ProductionRefresh;
 	public static string Csrf => Program.DevelopmentMode ? DevelopmentCsrf : ProductionCsrf;
 	public static string Antiforgery => Program.DevelopmentMode ? DevelopmentAntiforgery : ProductionAntiforgery;

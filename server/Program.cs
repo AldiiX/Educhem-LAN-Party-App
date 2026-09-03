@@ -17,6 +17,8 @@ using server.Services.OAuth;
 using StackExchange.Redis;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace server;
 
@@ -160,6 +162,14 @@ public static class Program {
 
         builder.Services.AddSingleton<AppCacheService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
+		builder.Services.AddScoped<EmailChangeService>();
+		builder.Services.AddScoped<IEmailChangeMailer, EmailChangeMailer>();
+		builder.Services.AddRateLimiter(options => {
+			options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+			options.AddPolicy("email-change", context => RateLimitPartition.GetFixedWindowLimiter(
+				context.User.FindFirstValue("sub") ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+				_ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+		});
         builder.Services.AddScoped<ReservationCacheService>();
         builder.Services.AddScoped<IDbLoggerService, DbLoggerService>();
         builder.Services.AddScoped<IAppSettingsService, AppSettingsService>();
@@ -196,6 +206,7 @@ public static class Program {
         Application.UseAuthentication();
 		Application.UseMiddleware<AntiforgeryValidationMiddleware>();
         Application.UseAuthorization();
+		Application.UseRateLimiter();
 
         // pridani X-Powered-By
         Application.Use(async (context, next) => {
@@ -204,7 +215,11 @@ public static class Program {
         });
 
         Application.MapControllers();
-        Application.MapHub<ReservationsHub>("/hubs/reservations");
+        Application.MapHub<ReservationsHub>("/hubs/reservations", options => options.CloseOnAuthenticationExpiration = true)
+            .RequireAuthorization(policy => policy.RequireAssertion(context =>
+                context.User.Identity?.IsAuthenticated == true
+                || context.Resource is HttpContext httpContext
+                    && httpContext.Request.Query["requireAuthentication"] != "true"));
 
         //app.MapFallbackToFile("/index.html");
 

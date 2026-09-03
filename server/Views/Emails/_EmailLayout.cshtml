@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f3ef;color:#171717;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;color:#f4f3ef;font-size:1px;line-height:1px">@ViewData["Preheader"]</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f4f3ef" style="width:100%;background-color:#f4f3ef">
+        <tr>
+            <td align="center" style="padding:24px 12px">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="width:100%;max-width:600px;background-color:#ffffff;color:#171717;border:1px solid #e5e2da;border-radius:12px">
+                    <tr>
+                        <td align="center" bgcolor="#ffb303" style="padding:28px 24px;background-color:#ffb303;border-radius:12px 12px 0 0;font-family:Arial,Helvetica,sans-serif;color:#ffffff;text-align:center">
+                            <p style="margin:0;font-size:28px;line-height:36px;font-weight:800;color:#ffffff">EDUCHEM LAN Party</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:24px 24px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#171717;overflow-wrap:anywhere;word-wrap:break-word">
+                            <h1 style="margin:0 0 22px;font-size:26px;line-height:32px;font-weight:700;color:#171717">@ViewData["Title"]</h1>
+                            @RenderBody()
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:18px 24px;border-top:1px solid #ebe8e0;font-family:Arial,Helvetica,sans-serif;color:#625c50">
+                            <p style="margin:0;font-size:12px;line-height:18px;color:#625c50">EDUCHEM LAN Party &middot; @DateTime.UtcNow.Year</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

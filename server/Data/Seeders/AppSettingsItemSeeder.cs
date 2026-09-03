@@ -12,7 +12,6 @@ internal static class AppSettingsItemSeeder {
 
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        await db.Database.MigrateAsync();
 
         var now = DateTime.UtcNow;
 

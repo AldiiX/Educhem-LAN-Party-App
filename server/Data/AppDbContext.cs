@@ -9,6 +9,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
 	public DbSet<Account> Accounts { get; set; }
 	public DbSet<AuthSession> AuthSessions { get; set; }
+	public DbSet<EmailChangeRequest> EmailChangeRequests { get; set; }
+	public DbSet<EmailChangeAttempt> EmailChangeAttempts { get; set; }
+	public DbSet<AccountEmailToken> AccountEmailTokens { get; set; }
 	public DbSet<OAuthConnection> OAuthConnections { get; set; }
 	public DbSet<Enrollment> Enrollments { get; set; }
 	public DbSet<School> Schools { get; set; }
@@ -31,8 +34,31 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 	
 	public DbSet<AppSettingsItem> AppSettings { get; set; }
 
+	/// <summary>
+	/// nacte ucet bez automatickejch relaci a zamkne jeho radek do konce aktualni transakce
+	/// volajici musi predem otevrit transakci a po dokonceni prace ji potvrdit nebo vratit zpatky
+	/// </summary>
+	/// <param name="accountId">id uctu, kterej se ma zamknout</param>
+	/// <param name="ct">token pro zruseni operace</param>
+	/// <param name="tracking">jestli ma EF sledovat zmeny nactenyho uctu</param>
+	/// <returns>zamcenej ucet, nebo null pokud neexistuje</returns>
+	/// <exception cref="InvalidOperationException">pokud neni otevrena transakce na tomhle kontextu</exception>
+	public Task<Account?> GetAccountForUpdateAsync(Guid accountId, CancellationToken ct = default, bool tracking = true) {
+		if (Database.CurrentTransaction == null)
+			throw new InvalidOperationException("GetAccountForUpdateAsync requires an active transaction.");
+
+		var query = Accounts
+			.FromSqlInterpolated($"SELECT * FROM public.\"Accounts\" WHERE \"Id\" = {accountId} FOR UPDATE")
+			.IgnoreAutoIncludes();
+		return (tracking ? query : query.AsNoTracking()).FirstOrDefaultAsync(ct);
+	}
+
 	public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
 		var nowUtc = DateTime.UtcNow;
+		var securityChanges = ChangeTracker.Entries<Account>()
+			.Where(entry => entry.State == EntityState.Modified
+				&& (entry.Property(a => a.Email).IsModified || entry.Property(a => a.PasswordHash).IsModified))
+			.ToList();
 
 		foreach (var entry in ChangeTracker.Entries<IAuditable>()) {
 			if (entry.State == EntityState.Added) {
@@ -45,11 +71,38 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 			}
 		}
 
-		return await base.SaveChangesAsync(cancellationToken);
+		if (securityChanges.Count == 0) return await base.SaveChangesAsync(cancellationToken);
+
+		// vsechny zmeny prihlasovacich udaju maji stejny atomicky uklid, vcetne zasahu admina
+		await using var transaction = Database.CurrentTransaction == null
+			? await Database.BeginTransactionAsync(cancellationToken) : null;
+		var result = await base.SaveChangesAsync(cancellationToken);
+		foreach (var entry in securityChanges) {
+			var accountId = entry.Entity.Id;
+			await AccountEmailTokens.Where(token => token.AccountId == accountId).ExecuteDeleteAsync(cancellationToken);
+			var pending = await EmailChangeRequests.Where(r => r.AccountId == accountId
+				&& r.CancelledAtUtc == null && r.CompletedAtUtc == null).ToListAsync(cancellationToken);
+			foreach (var request in pending) {
+				request.CancelledAtUtc = nowUtc;
+				LogEntries.Add(new LogEntry {
+					Id = 0,
+					Type = LogType.Info, ExactType = "email-change-cancel", Date = nowUtc,
+					TargetId = accountId.ToString(),
+					Message = $"Zmena udaju zrusila zadost: {request.OldEmail} -> {request.NewEmail}.",
+				});
+			}
+			await AuthSessions.Where(s => s.AccountId == accountId && s.RevokedAtUtc == null)
+				.ExecuteUpdateAsync(update => update.SetProperty(s => s.RevokedAtUtc, nowUtc), cancellationToken);
+		}
+		await base.SaveChangesAsync(cancellationToken);
+		if (transaction != null) await transaction.CommitAsync(cancellationToken);
+		return result;
 	}
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);
+		modelBuilder.Entity<Account>().ToTable(table => table.HasCheckConstraint(
+			"CK_Accounts_Email_Normalized", "\"Email\" = lower(btrim(\"Email\"))"));
 
 		modelBuilder.Entity<Account>()
 			.HasOne(account => account.Enrollment)

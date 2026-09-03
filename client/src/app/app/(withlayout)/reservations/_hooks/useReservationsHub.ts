@@ -4,8 +4,10 @@ import {useCallback, useMemo, useRef, useState} from "react";
 import {useSignalRHub} from "@/hooks/useSignalRHub";
 import {Reservation, ReservationSchema} from "@/schemas/ReservationSchema";
 import toast from "react-hot-toast";
+import {useAuth} from "@/app/app/_providers/AuthProvider";
 
 export function useReservationsHub() {
+    const {account} = useAuth();
     const [connectedIds, setConnectedIds] = useState<number | null>(null);
     const [reservations, setReservations] = useState<Reservation[] | null>(null);
     const [isReservationMutationPending, setIsReservationMutationPending] = useState(false);
@@ -65,6 +67,7 @@ export function useReservationsHub() {
     const hub = useSignalRHub("/hubs/reservations", {
         // baseUrl: BACKEND_URL,
         handlers,
+        requireAuthentication: account !== null,
         logLevel: process.env.NODE_ENV === "development"
             ? 2
             : 3,

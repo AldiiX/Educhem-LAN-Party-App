@@ -70,6 +70,7 @@ export default function() {
                     event.preventDefault();
                     submitLogin().then();
                 }}>
+                    {searchParams.get("email-changed") === "1" && <p role="status">E-mail byl změněn. Přihlaste se novým e-mailem a stejným heslem.</p>}
                     <div>
                         <p>E-mail</p>
                         <input type="text" placeholder="karel@honsig.eu" onChange={(e) => setEmail(e.currentTarget.value)} />

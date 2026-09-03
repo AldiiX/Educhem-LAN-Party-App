@@ -409,6 +409,8 @@ Hodnotu `APPLE_PRIVATE_KEY_BASE64` vytvoř z obsahu staženého `.p8` klíče, n
 
 Projekt používá EF Core migrace v `server/Migrations`.
 
+Migrace se při startu aplikace automaticky neaplikují. Před spuštěním nové verze je potřeba aktualizovat databázi ručně. Startup pouze doplňuje chybějící výchozí nastavení do již existujícího schématu.
+
 Vytvoření nebo aktualizace databáze:
 
 ```bash
@@ -427,6 +429,8 @@ Aktuální model obsahuje hlavně:
 
 - `Accounts` pro uživatelské účty, role, profily a povolení rezervací.
 - `AuthSessions` pro refresh sessions, jejich expiraci a revokaci přihlášených zařízení.
+- `EmailChangeRequests` pro čekající změnu e-mailu a `EmailChangeAttempts` pro limity žádostí a odesílání.
+- `AccountEmailLinks` (entita `AccountEmailToken`) pro jednorázové přihlašovací a resetovací tokeny, které změna hesla nebo e-mailu zneplatní.
 - `OAuthConnections` pro propojené Discord, Google, GitHub, Steam a připravené Apple účty.
 - `Enrollments` a `Schools` pro školu a volitelnou třídu zobrazovanou u profilu.
 - `Achievements`, `Badges`, `AccountAchievements` a `AccountBadges` pro achievement systém.
@@ -557,6 +561,12 @@ Hub běží na:
 ```text
 /hubs/reservations
 ```
+
+Access JWT zůstává v HttpOnly cookie. Samostatná čitelná cookie `edlp_access_expires` (v produkci `__Host-edlp_access_expires`) obsahuje pouze čas expirace v unixových sekundách a slouží klientovi k naplánování obnovy. Při odhlášení se maže společně s tokeny; sama o sobě nepovoluje přístup.
+
+Server ukončí přihlášené spojení po expiraci access tokenu. Před prvním připojením i automatickým reconnectem přihlášený klient zkontroluje čas expirace. Refresh volá jen při chybějícím údaji, zbývající platnosti nejvýše 15 sekund nebo odpovědi `401` při vyjednání spojení. Platný token se při běžném reconnectu nemění. Souběžné obnovy přes API a SignalR v jedné kartě sdílejí jeden požadavek.
+
+Přihlášený klient přidává `requireAuthentication=true`, takže chybějící nebo neplatný JWT vede k `401` místo tichého připojení jako anonym. Neplatná refresh session ukončí opakování a zobrazí odkaz na přihlášení; síťové chyby používají běžné opakování spojení. Anonymní návštěvníci refresh nevolají. Každé nové spojení dostane aktuální snapshot rezervací.
 
 Serverové metody volané klientem:
 

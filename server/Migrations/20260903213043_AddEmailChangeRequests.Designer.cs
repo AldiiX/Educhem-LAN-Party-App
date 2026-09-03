@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using server.Data;
@@ -12,9 +13,11 @@ using server.Data.Entities;
 namespace server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260903213043_AddEmailChangeRequests")]
+    partial class AddEmailChangeRequests
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -61,7 +64,6 @@ namespace server.Migrations
                         .HasDefaultValueSql("now()");
 
                     b.Property<string>("Email")
-                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
@@ -89,11 +91,21 @@ namespace server.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(96)
+                        .HasColumnType("character varying(96)")
+                        .HasComputedColumnSql("lower(btrim(\"Email\"))", true);
+
                     b.Property<string>("PasswordHash")
-                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
+
+                    b.Property<Guid>("SecurityStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .ValueGeneratedOnAdd()
@@ -102,13 +114,10 @@ namespace server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("NormalizedEmail")
                         .IsUnique();
 
-                    b.ToTable("Accounts", "public", t =>
-                        {
-                            t.HasCheckConstraint("CK_Accounts_Email_Normalized", "\"Email\" = lower(btrim(\"Email\"))");
-                        });
+                    b.ToTable("Accounts", "public");
                 });
 
             modelBuilder.Entity("server.Data.Entities.AccountAchievement", b =>
@@ -187,25 +196,6 @@ namespace server.Migrations
                         .IsUnique();
 
                     b.ToTable("AccountBadges", "achievements");
-                });
-
-            modelBuilder.Entity("server.Data.Entities.AccountEmailLink", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AccountId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("ExpiresAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AccountId");
-
-                    b.ToTable("AccountEmailLinks", "public");
                 });
 
             modelBuilder.Entity("server.Data.Entities.Achievement", b =>
@@ -365,6 +355,9 @@ namespace server.Migrations
 
                     b.Property<DateTime?>("RevokedAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SecurityStamp")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("UserAgent")
                         .HasMaxLength(512)
@@ -533,6 +526,9 @@ namespace server.Migrations
                     b.Property<string>("OldTokenHash")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("SecurityStamp")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -902,17 +898,6 @@ namespace server.Migrations
                     b.Navigation("Account");
 
                     b.Navigation("Badge");
-                });
-
-            modelBuilder.Entity("server.Data.Entities.AccountEmailLink", b =>
-                {
-                    b.HasOne("server.Data.Entities.Account", "Account")
-                        .WithMany()
-                        .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
                 });
 
             modelBuilder.Entity("server.Data.Entities.AttendanceEntry", b =>

@@ -1,8 +1,17 @@
 const csrfCookieNames = ["__Host-edlp_csrf", "edlp_csrf"] as const;
+const accessExpiresCookieNames = ["__Host-edlp_access_expires", "edlp_access_expires"] as const;
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 let csrfPromise: Promise<string> | null = null;
-let refreshPromise: Promise<boolean> | null = null;
+type RefreshResult = "refreshed" | "unauthorized" | "unavailable";
+let refreshPromise: Promise<RefreshResult> | null = null;
+
+export class AuthenticationRequiredError extends Error {
+    constructor() {
+        super("Přihlášení vypršelo. Přihlaste se znovu.");
+        this.name = "AuthenticationRequiredError";
+    }
+}
 
 function readCookie(names: readonly string[]) {
     if(typeof document === "undefined") return null;
@@ -69,21 +78,40 @@ function canRefresh(input: RequestInfo | URL) {
         && !url.includes("/api/v1/auth/csrf");
 }
 
-export async function refreshAccessToken() {
+async function refreshAccessTokenResult(): Promise<RefreshResult> {
     refreshPromise ??= (async () => {
         const response = await fetch("/api/v1/auth/refresh", {
             method: "POST",
             credentials: "include",
             cache: "no-store",
         });
-        if(!response.ok) return false;
+        if(response.status === 401) return "unauthorized" as const;
+        if(!response.ok) return "unavailable" as const;
         await getCsrfToken(true);
-        return true;
-    })().catch(() => false).finally(() => {
+        return "refreshed" as const;
+    })().catch(() => "unavailable" as const).finally(() => {
         refreshPromise = null;
     });
 
     return refreshPromise;
+}
+
+export async function refreshAccessToken() {
+    return await refreshAccessTokenResult() === "refreshed";
+}
+
+/**
+ * obnovi access token jen pri chybejici nebo blizky expiraci; cookie je jen hint pro klienta
+ * vraci true, kdyz probehl refresh; neplatna session a vypadek serveru maji odlisny chyby
+ */
+export async function ensureFreshAccessToken(force = false): Promise<boolean> {
+    const expiresAt = Number(readCookie(accessExpiresCookieNames)) * 1000;
+    if(!force && Number.isFinite(expiresAt) && expiresAt > Date.now() + 15_000) return false;
+
+    const result = await refreshAccessTokenResult();
+    if(result === "unauthorized") throw new AuthenticationRequiredError();
+    if(result !== "refreshed") throw new Error("Přihlášení teď nelze obnovit. Zkoušíme připojení znovu.");
+    return true;
 }
 
 export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {

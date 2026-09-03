@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
 using server.Data;
 using server.Data.Entities;
 using server.Dto;
@@ -18,13 +17,13 @@ using server.Services;
 namespace server.Controllers;
 
 [ApiController]
+[TypeFilter(typeof(AccountWriteExceptionFilter))]
 [Route("api/v1/account")]
 public sealed class AccountControllerV1(
 	IAuthService auth,
 	AppDbContext db,
 	IServiceProvider serviceProvider,
 	IDataProtectionProvider dataProtectionProvider,
-	IDistributedCache distributedCache,
 	ReservationCacheService reservationCache,
 	IDbLoggerService dbLogger,
 	IOAuthService oauth
@@ -197,6 +196,9 @@ public sealed class AccountControllerV1(
 
 		if(string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName) || string.IsNullOrWhiteSpace(request.Email))
 			return BadRequest("Missing required account fields.");
+		if (!AccountEmail.TryNormalize(request.Email, out var normalizedEmail)
+			|| await db.Accounts.AnyAsync(a => a.Email == normalizedEmail, ct))
+			return BadRequest("Tuto adresu nelze použít.");
 
 		var requestedAccountType = request.AccountType ?? AccountType.Student;
 		if(!CanManageRole(user.Value.Role, requestedAccountType))
@@ -210,7 +212,7 @@ public sealed class AccountControllerV1(
 			Id = Guid.Empty,
 			FirstName = request.FirstName.Trim(),
 			LastName = request.LastName.Trim(),
-			Email = request.Email.Trim(),
+			Email = normalizedEmail,
 			PasswordHash = AuthService.HashPassword(password),
 			Gender = request.Gender,
 			AccountType = requestedAccountType,
@@ -276,7 +278,13 @@ public sealed class AccountControllerV1(
 
 		if(!string.IsNullOrWhiteSpace(request.FirstName)) account.FirstName = request.FirstName.Trim();
 		if(!string.IsNullOrWhiteSpace(request.LastName)) account.LastName = request.LastName.Trim();
-		if(!string.IsNullOrWhiteSpace(request.Email)) account.Email = request.Email.Trim();
+		var previousEmail = account.Email;
+		if (!string.IsNullOrWhiteSpace(request.Email)) {
+			if (!AccountEmail.TryNormalize(request.Email, out var normalizedEmail)
+				|| await db.Accounts.AnyAsync(a => a.Id != id && a.Email == normalizedEmail, ct))
+				return BadRequest("Tuto adresu nelze použít.");
+			account.Email = normalizedEmail;
+		}
 
 		account.Gender = request.Gender;
 		account.AccountType = requestedAccountType;
@@ -311,10 +319,12 @@ public sealed class AccountControllerV1(
 		}
 
 		await db.SaveChangesAsync(ct);
-		if(passwordForEmail != null) await auth.RevokeAllSessionsAsync(account.Id, ct);
+		if(passwordForEmail != null || previousEmail != account.Email) await auth.RevokeAllSessionsAsync(account.Id, ct);
 		reservationCache.InvalidateReservations();
 
 		var updated = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == account.Id, ct);
+		if (previousEmail != updated.Email) await dbLogger.LogInfoAsync(
+			$"Admin zmenil email: {previousEmail} -> {updated.Email}.", "email-change-admin", user.Value.Id, updated.Id.ToString(), ct);
 		var emailSent = false;
 		if(request.SendLoginCredentialsEmail == true && passwordForEmail != null) {
 			emailSent = await SendCredentialsEmailAsync(
@@ -506,10 +516,12 @@ public sealed class AccountControllerV1(
 			return BadRequest("Missing email.");
 
 		var email = request.Email.Trim();
-		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Email.ToLower() == email.ToLower(), ct);
+		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Email == email.ToLower(), ct);
 		if(account == null) return Ok(new PasswordResetResponse(true));
 
-		var token = CreatePasswordResetToken(account);
+		var token = new PasswordResetToken(account.Id, account.PasswordHash, DateTime.UtcNow, Guid.NewGuid(), account.Email);
+		if (!await RegisterEmailTokenAsync(account, token.TokenId, token.CreatedAtUtc.Add(PasswordResetTokenLifetime), ct))
+			return Ok(new PasswordResetResponse(true));
 		var resetLink = GetPasswordResetLink(token);
 
 		var emailSent = await SendPasswordResetLinkEmailAsync(
@@ -554,13 +566,17 @@ public sealed class AccountControllerV1(
 		if(DateTime.UtcNow - resetToken.CreatedAtUtc > PasswordResetTokenLifetime)
 			return BadRequest("Reset token expired.");
 
-		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == resetToken.AccountId, ct);
+		await using var transaction = await db.Database.BeginTransactionAsync(ct);
+		var account = await db.GetAccountForUpdateAsync(resetToken.AccountId, ct);
 		if(account == null) return BadRequest("Invalid reset token.");
-		if(account.PasswordHash != resetToken.PasswordHash)
+		if(account.PasswordHash != resetToken.PasswordHash || account.Email != resetToken.Email
+			|| !await db.AccountEmailTokens.AnyAsync(token => token.Id == resetToken.TokenId
+				&& token.AccountId == account.Id && token.ExpiresAtUtc > DateTime.UtcNow, ct))
 			return BadRequest("Reset token expired.");
 
 		account.PasswordHash = AuthService.HashPassword(request.NewPassword);
 		await db.SaveChangesAsync(ct);
+		await transaction.CommitAsync(ct);
 		await auth.RevokeAllSessionsAsync(account.Id, ct);
 
 		await dbLogger.LogInfoAsync(
@@ -579,22 +595,16 @@ public sealed class AccountControllerV1(
 		var loginToken = ReadLoginLinkToken(token);
 		if(loginToken == null) return Redirect("/app/login");
 		if(DateTime.UtcNow - loginToken.CreatedAtUtc > LoginLinkTokenLifetime) return Redirect("/app/login");
-		if(await distributedCache.GetStringAsync(GetUsedLoginLinkCacheKey(loginToken.TokenId), ct) != null) return Redirect("/app/login");
-
-		var account = await db.Accounts
-			.AsNoTracking()
-			.FirstOrDefaultAsync(a => a.Id == loginToken.AccountId, ct);
-		if(account == null || account.PasswordHash != loginToken.PasswordHash) return Redirect("/app/login");
+		await using var transaction = await db.Database.BeginTransactionAsync(ct);
+		var account = await db.GetAccountForUpdateAsync(loginToken.AccountId, ct, tracking: false);
+		if(account == null || account.PasswordHash != loginToken.PasswordHash || account.Email != loginToken.Email) return Redirect("/app/login");
+		var consumed = await db.AccountEmailTokens.Where(item => item.Id == loginToken.TokenId
+			&& item.AccountId == account.Id && item.ExpiresAtUtc > DateTime.UtcNow).ExecuteDeleteAsync(ct);
+		if (consumed != 1) return Redirect("/app/login");
 
 		var acc = await auth.SignInAsAsync(account.Id, false, ct);
 		if(acc == null) return Redirect("/app/login");
-
-		await distributedCache.SetStringAsync(
-			GetUsedLoginLinkCacheKey(loginToken.TokenId),
-			"1",
-			new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = LoginLinkTokenLifetime },
-			ct
-		);
+		await transaction.CommitAsync(ct);
 
 		return Redirect("/app");
 	}
@@ -632,8 +642,8 @@ public sealed class AccountControllerV1(
 	public sealed record ChangeMyPasswordRequest(string OldPassword, string NewPassword);
 	public sealed record ForgotPasswordRequest(string Email);
 	public sealed record ConfirmPasswordResetRequest(string Token, string NewPassword);
-	private sealed record PasswordResetToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc);
-	private sealed record LoginLinkToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc, string TokenId);
+	private sealed record PasswordResetToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc, Guid TokenId, string Email);
+	private sealed record LoginLinkToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc, Guid TokenId, string Email);
 
 	private static IOrderedQueryable<Account> OrderAccounts(IQueryable<Account> query, string? sort, string? direction) {
 		var descending = string.Equals(direction, "desc", StringComparison.OrdinalIgnoreCase);
@@ -776,7 +786,8 @@ public sealed class AccountControllerV1(
 		string? lastName,
 		Gender? gender
 	) {
-		var webLink = GetLoginLink(account);
+		var webLink = await GetLoginLinkAsync(account);
+		if (webLink == null) return false;
 		var model = new EmailUserRegisterModel(password, webLink, email, firstName, lastName, gender, account.CommunicationStyle);
 		var fallbackBody = $"Email: {email}\nHeslo: {password}\n{webLink}";
 		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
@@ -797,10 +808,6 @@ public sealed class AccountControllerV1(
 		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
 	}
 
-	private PasswordResetToken CreatePasswordResetToken(Account account) {
-		return new PasswordResetToken(account.Id, account.PasswordHash, DateTime.UtcNow);
-	}
-
 	private string GetPasswordResetLink(PasswordResetToken token) {
 		var protectedToken = passwordResetProtector.Protect(JsonSerializer.Serialize(token));
 		return BuildAbsoluteUrl($"/app/reset-password?token={Uri.EscapeDataString(protectedToken)}");
@@ -815,8 +822,9 @@ public sealed class AccountControllerV1(
 		}
 	}
 
-	private string GetLoginLink(Account account) {
-		var loginToken = new LoginLinkToken(account.Id, account.PasswordHash, DateTime.UtcNow, Guid.NewGuid().ToString("N"));
+	private async Task<string?> GetLoginLinkAsync(Account account) {
+		var loginToken = new LoginLinkToken(account.Id, account.PasswordHash, DateTime.UtcNow, Guid.NewGuid(), account.Email);
+		if (!await RegisterEmailTokenAsync(account, loginToken.TokenId, loginToken.CreatedAtUtc.Add(LoginLinkTokenLifetime), HttpContext.RequestAborted)) return null;
 		var protectedToken = loginLinkProtector.Protect(JsonSerializer.Serialize(loginToken));
 		return BuildAbsoluteUrl($"/api/v1/account/login-link?token={Uri.EscapeDataString(protectedToken)}");
 	}
@@ -830,8 +838,15 @@ public sealed class AccountControllerV1(
 		}
 	}
 
-	private static string GetUsedLoginLinkCacheKey(string tokenId) {
-		return $"login-link:{tokenId}";
+	private async Task<bool> RegisterEmailTokenAsync(Account account, Guid tokenId, DateTime expiresAtUtc, CancellationToken ct) {
+		await using var transaction = await db.Database.BeginTransactionAsync(ct);
+		var current = await db.GetAccountForUpdateAsync(account.Id, ct, tracking: false);
+		if (current == null || current.Email != account.Email || current.PasswordHash != account.PasswordHash) return false;
+		await db.AccountEmailTokens.Where(token => token.AccountId == account.Id && token.ExpiresAtUtc <= DateTime.UtcNow).ExecuteDeleteAsync(ct);
+		db.AccountEmailTokens.Add(new() { Id = tokenId, AccountId = account.Id, ExpiresAtUtc = expiresAtUtc });
+		await db.SaveChangesAsync(ct);
+		await transaction.CommitAsync(ct);
+		return true;
 	}
 
 	private static string BuildAbsoluteUrl(string pathAndQuery) {
