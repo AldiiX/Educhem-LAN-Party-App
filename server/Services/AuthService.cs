@@ -48,9 +48,11 @@ internal sealed class AuthService(
 			? normalized
 			: identifier.Trim().ToLowerInvariant();
 
-		var failureKey = $"login:failed:{normalizedIdentifier}";
+		var clientInfo = ClientInfoExtractor.Extract(http.HttpContext);
+		var clientIp = clientInfo.IpAddress ?? "unknown";
+		var failureKey = $"login:failed:{clientIp}:{normalizedIdentifier}";
 		if (cache.TryGetValue<int>(failureKey, out var failures) && failures >= 5) {
-			logger.LogWarning("Příliš mnoho neúspěšných pokusů o přihlášení k účtu {Email}", normalizedIdentifier);
+			logger.LogWarning("Příliš mnoho neúspěšných pokusů o přihlášení k účtu {Email} z IP {Ip}", normalizedIdentifier, clientIp);
 			return null;
 		}
 

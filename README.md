@@ -305,6 +305,8 @@ PSQL_DB_PASSWORD=edulp
 REDIS_IP=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=
+REDIS_KEY_PREFIX=edulp:
+# REDIS_DATABASE=0
 
 JWT_SECRET=vloz-sem-vygenerovanou-base64-hodnotu
 WEB_URL=http://localhost:3547
@@ -371,6 +373,8 @@ Backend načítá proměnné z `server/.env` přes `dotenv.net`.
 | `REDIS_IP` | Host Redis serveru |
 | `REDIS_PORT` | Port Redis serveru |
 | `REDIS_PASSWORD` | Redis heslo, může být prázdné |
+| `REDIS_KEY_PREFIX` | Prefix klíčů v Redisu (výchozí `edulp:`) pro izolaci od ostatních aplikací |
+| `REDIS_DATABASE` | Volitelný index logické databáze v Redisu (výchozí `0`), lze použít i alias `REDIS_DB` |
 | `JWT_SECRET` | Náhodný Base64 secret pro podepisování access JWT; po dekódování musí mít alespoň 32 bajtů |
 | `WEB_URL` | Pevný veřejný HTTP(S) origin aplikace pro emailové odkazy a OAuth callbacky |
 | `STEAM_WEB_API_KEY` | Steam Web API klíč pro načtení jména a avataru propojeného Steam účtu |

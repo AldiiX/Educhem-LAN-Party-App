@@ -52,13 +52,24 @@ public static class Program {
         var rport = ENV["REDIS_PORT"];
         var rpassword = ENV["REDIS_PASSWORD"];
 
+        var rawPrefix = (ENV.TryGetValue("REDIS_KEY_PREFIX", out var prefixVal) && !string.IsNullOrWhiteSpace(prefixVal)
+            ? prefixVal
+            : (ENV.TryGetValue("REDIS_PREFIX", out var legacyPrefix) && !string.IsNullOrWhiteSpace(legacyPrefix) ? legacyPrefix : "edulp")).Trim();
+        var redisPrefix = rawPrefix.EndsWith(':') ? rawPrefix : $"{rawPrefix}:";
+
         var config = new ConfigurationOptions {
             EndPoints = { $"{rhost}:{rport}" },
-            AbortOnConnectFail = false
+            AbortOnConnectFail = false,
+            ChannelPrefix = RedisChannel.Literal(redisPrefix)
         };
 
         if (rpassword != null!) {
             config.Password = rpassword;
+        }
+
+        if ((ENV.TryGetValue("REDIS_DATABASE", out var dbVal) || ENV.TryGetValue("REDIS_DB", out dbVal))
+            && int.TryParse(dbVal, out var defaultDb) && defaultDb >= 0) {
+            config.DefaultDatabase = defaultDb;
         }
 
         var redis = await ConnectionMultiplexer.ConnectAsync(config);
@@ -75,13 +86,16 @@ public static class Program {
             options.AddFilter<HubRateLimitFilter>();
         });
         builder.Services.AddDataProtection()
-            .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
+            .PersistKeysToStackExchangeRedis(redis, $"{redisPrefix}DataProtection-Keys")
+            .AddKeyManagementOptions(options => {
+                options.XmlEncryptor = new DataProtectionKeyEncryptor(jwtConfiguration);
+            })
             .SetApplicationName("EduchemLANPartyApp");
 
         builder.Services.AddSingleton<IDistributedCache>(sp =>
             new RedisCache(new RedisCacheOptions {
                 ConfigurationOptions = ConfigurationOptions.Parse(redis.Configuration),
-                InstanceName = "EduchemLANParty_session"
+                InstanceName = $"{redisPrefix}cache:"
             })
         );
 

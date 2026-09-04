@@ -91,6 +91,11 @@ public sealed class ReservationsHub(
 						return;
 					}
 
+					if (!computer.Available || (computer.Room != null && !computer.Room.Available)) {
+						await SendError("Tento počítač není momentálně dostupný k rezervaci.");
+						return;
+					}
+
 					if (computer.IsTeachersComputer && account.AccountType < AccountType.Teacher) {
 						await SendError("Tento počítač je vyhrazený pro učitele.");
 						return;
@@ -122,6 +127,11 @@ public sealed class ReservationsHub(
 					var room = await db.RoomsEf().FirstOrDefaultAsync(r => r.Id == request.Id, ct);
 					if (room == null) {
 						await SendError("Místnost neexistuje nebo není dostupná.");
+						return;
+					}
+
+					if (!room.Available) {
+						await SendError("Tato místnost není momentálně dostupná k rezervaci.");
 						return;
 					}
 

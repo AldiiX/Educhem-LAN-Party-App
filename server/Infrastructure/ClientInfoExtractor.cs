@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace server.Infrastructure;
@@ -19,52 +20,80 @@ public static class ClientInfoExtractor {
 		}
 
 		var ip = ExtractIpAddress(context);
-		var city = ExtractHeader(context, "CF-IPCity");
-		var country = ExtractHeader(context, "CF-IPCountry");
+		var city = Truncate(ExtractHeader(context, "CF-IPCity"), 64);
+		var country = Truncate(ExtractHeader(context, "CF-IPCountry"), 16);
 
 		var userAgent = context.Request.Headers.UserAgent.ToString();
 		if (string.IsNullOrWhiteSpace(userAgent)) {
 			return new ClientInfo(ip, null, "Unknown", "Unknown", "Unknown", city, country);
 		}
 
-		// Zkrátit User-Agent pokud je delší než 500 znaků
-		var safeUserAgent = userAgent.Length > 500 ? userAgent[..500] : userAgent;
+		var safeUserAgent = Truncate(userAgent, 500);
+		var (os, deviceType) = ParseOperatingSystemAndDevice(safeUserAgent!);
+		var browser = ParseBrowser(safeUserAgent!);
 
-		var (os, deviceType) = ParseOperatingSystemAndDevice(safeUserAgent);
-		var browser = ParseBrowser(safeUserAgent);
-
-		return new ClientInfo(ip, safeUserAgent, deviceType, browser, os, city, country);
+		return new ClientInfo(
+			ip,
+			safeUserAgent,
+			Truncate(deviceType, 64),
+			Truncate(browser, 64),
+			Truncate(os, 64),
+			city,
+			country
+		);
 	}
 
 	private static string? ExtractIpAddress(HttpContext context) {
+		// 1. Zkusit RemoteIpAddress (nastaveno UseForwardedHeaders z duveryhodneho nginxu)
+		if (context.Connection.RemoteIpAddress is { } remoteIp) {
+			return FormatIpAddress(remoteIp);
+		}
+
+		// 2. CF-Connecting-IP
 		var cfConnectingIp = context.Request.Headers["CF-Connecting-IP"].ToString();
-		if (!string.IsNullOrWhiteSpace(cfConnectingIp)) {
-			return cfConnectingIp.Trim();
+		if (TryParseIpCandidate(cfConnectingIp, out var parsedCfIp)) {
+			return FormatIpAddress(parsedCfIp);
 		}
 
-		var remoteIp = context.Connection.RemoteIpAddress?.ToString();
-		if (remoteIp == "::1") return "127.0.0.1";
-		if (!string.IsNullOrWhiteSpace(remoteIp)) return remoteIp;
-
+		// 3. X-Real-IP
 		var xRealIp = context.Request.Headers["X-Real-IP"].ToString();
-		if (!string.IsNullOrWhiteSpace(xRealIp)) {
-			return xRealIp.Trim();
+		if (TryParseIpCandidate(xRealIp, out var parsedRealIp)) {
+			return FormatIpAddress(parsedRealIp);
 		}
 
+		// 4. X-Forwarded-For (prvni IP v retezci)
 		var forwardedFor = context.Request.Headers["X-Forwarded-For"].ToString();
 		if (!string.IsNullOrWhiteSpace(forwardedFor)) {
 			var firstIp = forwardedFor.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
-			if (!string.IsNullOrWhiteSpace(firstIp)) {
-				return firstIp;
+			if (TryParseIpCandidate(firstIp, out var parsedForwardedIp)) {
+				return FormatIpAddress(parsedForwardedIp);
 			}
 		}
 
 		return null;
 	}
 
+	private static bool TryParseIpCandidate(string? value, out IPAddress parsedIp) {
+		parsedIp = IPAddress.None;
+		if (string.IsNullOrWhiteSpace(value) || value.Length > 64) return false;
+		return IPAddress.TryParse(value.Trim(), out parsedIp!);
+	}
+
+	private static string FormatIpAddress(IPAddress ip) {
+		if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+		var formatted = ip.ToString();
+		return formatted == "::1" ? "127.0.0.1" : formatted;
+	}
+
 	private static string? ExtractHeader(HttpContext context, string headerName) {
 		var value = context.Request.Headers[headerName].ToString();
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+	}
+
+	private static string? Truncate(string? value, int maxLength) {
+		if (string.IsNullOrWhiteSpace(value)) return null;
+		var trimmed = value.Trim();
+		return trimmed.Length > maxLength ? trimmed[..maxLength] : trimmed;
 	}
 
 	private static (string Os, string DeviceType) ParseOperatingSystemAndDevice(string ua) {
