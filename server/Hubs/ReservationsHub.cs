@@ -8,6 +8,7 @@ using server.Data.Entities;
 using server.Dto.Mappers;
 using server.Dto.Requests;
 using server.Infrastructure;
+using server.Infrastructure.HubRateLimiting;
 using server.Services;
 
 namespace server.Hubs;
@@ -42,6 +43,7 @@ public sealed class ReservationsHub(
 	}
 
 	[Microsoft.AspNetCore.Authorization.Authorize]
+	[HubRateLimit("reservations-mutation")]
 	public async Task Reserve(ReserveRequest request) {
 		var ct = Context.ConnectionAborted;
 		var user = auth.GetCurrentUser();
@@ -174,6 +176,7 @@ public sealed class ReservationsHub(
 	}
 
 	[Microsoft.AspNetCore.Authorization.Authorize]
+	[HubRateLimit("reservations-mutation")]
 	public async Task Unbook() {
 		var ct = Context.ConnectionAborted;
 		var accountId = auth.GetCurrentAccountId();

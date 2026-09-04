@@ -2,6 +2,7 @@ using dotenv.net;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
@@ -12,6 +13,7 @@ using server.Data.Entities;
 using server.Data.Seeders;
 using server.Hubs;
 using server.Infrastructure;
+using server.Infrastructure.HubRateLimiting;
 using server.Services;
 using server.Services.OAuth;
 using StackExchange.Redis;
@@ -64,10 +66,13 @@ public static class Program {
 
         builder.Services.AddControllers();
         builder.Services.AddHttpContextAccessor();
+        builder.Services.AddSingleton<HubRateLimitManager>();
+        builder.Services.AddSingleton<HubRateLimitFilter>();
         builder.Services.AddSignalR(options => {
             options.KeepAliveInterval = TimeSpan.FromSeconds(10);
             options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
             options.HandshakeTimeout = TimeSpan.FromSeconds(15);
+            options.AddFilter<HubRateLimitFilter>();
         });
         builder.Services.AddDataProtection()
             .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
