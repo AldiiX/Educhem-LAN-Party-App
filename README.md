@@ -28,6 +28,7 @@
 - [Funkcionality](#funkcionality)
 - [Rezervace](#rezervace)
 - [Realtime a cache](#realtime-a-cache)
+- [Bezpečnost, autentizace a šifrování](#bezpečnost-autentizace-a-šifrování)
 - [Administrace, nastavení a docházka](#administrace-nastavení-a-docházka)
 - [Technologie](#technologie)
 - [Screenshoty z aplikace](#screenshoty-z-aplikace)
@@ -130,9 +131,60 @@ Rezervace jsou postavené na kombinaci SignalR, PostgreSQL a aplikační cache:
 - **Cache pro mapová data**: místnosti a počítače se načítají přes cache klíč `reservations:rooms-and-computers`.
 - **Krátká status cache**: souhrnný status rezervací se cachuje na 30 sekund.
 - **Anti-stampede zámky**: cache používá `SemaphoreSlim`, aby se při prázdné cache nespustilo více stejných DB dotazů najednou.
-- **Redis**: používá se pro Data Protection keys a evidenci použitých jednorázových přihlašovacích odkazů.
+- **Redis**: slouží pro perzistenci Data Protection keyringu (sdílené napříč restarty a instancemi) a připravenou distribuovanou cache; všechny klíče a kanály jsou bezpečně izolovány prefixem `REDIS_KEY_PREFIX` (výchozí `edulp:`).
 - **Nginx cache headers**: statické Next.js assety z `/_next/static/` mají dlouhou immutable cache.
 - **Build cache**: Docker build používá cache mounty pro npm i NuGet balíčky.
+
+## Bezpečnost, autentizace a šifrování
+
+Aplikace klade důraz na bezpečnost, ochranu proti zneužití a striktní oddělení kryptografických principů:
+
+### 1. Autentizace: Podepisování (JWT) vs. Šifrování (Data Protection)
+
+V architektuře je přesně rozlišen účel digitálního podpisu a šifrování:
+
+- **Digitální podepisování (JWT s `JWT_SECRET`)**:
+  - Krátkodobé **Access tokeny** (uložené v HttpOnly cookie `edulp_access` nebo v hlavičce `Authorization: Bearer`) slouží k bezestavovému ověření identity a rolí uživatele.
+  - Data v tokenu **nejsou šifrovaná**, ale jsou **kryptograficky podepsaná** algoritmem HMAC-SHA256 s tajemstvím `JWT_SECRET`. Server tak okamžitě ověří integritu a autentičnost (uživatel nemůže token pozměnit ani si přidat roli `Admin`), aniž by musel při každém HTTP požadavku sahat do databáze.
+  - Čitelná klientská cookie `edulp_access_expires` (v produkci `__Host-edlp_access_expires`) nese pouze čas expirace v unixových sekundách a slouží frontendu k naplánování automatické tiché obnovy tokenu.
+- **Dlouhodobé sessions (Refresh Sessions)**:
+  - Refresh tokeny jsou náhodné kryptografické řetězce navázané na záznam v PostgreSQL tabulce `AuthSessions` (včetně klientské IP adresy, User-Agentu a času expirace). Umožňují bezpečné vystavení nového access tokenu a správu či revokaci jednotlivých aktivních sessions přímo v profilu uživatele.
+- **Obousměrné šifrování dat (ASP.NET Core Data Protection, AES-256)**:
+  - Slouží k utajení citlivých dat, která nesmí nikdo nepovolaný přečíst:
+    - **Discord OAuth tokeny v DB**: Access a refresh tokeny propojených Discord účtů se před uložením do tabulky `OAuthConnections` šifrují přes `IDataProtector` (`tokenProtector.Protect`). V databázi jsou uložena pouze šifrovaná data, takže ani při případném úniku DB nehrozí zneužití Discord účtů.
+    - **Antiforgery (CSRF) cookies**: Cookie `X-XSRF-TOKEN` obsahuje šifrovaný stav a kryptografický nonce, které chrání formuláře před Cross-Site Request Forgery útoky.
+    - **Dočasné OAuth cookies**: Cookie `educhemlanparty_external` chrání stav přihlašování třetích stran během přesměrování.
+- **Šifrování keyringu v Redisu (`DataProtectionKeyEncryptor`)**:
+  - XML keyring Data Protection obsahuje master klíče pro celou aplikaci. Před uložením do Redisu se XML payload šifruje pomocí **AES-256-GCM**.
+  - Šifrovací klíč se bezpečně odvozuje pomocí **HKDF** (SHA-256) z existujícího `JWT_SECRET`, takže v konfiguraci není nutné spravovat další tajnou proměnnou.
+- **Uživatelská hesla a jednorázové odkazy**:
+  - Uživatelská hesla jsou bezpečně hashována přes **BCrypt** (`EnhancedHashPassword` s SHA-384 a work factorem 12).
+  - Jednorázové přihlašovací a resetovací odkazy (Magic linky) se evidují v PostgreSQL tabulce `AccountEmailTokens` s kryptografickým hashem (`SHA-256`), účelem a časem expirace. Při použití se v serializable transakci atomicky ověří a smažou.
+
+### 2. Ochrana proti zneužití a Rate Limiting
+
+Aplikace implementuje víceúrovňovou ochranu proti útokům hrubou silou, botům a přetížení:
+
+- **ASP.NET Core Rate Limiter** (pro HTTP endpointy, při překročení vrací HTTP `429 Too Many Requests`):
+  - `auth-login`: 60 požadavků / 1 min (podle IP adresy klienta)
+  - `auth-forgot-password`: 10 požadavků / 15 min (podle IP adresy klienta)
+  - `auth-change-password`: 10 požadavků / 1 hodina (podle uživatele nebo IP adresy)
+  - `email-change`: 30 požadavků / 1 min (podle uživatele nebo IP adresy)
+- **Brute-force ochrana přihlášení (`AuthService`)**:
+  - Sledování neúspěšných pokusů o heslo podle kombinace klientské IP adresy a identifikátoru účtu v cache. Po 5 neúspěšných pokusech se přihlášení pro daný účet z dané IP dočasně zablokuje.
+- **SignalR Rate Limiting (`HubRateLimitManager`)**:
+  - Plovoucí okno (sliding window) pro mutace rezervací (`Reserve`, `Unbook`): max. 5 požadavků za 10 sekund na jednoho uživatele. Chrání rezervační hub před klikacími makry a spamováním serveru.
+- **Antiforgery validace**:
+  - Globální `AntiforgeryValidationMiddleware` validuje přítomnost a platnost `X-XSRF-TOKEN` hlavičky u všech stav měnících HTTP metod (`POST`, `PUT`, `DELETE`, `PATCH`).
+
+### 3. Izolace a jmenné prostory v Redisu
+
+Při sdílení stejného Redis serveru mezi více aplikacemi nebo prostředími (dev / staging / prod):
+- **Konfigurovatelný prefix (`REDIS_KEY_PREFIX`)**: Výchozí hodnota je `edulp:`. Pokud uživatel zadá prefix bez dvojtečky (např. `edulp`), aplikace ji automaticky doplní na `edulp:`.
+- **Data Protection keyring**: Ukládá se pod názvem `${REDIS_KEY_PREFIX}DataProtection-Keys`, což brání kolizi s obecným Microsoft výchozím klíčem `"DataProtection-Keys"`.
+- **Distribuovaná cache**: Běží pod jmenným prostorem `${REDIS_KEY_PREFIX}cache:`.
+- **Pub/Sub kanály**: Konfigurace StackExchange.Redis automaticky aplikuje `ChannelPrefix = RedisChannel.Literal(redisPrefix)`.
+- **Logické databáze (`REDIS_DATABASE` / `REDIS_DB`)**: Volitelná podpora pro výběr Redis databáze (0–15).
 
 ## Administrace, nastavení a docházka
 
@@ -164,10 +216,12 @@ Docházka běží na `/app/attendance` a zapisuje záznamy do schématu `attenda
 - ASP.NET Core controllers a SignalR hub
 - Entity Framework Core 10
 - PostgreSQL 18, mimo jiné kvůli `uuidv7()`
-- Redis pro Data Protection keys a distribuovanou cache jednorázových přihlašovacích odkazů
-- IMemoryCache pro rychlé rezervační snapshoty
+- Redis pro perzistenci Data Protection klíčů a distribuovanou cache s jmenným prostorem a prefixovou izolací
+- ASP.NET Core Data Protection s AES-256-GCM šifrováním master keyringu odvozeného z `JWT_SECRET` přes HKDF
+- ASP.NET Core Rate Limiter pro ochranu auth endpointů a HubRateLimitManager pro SignalR plovoucí okna
+- IMemoryCache pro rychlé rezervační snapshoty a brute-force ochranu
 - MailKit pro SMTP emaily
-- BCrypt pro hashování hesel
+- BCrypt (Enhanced SHA-384) pro bezpečné hashování hesel
 - Czech vocative data pro oslovení uživatelů
 - Razor view rendering pro HTML emailové šablony
 
@@ -485,10 +539,14 @@ docker run --name educhem-lan-party-app -p 80:80 educhem-lan-party-app
 - `http://localhost:3547/schedule` - harmonogram
 - `http://localhost:3547/faq` - často kladené otázky
 - `http://localhost:3547/organizers` - organizátoři akce
+- `http://localhost:3547/login` - prezentační vstup do přihlášení
 
 ### Přihlášená aplikace
 
-- `http://localhost:3547/app/login` - přihlášení
+- `http://localhost:3547/app/login` - přihlašovací formulář
+- `http://localhost:3547/app/login-link` - dokončení přihlášení přes jednorázový odkaz z emailu
+- `http://localhost:3547/app/reset-password` - formulář pro nastavení nového hesla z emailového odkazu
+- `http://localhost:3547/app/change-email` - potvrzení nebo zrušení změny emailové adresy z odkazu
 - `http://localhost:3547/app` - dashboard
 - `http://localhost:3547/app/announcements` - oznámení
 - `http://localhost:3547/app/map` - mapa rezervací bez hlavního rezervačního panelu
@@ -505,7 +563,6 @@ docker run --name educhem-lan-party-app -p 80:80 educhem-lan-party-app
 - `http://localhost:3547/app/administration/users` - administrace účtů
 - `http://localhost:3547/app/administration/logs` - bezpečnostní logy
 - `http://localhost:3547/app/administration/settings` - globální nastavení aplikace
-- `http://localhost:3547/app/reset-password` - reset hesla
 - `http://localhost:3547/app/system-disabled` - systémová stránka pro vypnutou aplikaci
 
 ## API a SignalR
@@ -524,20 +581,29 @@ docker run --name educhem-lan-party-app -p 80:80 educhem-lan-party-app
 - `POST /api/v1/auth/login` - přihlášení a vytvoření access a refresh cookies
 - `POST /api/v1/auth/refresh` - obnova access tokenu přes refresh session
 - `POST /api/v1/auth/logout` - odhlášení a revokace aktuální refresh session
-- `GET /api/v1/account/login-link` - přihlášení přes link z emailu
+- `GET /api/v1/account/login-link` - přesměrování z odkazu v emailu na frontend
+- `POST /api/v1/account/login-link/preview` - náhled cílového účtu pro jednorázový přihlašovací odkaz
+- `POST /api/v1/account/login-link` - přihlášení přes jednorázový odkaz z emailu
+- `POST /api/v1/account/forgot-password` - odeslání reset odkazu
+- `POST /api/v1/account/reset-password/preview` - náhled cílového účtu pro reset hesla
+- `POST /api/v1/account/reset-password` - potvrzení resetu hesla
+- `GET /api/v1/account/email-change` - stav rozpracované žádosti o změnu emailu
+- `POST /api/v1/account/email-change` - zahájení dvoufázové změny emailu
+- `POST /api/v1/account/email-change/resend` - opětovné odeslání potvrzovacích emailů
+- `POST /api/v1/account/email-change/cancel` - zrušení žádosti o změnu emailu
+- `POST /api/v1/account/email-change/preview` - veřejný náhled tokenu z odkazu v emailu
+- `POST /api/v1/account/email-change/confirm` - potvrzení nebo zrušení změny přes token z odkazu
 - `PUT /api/v1/account/me` - úprava vlastního účtu
 - `PUT /api/v1/account/avatar-sync-platform` - nastavení synchronizace avataru z propojené platformy
 - `POST /api/v1/account/me/password` - změna vlastního hesla
-- `GET /api/v1/account/sessions` - seznam aktivních přihlášení účtu
-- `DELETE /api/v1/account/sessions/{id}` - revokace vybraného přihlášení
-- `DELETE /api/v1/account/sessions/other` - revokace všech ostatních přihlášení
+- `GET /api/v1/account/sessions` - seznam aktivních sessions účtu
+- `DELETE /api/v1/account/sessions/{id}` - revokace vybrané session
+- `DELETE /api/v1/account/sessions/other` - revokace všech ostatních sessions
 - `GET /api/v1/{provider}/login` - zahájení přihlášení přes externí platformu
 - `GET /api/v1/{provider}/connect` - propojení platformy s přihlášeným účtem
 - `DELETE /api/v1/{provider}/connection` - odpojení platformy od účtu
-- `POST /api/v1/account/forgot-password` - odeslání reset odkazu
-- `POST /api/v1/account/reset-password` - potvrzení resetu hesla
-- `PUT /api/v1/account/me/achievements/{id}` - nastavení hlavního achievementu
-- `PUT /api/v1/account/me/badges/{id}` - nastavení hlavního badge
+- `PUT /api/v1/account/me/achievements/{id}` - nastavení viditelnosti / skrytí achievementu
+- `PUT /api/v1/account/me/badges/{id}` - připnutí nebo odepnutí odznaku (badge) na profilu
 - `GET /api/v1/profile` - profil aktuálního uživatele
 - `GET /api/v1/profile/{uuid}` - veřejný profil podle UUID
 - `GET /api/v1/reservations/rooms-and-computers` - místnosti a počítače pro mapu
