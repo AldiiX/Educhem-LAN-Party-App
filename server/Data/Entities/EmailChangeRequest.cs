@@ -6,6 +6,9 @@ namespace server.Data.Entities;
 
 [Table("EmailChangeRequests", Schema = "public")]
 [Index(nameof(AccountId), IsUnique = true)]
+[Index(nameof(OldTokenHash), IsUnique = true)]
+[Index(nameof(NewTokenHash), IsUnique = true)]
+[Index(nameof(CancelTokenHash), IsUnique = true)]
 public sealed class EmailChangeRequest {
 	[Key] public Guid Id { get; set; } = Guid.NewGuid();
 	public Guid AccountId { get; set; }

@@ -1,8 +1,6 @@
 using System.Text;
-using System.Text.Json;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +23,6 @@ public sealed class AccountControllerV1(
 	IAuthService auth,
 	AppDbContext db,
 	IServiceProvider serviceProvider,
-	IDataProtectionProvider dataProtectionProvider,
 	ReservationCacheService reservationCache,
 	IDbLoggerService dbLogger,
 	IOAuthService oauth,
@@ -33,8 +30,6 @@ public sealed class AccountControllerV1(
 ) : Controller {
 	private const int AdministrationPageSize = 25;
 
-	private readonly IDataProtector passwordResetProtector = dataProtectionProvider.CreateProtector("account-password-reset");
-	private readonly IDataProtector loginLinkProtector = dataProtectionProvider.CreateProtector("account-login-link");
 	private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromMinutes(15);
 	private static readonly TimeSpan LoginLinkTokenLifetime = TimeSpan.FromMinutes(30);
 	private static readonly TimeSpan RegistrationLoginLinkTokenLifetime = TimeSpan.FromHours(24);
@@ -561,10 +556,10 @@ public sealed class AccountControllerV1(
 		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Email == normalizedEmail, ct);
 		if(account == null) return Ok(new PasswordResetResponse(true));
 
-		var token = new PasswordResetToken(account.Id, account.PasswordHash, DateTime.UtcNow, Guid.NewGuid(), account.Email);
-		if (!await RegisterEmailTokenAsync(account, token.TokenId, token.CreatedAtUtc.Add(PasswordResetTokenLifetime), ct))
+		var token = await CreateEmailTokenAsync(account, AccountEmailTokenPurpose.PasswordReset, PasswordResetTokenLifetime, ct);
+		if (token == null)
 			return Ok(new PasswordResetResponse(true));
-		var resetLink = GetPasswordResetLink(token);
+		var resetLink = BuildAbsoluteUrl($"/app/reset-password#token={Uri.EscapeDataString(token)}");
 
 		var emailSent = await SendPasswordResetLinkEmailAsync(
 			account.Email,
@@ -603,17 +598,20 @@ public sealed class AccountControllerV1(
 		if(string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword))
 			return BadRequest("Missing reset data.");
 
-		var resetToken = ReadPasswordResetToken(request.Token);
+		var tokenHash = OneTimeToken.Hash(request.Token);
+		if(tokenHash == null) return BadRequest("Invalid reset token.");
+		var resetToken = await db.AccountEmailTokens.AsNoTracking()
+			.FirstOrDefaultAsync(item => item.TokenHash == tokenHash && item.Purpose == AccountEmailTokenPurpose.PasswordReset
+				&& item.ExpiresAtUtc > DateTime.UtcNow, ct);
 		if(resetToken == null) return BadRequest("Invalid reset token.");
-		if(DateTime.UtcNow - resetToken.CreatedAtUtc > PasswordResetTokenLifetime)
-			return BadRequest("Reset token expired.");
 
 		await using var transaction = await db.Database.BeginTransactionAsync(ct);
 		var account = await db.GetAccountForUpdateAsync(resetToken.AccountId, ct);
 		if(account == null) return BadRequest("Invalid reset token.");
-		if(account.PasswordHash != resetToken.PasswordHash || account.Email != resetToken.Email
-			|| !await db.AccountEmailTokens.AnyAsync(token => token.Id == resetToken.TokenId
-				&& token.AccountId == account.Id && token.ExpiresAtUtc > DateTime.UtcNow, ct))
+		var consumed = await db.AccountEmailTokens.Where(token => token.Id == resetToken.Id && token.TokenHash == tokenHash
+			&& token.Purpose == AccountEmailTokenPurpose.PasswordReset && token.AccountId == account.Id
+			&& token.ExpiresAtUtc > DateTime.UtcNow).ExecuteDeleteAsync(ct);
+		if(consumed != 1)
 			return BadRequest("Reset token expired.");
 
 		account.PasswordHash = AuthService.HashPassword(request.NewPassword);
@@ -646,27 +644,31 @@ public sealed class AccountControllerV1(
 	[EnableRateLimiting("auth-login")]
 	[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 	public async Task<IActionResult> PreviewLoginLink([FromBody] ConfirmLoginLinkRequest request, CancellationToken ct = default) {
-		var loginToken = ReadLoginLinkToken(request.Token);
-		if(loginToken == null)
-			return BadRequest("Invalid login token.");
-		var account = await db.Accounts.AsNoTracking().FirstOrDefaultAsync(item => item.Id == loginToken.AccountId, ct);
-		if(account == null || account.PasswordHash != loginToken.PasswordHash || account.Email != loginToken.Email
-			|| !await db.AccountEmailTokens.AnyAsync(item => item.Id == loginToken.TokenId
-				&& item.AccountId == account.Id && item.ExpiresAtUtc > DateTime.UtcNow, ct))
-			return BadRequest("Invalid login token.");
-		return Ok(new { account.Email });
+		var tokenHash = OneTimeToken.Hash(request.Token);
+		if(tokenHash == null) return BadRequest("Invalid login token.");
+		var account = await db.AccountEmailTokens.AsNoTracking()
+			.Where(item => item.TokenHash == tokenHash && item.Purpose == AccountEmailTokenPurpose.Login && item.ExpiresAtUtc > DateTime.UtcNow)
+			.Select(item => new { item.Account.Email })
+			.FirstOrDefaultAsync(ct);
+		return account == null ? BadRequest("Invalid login token.") : Ok(account);
 	}
 
 	[HttpPost("login-link")]
 	[ValidateAntiForgeryToken]
 	[EnableRateLimiting("auth-login")]
 	public async Task<IActionResult> LoginLink([FromBody] ConfirmLoginLinkRequest request, CancellationToken ct = default) {
-		var loginToken = ReadLoginLinkToken(request.Token);
+		var tokenHash = OneTimeToken.Hash(request.Token);
+		if(tokenHash == null) return BadRequest("Invalid login token.");
+		var loginToken = await db.AccountEmailTokens.AsNoTracking()
+			.FirstOrDefaultAsync(item => item.TokenHash == tokenHash && item.Purpose == AccountEmailTokenPurpose.Login
+				&& item.ExpiresAtUtc > DateTime.UtcNow, ct);
 		if(loginToken == null) return BadRequest("Invalid login token.");
 		await using var transaction = await db.Database.BeginTransactionAsync(ct);
 		var account = await db.GetAccountForUpdateAsync(loginToken.AccountId, ct, tracking: false);
-		if(account == null || account.PasswordHash != loginToken.PasswordHash || account.Email != loginToken.Email) return BadRequest("Invalid login token.");
-		var consumed = await db.AccountEmailTokens.Where(item => item.Id == loginToken.TokenId
+		if(account == null) return BadRequest("Invalid login token.");
+		// po zamknuti uctu znovu overime platnost; mezitim se mohl token pouzit nebo zneplatnit
+		var consumed = await db.AccountEmailTokens.Where(item => item.Id == loginToken.Id && item.TokenHash == tokenHash
+			&& item.Purpose == AccountEmailTokenPurpose.Login
 			&& item.AccountId == account.Id && item.ExpiresAtUtc > DateTime.UtcNow).ExecuteDeleteAsync(ct);
 		if (consumed != 1) return BadRequest("Invalid login token.");
 
@@ -711,8 +713,6 @@ public sealed class AccountControllerV1(
 	public sealed record ForgotPasswordRequest(string Email);
 	public sealed record ConfirmPasswordResetRequest(string Token, string NewPassword);
 	public sealed record ConfirmLoginLinkRequest(string Token);
-	private sealed record PasswordResetToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc, Guid TokenId, string Email);
-	private sealed record LoginLinkToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc, Guid TokenId, string Email);
 
 	private static IOrderedQueryable<Account> OrderAccounts(IQueryable<Account> query, string? sort, string? direction) {
 		var descending = string.Equals(direction, "desc", StringComparison.OrdinalIgnoreCase);
@@ -892,45 +892,24 @@ public sealed class AccountControllerV1(
 		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
 	}
 
-	private string GetPasswordResetLink(PasswordResetToken token) {
-		var protectedToken = passwordResetProtector.Protect(JsonSerializer.Serialize(token));
-		return BuildAbsoluteUrl($"/app/reset-password#token={Uri.EscapeDataString(protectedToken)}");
-	}
-
-	private PasswordResetToken? ReadPasswordResetToken(string token) {
-		try {
-			var json = passwordResetProtector.Unprotect(token);
-			return JsonSerializer.Deserialize<PasswordResetToken>(json);
-		} catch {
-			return null;
-		}
-	}
-
 	private async Task<string?> GetLoginLinkAsync(Account account, TimeSpan tokenLifetime) {
-		var loginToken = new LoginLinkToken(account.Id, account.PasswordHash, DateTime.UtcNow, Guid.NewGuid(), account.Email);
-		if (!await RegisterEmailTokenAsync(account, loginToken.TokenId, loginToken.CreatedAtUtc.Add(tokenLifetime), HttpContext.RequestAborted)) return null;
-		var protectedToken = loginLinkProtector.Protect(JsonSerializer.Serialize(loginToken));
-		return BuildAbsoluteUrl($"/app/login-link#token={Uri.EscapeDataString(protectedToken)}");
+		var token = await CreateEmailTokenAsync(account, AccountEmailTokenPurpose.Login, tokenLifetime, HttpContext.RequestAborted);
+		return token == null ? null : BuildAbsoluteUrl($"/app/login-link#token={Uri.EscapeDataString(token)}");
 	}
 
-	private LoginLinkToken? ReadLoginLinkToken(string token) {
-		try {
-			var json = loginLinkProtector.Unprotect(token);
-			return JsonSerializer.Deserialize<LoginLinkToken>(json);
-		} catch {
-			return null;
-		}
-	}
-
-	private async Task<bool> RegisterEmailTokenAsync(Account account, Guid tokenId, DateTime expiresAtUtc, CancellationToken ct) {
+	private async Task<string?> CreateEmailTokenAsync(Account account, AccountEmailTokenPurpose purpose, TimeSpan lifetime, CancellationToken ct) {
 		await using var transaction = await db.Database.BeginTransactionAsync(ct);
 		var current = await db.GetAccountForUpdateAsync(account.Id, ct, tracking: false);
-		if (current == null || current.Email != account.Email || current.PasswordHash != account.PasswordHash) return false;
+		if (current == null || current.Email != account.Email || current.PasswordHash != account.PasswordHash) return null;
 		await db.AccountEmailTokens.Where(token => token.AccountId == account.Id && token.ExpiresAtUtc <= DateTime.UtcNow).ExecuteDeleteAsync(ct);
-		db.AccountEmailTokens.Add(new() { Id = tokenId, AccountId = account.Id, ExpiresAtUtc = expiresAtUtc });
+		var rawToken = OneTimeToken.Create();
+		db.AccountEmailTokens.Add(new() {
+			Id = Guid.NewGuid(), AccountId = account.Id, ExpiresAtUtc = DateTime.UtcNow.Add(lifetime),
+			TokenHash = OneTimeToken.Hash(rawToken), Purpose = purpose,
+		});
 		await db.SaveChangesAsync(ct);
 		await transaction.CommitAsync(ct);
-		return true;
+		return rawToken;
 	}
 
 	private static string BuildAbsoluteUrl(string pathAndQuery) {

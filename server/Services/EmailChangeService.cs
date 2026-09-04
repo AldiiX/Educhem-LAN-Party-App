@@ -1,7 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using server.Data;
 using server.Data.Entities;
 using server.Infrastructure;
@@ -12,7 +9,7 @@ namespace server.Services;
 public sealed record EmailChangeStatus(Guid Id, string OldEmail, string NewEmail, DateTime ExpiresAtUtc,
 	bool OldConfirmed, bool NewConfirmed, string State, DateTime? ResendAtUtc, CommunicationStyle CommunicationStyle);
 public sealed record EmailChangeResult(EmailChangeStatus? Request = null, string? Error = null,
-	int StatusCode = 200, bool EmailsSent = true) {
+	int StatusCode = 200, bool EmailsSent = true, string? TokenAction = null) {
 	[JsonIgnore] public Guid? CompletedAccountId { get; init; }
 }
 public sealed record EmailChangeMessage(string Recipient, Account Account, string OldEmail, string NewEmail,
@@ -65,8 +62,8 @@ public sealed class EmailChangeService(AppDbContext db, IEmailChangeMailer maile
 			OldEmail = account.Email, NewEmail = normalized, CreatedAtUtc = Now, ExpiresAtUtc = Now.Add(Lifetime),
 			CancelTokenHash = "",
 		};
-		var cancel = NewToken(request, "cancel");
-		request.CancelTokenHash = Hash(cancel);
+		var cancel = OneTimeToken.Create();
+		request.CancelTokenHash = OneTimeToken.Hash(cancel)!;
 		var messages = ConfirmationMessages(request, origin, cancel);
 		db.EmailChangeRequests.Add(request);
 		await LogAsync(request, "request", "Zadost o zmenu", accountId, ct);
@@ -86,8 +83,8 @@ public sealed class EmailChangeService(AppDbContext db, IEmailChangeMailer maile
 		db.EmailChangeAttempts.Add(new() { AccountId = accountId, CreatedAtUtc = Now });
 		string? cancel = null;
 		if (request.OldConfirmedAtUtc == null) {
-			cancel = NewToken(request, "cancel");
-			request.CancelTokenHash = Hash(cancel);
+			cancel = OneTimeToken.Create();
+			request.CancelTokenHash = OneTimeToken.Hash(cancel)!;
 		}
 		var messages = ConfirmationMessages(request, origin, cancel);
 		await LogAsync(request, "resend", "Znovu odeslano potvrzeni", accountId, ct);
@@ -108,9 +105,9 @@ public sealed class EmailChangeService(AppDbContext db, IEmailChangeMailer maile
 	}
 
 	public async Task<EmailChangeResult> PreviewAsync(string token, CancellationToken ct) {
-		var request = await FindTokenAsync(token, ct);
-		return request == null ? new(Error: InvalidLink, StatusCode: 400)
-			: new(await ToStatusAsync(request, true, ct));
+		var match = await FindTokenAsync(token, ct);
+		return match == null ? new(Error: InvalidLink, StatusCode: 400)
+			: new(await ToStatusAsync(match.Request, true, ct), TokenAction: match.Action);
 	}
 
 	public async Task<EmailChangeResult> ConfirmAsync(string token, CancellationToken ct) {
@@ -118,10 +115,12 @@ public sealed class EmailChangeService(AppDbContext db, IEmailChangeMailer maile
 		if (initial == null) return new(Error: InvalidLink, StatusCode: 400);
 		await using var transaction = await db.Database.BeginTransactionAsync(ct);
 		db.ChangeTracker.Clear();
-		await db.GetAccountForUpdateAsync(initial.AccountId, ct);
-		var request = await FindTokenAsync(token, ct);
-		if (request == null) return new(Error: InvalidLink, StatusCode: 400);
-		var kind = token.Split('.')[1];
+		if (await db.GetAccountForUpdateAsync(initial.Request.AccountId, ct) == null)
+			return new(Error: InvalidLink, StatusCode: 400);
+		var match = await FindTokenAsync(token, ct);
+		if (match == null) return new(Error: InvalidLink, StatusCode: 400);
+		var request = match.Request;
+		var kind = match.Action;
 		if (kind == "cancel") {
 			request.CancelledAtUtc = Now;
 			await LogAsync(request, "cancel", "Zruseno odkazem", null, ct);
@@ -151,7 +150,7 @@ public sealed class EmailChangeService(AppDbContext db, IEmailChangeMailer maile
 				new(request.NewEmail, request.Account, request.OldEmail, request.NewEmail, request.ExpiresAtUtc, Completed: true),
 			], request, ct);
 		}
-		return new(await ToStatusAsync(request, true, ct), EmailsSent: sent) {
+		return new(await ToStatusAsync(request, true, ct), EmailsSent: sent, TokenAction: kind) {
 			CompletedAccountId = request.CompletedAtUtc == null ? null : request.AccountId,
 		};
 	}
@@ -169,14 +168,16 @@ public sealed class EmailChangeService(AppDbContext db, IEmailChangeMailer maile
 		return null;
 	}
 
-	private async Task<EmailChangeRequest?> FindTokenAsync(string token, CancellationToken ct) {
-		if (string.IsNullOrWhiteSpace(token) || token.Length > 128) return null;
-		var parts = token.Split('.');
-		if (parts.Length != 3 || !Guid.TryParseExact(parts[0], "N", out var id)) return null;
-		var request = await db.EmailChangeRequests.Include(r => r.Account).FirstOrDefaultAsync(r => r.Id == id, ct);
+	private sealed record EmailChangeTokenMatch(EmailChangeRequest Request, string Action);
+
+	private async Task<EmailChangeTokenMatch?> FindTokenAsync(string token, CancellationToken ct) {
+		var hash = OneTimeToken.Hash(token);
+		if (hash == null) return null;
+		var request = await db.EmailChangeRequests.Include(r => r.Account)
+			.FirstOrDefaultAsync(r => r.OldTokenHash == hash || r.NewTokenHash == hash || r.CancelTokenHash == hash, ct);
 		if (request == null || State(request) != "pending") return null;
-		var expected = parts[1] switch { "old" => request.OldTokenHash, "new" => request.NewTokenHash, "cancel" => request.CancelTokenHash, _ => null };
-		return expected != null && CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(Hash(token)), Encoding.ASCII.GetBytes(expected)) ? request : null;
+		var action = request.OldTokenHash == hash ? "old" : request.NewTokenHash == hash ? "new" : "cancel";
+		return new(request, action);
 	}
 
 	private string State(EmailChangeRequest r) => r.CompletedAtUtc != null ? "completed"
@@ -195,20 +196,18 @@ public sealed class EmailChangeService(AppDbContext db, IEmailChangeMailer maile
 			r.ExpiresAtUtc, r.OldConfirmedAtUtc != null, r.NewConfirmedAtUtc != null, State(r), resendAt, r.Account.CommunicationStyle);
 	}
 
-	private static string NewToken(EmailChangeRequest r, string kind) => $"{r.Id:N}.{kind}.{Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32))}";
-	private static string Hash(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 	private static string Link(string origin, string token) => $"{origin}/app/change-email#token={Uri.EscapeDataString(token)}";
 
 	private static List<EmailChangeMessage> ConfirmationMessages(EmailChangeRequest r, string origin, string? cancel) {
 		var messages = new List<EmailChangeMessage>();
 		if (r.OldConfirmedAtUtc == null) {
-			var token = NewToken(r, "old");
-			r.OldTokenHash = Hash(token);
+			var token = OneTimeToken.Create();
+			r.OldTokenHash = OneTimeToken.Hash(token);
 			messages.Add(new(r.OldEmail, r.Account, r.OldEmail, r.NewEmail, r.ExpiresAtUtc, Link(origin, token), cancel == null ? null : Link(origin, cancel)));
 		}
 		if (r.NewConfirmedAtUtc == null) {
-			var token = NewToken(r, "new");
-			r.NewTokenHash = Hash(token);
+			var token = OneTimeToken.Create();
+			r.NewTokenHash = OneTimeToken.Hash(token);
 			messages.Add(new(r.NewEmail, r.Account, r.OldEmail, r.NewEmail, r.ExpiresAtUtc, Link(origin, token)));
 		}
 		return messages;

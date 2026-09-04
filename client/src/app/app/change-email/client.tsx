@@ -16,24 +16,29 @@ export default function ChangeEmailClient() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
     const [finished, setFinished] = useState(false);
-    const [isCancel, setIsCancel] = useState(false);
+    const [tokenAction, setTokenAction] = useState<"old" | "new" | "cancel" | null>(null);
+    const isCancel = tokenAction === "cancel";
     const confirmedCount = Number(request?.oldConfirmed ?? false) + Number(request?.newConfirmed ?? false);
-    const currentAddress = token.current.split(".")[1];
+    const currentAddress = tokenAction;
 
     useEffect(() => {
         token.current ||= takeOneTimeTokenFromUrl();
-        setIsCancel(token.current.split(".")[1] === "cancel");
         let active = true;
         if (!token.current) { setError("Odkaz je neplatný. Otevřete odkaz z e-mailu."); setLoading(false); return; }
         emailChangeRequest("/preview", {token: token.current})
-            .then(result => { if (active) setRequest(result.request); })
+            .then(result => {
+                if (active) {
+                    setRequest(result.request);
+                    setTokenAction(result.tokenAction);
+                }
+            })
             .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : "Odkaz nelze ověřit."); })
             .finally(() => { if (active) setLoading(false); });
         return () => { active = false; };
     }, []);
 
     async function confirm() {
-        if (loading || finished) return;
+        if (loading || finished || !tokenAction) return;
         setLoading(true);
         setError("");
         try {
@@ -93,7 +98,7 @@ export default function ChangeEmailClient() {
                         <p>{isCancel ? "Zrušením žádosti zůstane původní e-mail a všechny potvrzovací odkazy přestanou platit." : phrase(request.communicationStyle,
                             "Potvrď adresu označenou výše. E-mail se změní až po potvrzení obou adres.",
                             "Potvrďte adresu označenou výše. E-mail se změní až po potvrzení obou adres.")}</p>
-                        <Button type="primary" text={isCancel ? "Zrušit žádost" : "Potvrdit tuto adresu"} disabled={loading} loading={loading} onClick={() => { void confirm(); }} />
+                        <Button type="primary" text={isCancel ? "Zrušit žádost" : "Potvrdit tuto adresu"} disabled={loading || !tokenAction} loading={loading} onClick={() => { void confirm(); }} />
                         <p className={styles.expiry}>Platnost do <time dateTime={request.expiresAtUtc}>{emailChangeDate(request.expiresAtUtc)}</time> (Praha)</p>
                     </div>
                 </>}

@@ -17,6 +17,7 @@ const EmailChangeStatusSchema = z.object({
 const EmailChangeResponseSchema = z.object({
     request: EmailChangeStatusSchema.nullable(),
     emailsSent: z.boolean(),
+    tokenAction: z.enum(["old", "new", "cancel"]).nullable(),
 });
 
 export type EmailChangeStatus = z.infer<typeof EmailChangeStatusSchema>;

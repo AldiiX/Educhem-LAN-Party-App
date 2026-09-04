@@ -10,11 +10,22 @@ namespace server.Data.Entities;
 /// </summary>
 [Table("AccountEmailLinks", Schema = "public")]
 [Index(nameof(AccountId))]
+[Index(nameof(TokenHash), IsUnique = true)]
 public sealed class AccountEmailToken {
 	/// <summary>
-	/// identifikator ulozenej v chranenym emailovym tokenu, podle kteryho se overuje jeho platnost
+	/// interni id zaznamu, ktery se do odkazu neposila
 	/// </summary>
 	[Key] public Guid Id { get; set; }
+
+	/// <summary>
+	/// SHA-256 nahodnyho tokenu; null zustava jen u starejch neplatnejch odkazu
+	/// </summary>
+	[MaxLength(64)] public string? TokenHash { get; set; }
+
+	/// <summary>
+	/// oddeluje prihlaseni od resetu, aby nesel token pouzit pro jinou akci
+	/// </summary>
+	public AccountEmailTokenPurpose Purpose { get; set; }
 
 	/// <summary>
 	/// id uctu, pro kterej byl token vydanej
@@ -30,4 +41,9 @@ public sealed class AccountEmailToken {
 	/// cas v UTC, od kteryho uz token nejde pouzit
 	/// </summary>
 	public DateTime ExpiresAtUtc { get; set; }
+}
+
+public enum AccountEmailTokenPurpose {
+	Login = 1,
+	PasswordReset = 2,
 }
