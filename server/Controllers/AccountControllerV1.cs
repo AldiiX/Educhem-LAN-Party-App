@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
@@ -212,6 +213,9 @@ public sealed class AccountControllerV1(
 			return BadRequest(avatarError);
 		if(!TryNormalizeUrlOptional(request.BannerUrl, out var bannerUrl, out var bannerError))
 			return BadRequest(bannerError);
+
+		if (!string.IsNullOrWhiteSpace(request.Password) && !IsPasswordValid(request.Password, out var passwordError))
+			return BadRequest(passwordError);
 
 		var password = string.IsNullOrWhiteSpace(request.Password) ? GenerateRandomPassword() : request.Password;
 		var account = new Account {
@@ -522,6 +526,9 @@ public sealed class AccountControllerV1(
 		if(string.IsNullOrWhiteSpace(request.OldPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
 			return BadRequest("Vyplň staré i nové heslo.");
 
+		if(!IsPasswordValid(request.NewPassword, out var passwordError))
+			return BadRequest(passwordError);
+
 		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == accountId.Value, ct);
 		if(account == null) return NotFound();
 		if(!AuthService.VerifyPassword(request.OldPassword, account.PasswordHash)) {
@@ -576,16 +583,40 @@ public sealed class AccountControllerV1(
 	}
 
 	/// <summary>
+	/// nahled reset linku bez konzumace tokenu.
+	/// overi platnost tokenu a vrati email uctu, aby frontend mohl ukazat cilovej ucet a validovat link hned po nacteni.
+	/// </summary>
+	/// <param name="request">objekt s tokenem</param>
+	/// <param name="ct">cancellation token</param>
+	/// <returns>email uctu nebo 400 pri neplatnym tokenu</returns>
+	[HttpPost("reset-password/preview")]
+	[EnableRateLimiting("auth-login")]
+	[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+	public async Task<IActionResult> PreviewPasswordReset([FromBody] PreviewPasswordResetRequest request, CancellationToken ct = default) {
+		var tokenHash = OneTimeToken.Hash(request.Token);
+		if(tokenHash == null) return BadRequest("Invalid reset token.");
+		var account = await db.AccountEmailTokens.AsNoTracking()
+			.Where(item => item.TokenHash == tokenHash && item.Purpose == AccountEmailTokenPurpose.PasswordReset && item.ExpiresAtUtc > DateTime.UtcNow)
+			.Select(item => new { item.Account.Email })
+			.FirstOrDefaultAsync(ct);
+		return account == null ? BadRequest("Invalid reset token.") : Ok(account);
+	}
+
+	/// <summary>
 	/// dokonci reset hesla pomoci jednorazovyho tokenu z mailu.
-	/// v transakci overi a hned smaze pouzitej token, zahashuje novy heslo do db a shodi vsechny existujici sessions usera.
+	/// zvaliduje novy heslo, v transakci overi a hned smaze pouzitej token, zahashuje novy heslo do db a shodi vsechny existujici sessions usera.
 	/// </summary>
 	/// <param name="request">token a novy heslo</param>
 	/// <param name="ct">cancellation token</param>
 	/// <returns>204 nocontent kdyz to klapne, 400 pri spatnym nebo explym tokenu</returns>
 	[HttpPost("reset-password")]
+	[EnableRateLimiting("auth-login")]
 	public async Task<IActionResult> ConfirmPasswordReset([FromBody] ConfirmPasswordResetRequest request, CancellationToken ct = default) {
 		if(string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword))
 			return BadRequest("Missing reset data.");
+
+		if(!IsPasswordValid(request.NewPassword, out var passwordError))
+			return BadRequest(passwordError);
 
 		var tokenHash = OneTimeToken.Hash(request.Token);
 		if(tokenHash == null) return BadRequest("Invalid reset token.");
@@ -719,10 +750,17 @@ public sealed class AccountControllerV1(
 	public sealed record DashboardClassStat(SchoolDto School, string Class, int Count);
 	public sealed record MyAccountMutationRequest(Gender? Gender, CommunicationStyle? CommunicationStyle, string? AvatarUrl, string? BannerUrl);
 	public sealed record AvatarSyncPlatformRequest(OAuthProvider? Platform);
-	public sealed record ChangeMyPasswordRequest(string OldPassword, string NewPassword);
-	public sealed record ForgotPasswordRequest(string Email);
-	public sealed record ConfirmPasswordResetRequest(string Token, string NewPassword);
-	public sealed record ConfirmLoginLinkRequest(string Token);
+	public sealed record ChangeMyPasswordRequest(
+		[Required, MaxLength(512)] string OldPassword,
+		[Required, MaxLength(128)] string NewPassword
+	);
+	public sealed record ForgotPasswordRequest([Required, MaxLength(254)] string Email);
+	public sealed record ConfirmPasswordResetRequest(
+		[Required, MaxLength(128)] string Token,
+		[Required, MaxLength(128)] string NewPassword
+	);
+	public sealed record ConfirmLoginLinkRequest([Required, MaxLength(128)] string Token);
+	public sealed record PreviewPasswordResetRequest([Required, MaxLength(128)] string Token);
 
 	private static IOrderedQueryable<Account> OrderAccounts(IQueryable<Account> query, string? sort, string? direction) {
 		var descending = string.Equals(direction, "desc", StringComparison.OrdinalIgnoreCase);
@@ -867,6 +905,42 @@ public sealed class AccountControllerV1(
 			passwordBuilder.Append(chars[randomIndex]);
 		}
 		return passwordBuilder.ToString();
+	}
+
+	/// <summary>
+	/// overi silu a delku hesla podle firemnich pravidel (min 8, max 128, velky/maly pismeno, cislo, special znak).
+	/// </summary>
+	/// <param name="password">kontrolovany heslo</param>
+	/// <param name="error">chybova hlaska pro klienta</param>
+	/// <returns>true kdyz je heslo v pohode</returns>
+	private static bool IsPasswordValid(string? password, out string? error) {
+		if (string.IsNullOrWhiteSpace(password) || password.Length < 8) {
+			error = "Heslo musí mít alespoň 8 znaků.";
+			return false;
+		}
+		if (password.Length > 128) {
+			error = "Heslo může mít nejvýše 128 znaků.";
+			return false;
+		}
+		var hasLower = false;
+		var hasUpper = false;
+		var hasDigit = false;
+		var hasSpecial = false;
+
+		foreach (var c in password) {
+			if (c is >= 'a' and <= 'z') hasLower = true;
+			else if (c is >= 'A' and <= 'Z') hasUpper = true;
+			else if (c is >= '0' and <= '9') hasDigit = true;
+			else hasSpecial = true;
+		}
+
+		if (!hasLower || !hasUpper || !hasDigit || !hasSpecial) {
+			error = "Heslo musí obsahovat alespoň jedno malé písmeno, velké písmeno, číslo a speciální znak.";
+			return false;
+		}
+
+		error = null;
+		return true;
 	}
 
 	/// <summary>

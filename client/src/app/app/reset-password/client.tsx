@@ -35,11 +35,6 @@ export default function ResetPasswordClient() {
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({token}),
         }).then(async response => {
-            if (response.status === 404) {
-                // Backend preview endpoint not available yet - allow form submission
-                if (active) setLoading(false);
-                return;
-            }
             if (!response.ok) {
                 throw new Error("Resetovací odkaz není platný nebo vypršel.");
             }
@@ -85,8 +80,10 @@ export default function ResetPasswordClient() {
             });
 
             if (!response.ok) {
-                toast.error("Odkaz je neplatný nebo vypršel.");
-                setError("Resetovací odkaz není platný nebo vypršel.");
+                const message = (await response.text().catch(() => "")).trim();
+                const fallback = "Odkaz je neplatný nebo vypršel.";
+                toast.error(message || fallback);
+                setError(message || fallback);
                 return;
             }
 
