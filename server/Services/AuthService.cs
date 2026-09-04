@@ -29,9 +29,14 @@ internal sealed class AuthService(
 	private const int SoftLockoutThreshold = 6;
 
 	/// <summary>
-	/// delka prvniho kratkeho cooldownu pro zpomaleni bota a vychillovani uzivatele
+	/// delka prvniho kratkeho cooldownu pro zpomaleni bota a vychillovani uzivatele (6. pokus)
 	/// </summary>
 	private static readonly TimeSpan SoftLockoutDuration = TimeSpan.FromSeconds(30);
+
+	/// <summary>
+	/// delka opakovaneho cooldownu mezi 7. az 14. neuspesnym pokusem
+	/// </summary>
+	private static readonly TimeSpan RepeatedLockoutDuration = TimeSpan.FromSeconds(15);
 
 	/// <summary>
 	/// pocet neuspesnych pokusu pred aktivaci tvrdeho lockoutu (10 min)
@@ -106,7 +111,9 @@ internal sealed class AuthService(
 
 			if (currentFailures >= HardLockoutThreshold) {
 				blockedUntil = now.Add(HardLockoutDuration);
-			} else if (currentFailures >= SoftLockoutThreshold) {
+			} else if (currentFailures > SoftLockoutThreshold) {
+				blockedUntil = now.Add(RepeatedLockoutDuration);
+			} else if (currentFailures == SoftLockoutThreshold) {
 				blockedUntil = now.Add(SoftLockoutDuration);
 			}
 
