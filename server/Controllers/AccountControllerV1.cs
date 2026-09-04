@@ -674,7 +674,6 @@ public sealed class AccountControllerV1(
 	/// <param name="ct">cancellation token</param>
 	/// <returns>email uctu nebo 400 pri neplatnym tokenu</returns>
 	[HttpPost("login-link/preview")]
-	[ValidateAntiForgeryToken]
 	[EnableRateLimiting("auth-login")]
 	[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 	public async Task<IActionResult> PreviewLoginLink([FromBody] ConfirmLoginLinkRequest request, CancellationToken ct = default) {
@@ -695,7 +694,6 @@ public sealed class AccountControllerV1(
 	/// <param name="ct">cancellation token</param>
 	/// <returns>204 nocontent s nastavenyma auth cookies</returns>
 	[HttpPost("login-link")]
-	[ValidateAntiForgeryToken]
 	[EnableRateLimiting("auth-login")]
 	public async Task<IActionResult> LoginLink([FromBody] ConfirmLoginLinkRequest request, CancellationToken ct = default) {
 		var tokenHash = OneTimeToken.Hash(request.Token);

@@ -32,8 +32,12 @@ public sealed class AuthControllerV1(IAuthService auth, IAntiforgery antiforgery
 	[HttpPost("login")]
 	[EnableRateLimiting("auth-login")]
 	public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct = default) {
-		var account = await auth.LoginAsync(request.Email, request.PasswordPlain, request.RememberMe, ct);
-		return account == null ? Unauthorized("Nesprávný e-mail nebo heslo.") : Ok(account.ToDto());
+		var result = await auth.LoginAsync(request.Email, request.PasswordPlain, request.RememberMe, ct);
+		return result.Status switch {
+			LoginStatus.Success => Ok(result.Account!.ToDto()),
+			LoginStatus.LockedOut => StatusCode(StatusCodes.Status429TooManyRequests, result.LockoutMessage ?? "Příliš mnoho neúspěšných pokusů, zkuste to za chvíli."),
+			_ => Unauthorized("Nesprávný e-mail nebo heslo.")
+		};
 	}
 
 	[AllowAnonymous]

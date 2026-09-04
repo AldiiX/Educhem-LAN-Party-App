@@ -17,6 +17,7 @@ export default function LoginLinkClient() {
     useEffect(() => {
         if (!token) return;
         let active = true;
+        setLoading(true);
         apiFetch("/api/v1/account/login-link/preview", {
             method: "POST",
             cache: "no-store",
@@ -28,6 +29,8 @@ export default function LoginLinkClient() {
             if (active) setEmail(result.email);
         }).catch(reason => {
             if (active) setError(reason instanceof Error ? reason.message : "Odkaz nelze ověřit.");
+        }).finally(() => {
+            if (active) setLoading(false);
         });
         return () => { active = false; };
     }, [token]);

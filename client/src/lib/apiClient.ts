@@ -52,7 +52,10 @@ function isAuthEndpoint(input: RequestInfo | URL) {
     const url = typeof input === "string" ? input : input instanceof URL ? input.pathname : input.url;
     return url.includes("/api/v1/auth/")
         || url.includes("/api/v1/account/forgot-password")
-        || url.includes("/api/v1/account/reset-password");
+        || url.includes("/api/v1/account/reset-password")
+        || url.includes("/api/v1/account/login-link")
+        || url.includes("/api/v1/account/email-change/preview")
+        || url.includes("/api/v1/account/email-change/confirm");
 }
 
 async function createRequestInit(input: RequestInfo | URL, init: RequestInit = {}) {

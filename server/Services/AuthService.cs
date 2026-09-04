@@ -23,6 +23,31 @@ internal sealed class AuthService(
 	JwtAuthConfiguration jwt,
 	IMemoryCache cache
 ) : IAuthService {
+	/// <summary>
+	/// pocet neuspesnych pokusu pred aktivaci prvniho kratkeho cooldownu (30s)
+	/// </summary>
+	private const int SoftLockoutThreshold = 6;
+
+	/// <summary>
+	/// delka prvniho kratkeho cooldownu pro zpomaleni bota a vychillovani uzivatele
+	/// </summary>
+	private static readonly TimeSpan SoftLockoutDuration = TimeSpan.FromSeconds(30);
+
+	/// <summary>
+	/// pocet neuspesnych pokusu pred aktivaci tvrdeho lockoutu (10 min)
+	/// </summary>
+	private const int HardLockoutThreshold = 15;
+
+	/// <summary>
+	/// delka tvrdeho lockoutu pri opakovanem hadani hesla
+	/// </summary>
+	private static readonly TimeSpan HardLockoutDuration = TimeSpan.FromMinutes(10);
+
+	/// <summary>
+	/// jak dlouho si pamet drzi historii neuspesnych pokusu od posledni aktivity
+	/// </summary>
+	private static readonly TimeSpan ThrottleCacheDuration = TimeSpan.FromMinutes(20);
+
 	private const HashType EnhancedType = HashType.SHA384;
 	private const string SessionIdClaim = "sid";
 	private const string CommunicationStyleClaim = "communication_style";
@@ -43,39 +68,68 @@ internal sealed class AuthService(
 		}
 	}
 
-	public async Task<Account?> LoginAsync(string identifier, string plainPassword, bool rememberMe, CancellationToken ct = default) {
+	private sealed record LoginThrottle(int Failures, DateTimeOffset BlockedUntil);
+
+	private static string FormatLockoutMessage(TimeSpan remaining) {
+		var totalSeconds = Math.Max(1, (int)Math.Ceiling(remaining.TotalSeconds));
+		if (totalSeconds < 60) {
+			var s = totalSeconds;
+			var unit = s == 1 ? "sekundu" : s < 5 ? "sekundy" : "sekund";
+			return $"Příliš mnoho neúspěšných pokusů, zkuste to za {s} {unit}.";
+		}
+		var m = (int)Math.Ceiling(totalSeconds / 60.0);
+		var mUnit = m == 1 ? "minutu" : m < 5 ? "minuty" : "minut";
+		return $"Příliš mnoho neúspěšných pokusů, zkuste to za {m} {mUnit}.";
+	}
+
+	public async Task<LoginResult> LoginAsync(string identifier, string plainPassword, bool rememberMe, CancellationToken ct = default) {
 		var normalizedIdentifier = AccountEmail.TryNormalize(identifier, out var normalized)
 			? normalized
 			: identifier.Trim().ToLowerInvariant();
 
 		var clientInfo = ClientInfoExtractor.Extract(http.HttpContext);
 		var clientIp = clientInfo.IpAddress ?? "unknown";
-		var failureKey = $"login:failed:{clientIp}:{normalizedIdentifier}";
-		if (cache.TryGetValue<int>(failureKey, out var failures) && failures >= 5) {
-			logger.LogWarning("Příliš mnoho neúspěšných pokusů o přihlášení k účtu {Email} z IP {Ip}", normalizedIdentifier, clientIp);
-			return null;
+		var throttleKey = $"login:throttle:{clientIp}:{normalizedIdentifier}";
+		var now = DateTimeOffset.UtcNow;
+
+		if (cache.TryGetValue<LoginThrottle>(throttleKey, out var throttle) && throttle != null && now < throttle.BlockedUntil) {
+			logger.LogWarning("Zablokovaný pokus o přihlášení k účtu {Email} z IP {Ip} (cooldown do {Until})", normalizedIdentifier, clientIp, throttle.BlockedUntil);
+			return LoginResult.LockedOut(FormatLockoutMessage(throttle.BlockedUntil - now));
 		}
 
 		var account = await db.AccountsEf()
 			.AsNoTracking()
 			.FirstOrDefaultAsync(item => item.Email == normalizedIdentifier, ct);
 		if (account == null || !VerifyPassword(plainPassword, account.PasswordHash)) {
-			var currentFailures = (cache.TryGetValue<int>(failureKey, out var f) ? f : 0) + 1;
-			cache.Set(failureKey, currentFailures, TimeSpan.FromMinutes(5));
-			return null;
+			var currentFailures = (throttle?.Failures ?? 0) + 1;
+			var blockedUntil = now;
+
+			if (currentFailures >= HardLockoutThreshold) {
+				blockedUntil = now.Add(HardLockoutDuration);
+			} else if (currentFailures >= SoftLockoutThreshold) {
+				blockedUntil = now.Add(SoftLockoutDuration);
+			}
+
+			cache.Set(throttleKey, new LoginThrottle(currentFailures, blockedUntil), ThrottleCacheDuration);
+
+			if (blockedUntil > now) {
+				logger.LogWarning("Uživateli {Email} z IP {Ip} byl aktivován lockout na pokusu {Fails}", normalizedIdentifier, clientIp, currentFailures);
+				return LoginResult.LockedOut(FormatLockoutMessage(blockedUntil - now));
+			}
+			return LoginResult.InvalidCredentials();
 		}
 
-		cache.Remove(failureKey);
+		cache.Remove(throttleKey);
 
 		var verifiedPasswordHash = account.PasswordHash;
 		var verifiedEmail = account.Email;
 		await RefreshOAuthConnectionsAsync(account, true, ct);
 		account = await LoadAccountAsync(account.Id, ct);
-		if (account == null || account.PasswordHash != verifiedPasswordHash || account.Email != verifiedEmail) return null;
+		if (account == null || account.PasswordHash != verifiedPasswordHash || account.Email != verifiedEmail) return LoginResult.InvalidCredentials();
 
 		await ReplaceCurrentSessionAsync(account, rememberMe, ct);
 		QueueLastActiveUpdate(account.Id);
-		return account;
+		return LoginResult.Success(account);
 	}
 
 	public async Task<Account?> SignInAsAsync(Guid accountId, bool rememberMe, CancellationToken ct = default) {
