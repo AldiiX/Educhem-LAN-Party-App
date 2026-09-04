@@ -37,6 +37,7 @@ public sealed class AccountControllerV1(
 	private readonly IDataProtector loginLinkProtector = dataProtectionProvider.CreateProtector("account-login-link");
 	private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromMinutes(15);
 	private static readonly TimeSpan LoginLinkTokenLifetime = TimeSpan.FromMinutes(30);
+	private static readonly TimeSpan RegistrationLoginLinkTokenLifetime = TimeSpan.FromHours(24);
 
 	[HttpGet]
 	[Authorize]
@@ -251,7 +252,8 @@ public sealed class AccountControllerV1(
 				password,
 				created.FirstName,
 				created.LastName,
-				created.Gender
+				created.Gender,
+				tokenLifetime: RegistrationLoginLinkTokenLifetime
 			);
 		}
 
@@ -631,22 +633,48 @@ public sealed class AccountControllerV1(
 	}
 
 	[HttpGet("login-link")]
-	public async Task<IActionResult> LoginLink([FromQuery] string token, CancellationToken ct = default) {
-		var loginToken = ReadLoginLinkToken(token);
-		if(loginToken == null) return Redirect("/app/login");
-		if(DateTime.UtcNow - loginToken.CreatedAtUtc > LoginLinkTokenLifetime) return Redirect("/app/login");
+	[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+	public IActionResult LoginLinkRedirect([FromQuery] string? token) {
+		Response.Headers["Referrer-Policy"] = "no-referrer";
+		return Redirect(BuildAbsoluteUrl(string.IsNullOrWhiteSpace(token)
+			? "/app/login-link"
+			: $"/app/login-link#token={Uri.EscapeDataString(token)}"));
+	}
+
+	[HttpPost("login-link/preview")]
+	[ValidateAntiForgeryToken]
+	[EnableRateLimiting("auth-login")]
+	[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+	public async Task<IActionResult> PreviewLoginLink([FromBody] ConfirmLoginLinkRequest request, CancellationToken ct = default) {
+		var loginToken = ReadLoginLinkToken(request.Token);
+		if(loginToken == null)
+			return BadRequest("Invalid login token.");
+		var account = await db.Accounts.AsNoTracking().FirstOrDefaultAsync(item => item.Id == loginToken.AccountId, ct);
+		if(account == null || account.PasswordHash != loginToken.PasswordHash || account.Email != loginToken.Email
+			|| !await db.AccountEmailTokens.AnyAsync(item => item.Id == loginToken.TokenId
+				&& item.AccountId == account.Id && item.ExpiresAtUtc > DateTime.UtcNow, ct))
+			return BadRequest("Invalid login token.");
+		return Ok(new { account.Email });
+	}
+
+	[HttpPost("login-link")]
+	[ValidateAntiForgeryToken]
+	[EnableRateLimiting("auth-login")]
+	public async Task<IActionResult> LoginLink([FromBody] ConfirmLoginLinkRequest request, CancellationToken ct = default) {
+		var loginToken = ReadLoginLinkToken(request.Token);
+		if(loginToken == null) return BadRequest("Invalid login token.");
 		await using var transaction = await db.Database.BeginTransactionAsync(ct);
 		var account = await db.GetAccountForUpdateAsync(loginToken.AccountId, ct, tracking: false);
-		if(account == null || account.PasswordHash != loginToken.PasswordHash || account.Email != loginToken.Email) return Redirect("/app/login");
+		if(account == null || account.PasswordHash != loginToken.PasswordHash || account.Email != loginToken.Email) return BadRequest("Invalid login token.");
 		var consumed = await db.AccountEmailTokens.Where(item => item.Id == loginToken.TokenId
 			&& item.AccountId == account.Id && item.ExpiresAtUtc > DateTime.UtcNow).ExecuteDeleteAsync(ct);
-		if (consumed != 1) return Redirect("/app/login");
+		if (consumed != 1) return BadRequest("Invalid login token.");
 
 		var acc = await auth.SignInAsAsync(account.Id, false, ct);
-		if(acc == null) return Redirect("/app/login");
+		if(acc == null) return BadRequest("Invalid login token.");
 		await transaction.CommitAsync(ct);
 
-		return Redirect("/app");
+		return NoContent();
 	}
 
 	public sealed record AccountMutationRequest(
@@ -682,6 +710,7 @@ public sealed class AccountControllerV1(
 	public sealed record ChangeMyPasswordRequest(string OldPassword, string NewPassword);
 	public sealed record ForgotPasswordRequest(string Email);
 	public sealed record ConfirmPasswordResetRequest(string Token, string NewPassword);
+	public sealed record ConfirmLoginLinkRequest(string Token);
 	private sealed record PasswordResetToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc, Guid TokenId, string Email);
 	private sealed record LoginLinkToken(Guid AccountId, string PasswordHash, DateTime CreatedAtUtc, Guid TokenId, string Email);
 
@@ -838,9 +867,10 @@ public sealed class AccountControllerV1(
 		string password,
 		string? firstName,
 		string? lastName,
-		Gender? gender
+		Gender? gender,
+		TimeSpan? tokenLifetime = null
 	) {
-		var webLink = await GetLoginLinkAsync(account);
+		var webLink = await GetLoginLinkAsync(account, tokenLifetime ?? LoginLinkTokenLifetime);
 		if (webLink == null) return false;
 		var model = new EmailUserRegisterModel(password, webLink, email, firstName, lastName, gender, account.CommunicationStyle);
 		var fallbackBody = $"Email: {email}\nHeslo: {password}\n{webLink}";
@@ -864,7 +894,7 @@ public sealed class AccountControllerV1(
 
 	private string GetPasswordResetLink(PasswordResetToken token) {
 		var protectedToken = passwordResetProtector.Protect(JsonSerializer.Serialize(token));
-		return BuildAbsoluteUrl($"/app/reset-password?token={Uri.EscapeDataString(protectedToken)}");
+		return BuildAbsoluteUrl($"/app/reset-password#token={Uri.EscapeDataString(protectedToken)}");
 	}
 
 	private PasswordResetToken? ReadPasswordResetToken(string token) {
@@ -876,11 +906,11 @@ public sealed class AccountControllerV1(
 		}
 	}
 
-	private async Task<string?> GetLoginLinkAsync(Account account) {
+	private async Task<string?> GetLoginLinkAsync(Account account, TimeSpan tokenLifetime) {
 		var loginToken = new LoginLinkToken(account.Id, account.PasswordHash, DateTime.UtcNow, Guid.NewGuid(), account.Email);
-		if (!await RegisterEmailTokenAsync(account, loginToken.TokenId, loginToken.CreatedAtUtc.Add(LoginLinkTokenLifetime), HttpContext.RequestAborted)) return null;
+		if (!await RegisterEmailTokenAsync(account, loginToken.TokenId, loginToken.CreatedAtUtc.Add(tokenLifetime), HttpContext.RequestAborted)) return null;
 		var protectedToken = loginLinkProtector.Protect(JsonSerializer.Serialize(loginToken));
-		return BuildAbsoluteUrl($"/api/v1/account/login-link?token={Uri.EscapeDataString(protectedToken)}");
+		return BuildAbsoluteUrl($"/app/login-link#token={Uri.EscapeDataString(protectedToken)}");
 	}
 
 	private LoginLinkToken? ReadLoginLinkToken(string token) {

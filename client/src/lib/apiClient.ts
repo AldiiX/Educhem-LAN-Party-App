@@ -127,7 +127,9 @@ export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {})
     }
 
     const url = typeof input === "string" ? input : input instanceof URL ? input.pathname : input.url;
-    if(response.ok && url.includes("/api/v1/auth/login")) await getCsrfToken(true);
+    if(response.ok && (url.includes("/api/v1/auth/login") || url.endsWith("/api/v1/account/login-link"))) {
+        await getCsrfToken(true);
+    }
 
     return response;
 }

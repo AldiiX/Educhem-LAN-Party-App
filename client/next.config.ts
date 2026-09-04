@@ -46,6 +46,16 @@ const nextConfig: NextConfig = {
         NEXT_PUBLIC_APP_VERSION: packageJson.version,
     },
 
+    async headers() {
+        return [{
+            source: "/app/login-link",
+            headers: [
+                {key: "Content-Security-Policy", value: "frame-ancestors 'none'"},
+                {key: "X-Frame-Options", value: "DENY"},
+            ],
+        }];
+    },
+
     webpack(config, { dev }) {
         if (!dev) {
             for (const rule of config.module.rules as WebpackRule[]) {

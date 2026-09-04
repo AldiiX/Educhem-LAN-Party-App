@@ -1,0 +1,162 @@
+main.page {
+    min-height: 100svh;
+    padding: 128px 24px 48px;
+    color: var(--text-color);
+
+    .logo {
+        position: absolute;
+    }
+
+    .card {
+        width: min(100%, 460px);
+        min-width: 0;
+        display: grid;
+        gap: 24px;
+        padding: 32px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-panel);
+        background: var(--element-bg);
+        box-shadow: 0 18px 44px var(--shadow-color);
+
+        .header {
+            display: grid;
+            justify-items: start;
+            gap: 10px;
+
+            .loginIcon {
+                display: grid;
+                place-items: center;
+                width: 44px;
+                height: 44px;
+                margin-bottom: 8px;
+                border: 1px solid var(--accent-line);
+                border-radius: 12px;
+                background: var(--accent-soft);
+
+                &::before {
+                    content: "";
+                    width: 23px;
+                    height: 23px;
+                    background: var(--accent-color);
+                    mask: url('/icons/login.svg') center / contain no-repeat;
+                }
+            }
+
+            h1 {
+                font-size: clamp(24px, 4.5vw, 28px);
+                line-height: 1.2;
+                letter-spacing: -.025em;
+            }
+
+            p {
+                font-size: 14px;
+                line-height: 1.5;
+                font-weight: 400;
+                color: var(--text-color-secondary);
+            }
+        }
+
+        .account {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            border: 1px solid var(--accent-line);
+            border-radius: 10px;
+            background: var(--accent-soft-filled);
+
+            .accountIcon {
+                flex: 0 0 24px;
+                height: 24px;
+                background: var(--text-color-secondary);
+                mask: url('/icons/account_outline.svg') center / contain no-repeat;
+            }
+
+            .accountDetails {
+                display: grid;
+                gap: 4px;
+                min-width: 0;
+
+                >span {
+                    font-size: 12px;
+                    line-height: 1.4;
+                    font-weight: 400;
+                    color: var(--text-color-secondary);
+                }
+
+                >strong {
+                    font-size: 16px;
+                    line-height: 1.5;
+                    font-weight: 600;
+                    overflow-wrap: anywhere;
+                }
+            }
+        }
+
+        .notice, .status {
+            font-size: 13px;
+            line-height: 1.65;
+            font-weight: 400;
+            color: var(--text-color-secondary);
+        }
+
+        .error {
+            padding: 12px 14px;
+            border: 1px solid color-mix(in srgb, var(--error-color) 30%, transparent);
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--error-color) 7%, transparent);
+            color: var(--error-color);
+            font-size: 14px;
+            line-height: 1.5;
+            font-weight: 400;
+        }
+
+        .actions {
+            display: grid;
+            gap: 16px;
+
+            .confirmButton {
+                width: 100%;
+                min-height: 48px;
+            }
+
+            .backLink {
+                display: inline-flex;
+                justify-self: center;
+                align-items: center;
+                gap: 6px;
+                min-height: 32px;
+                color: var(--text-color-secondary);
+                font-size: 14px;
+                font-weight: 500;
+                transition: color .2s ease;
+
+                >span {
+                    width: 16px;
+                    height: 16px;
+                    background: currentColor;
+                    mask: url('/icons/arrowhead_single_left.svg') center / contain no-repeat;
+                }
+
+                &:hover {
+                    color: var(--accent-color);
+                }
+
+                &:focus-visible {
+                    outline: 2px solid var(--accent-color);
+                    outline-offset: 4px;
+                    border-radius: 4px;
+                }
+            }
+        }
+    }
+
+    @media (max-width: 480px) {
+        padding: 112px 16px 32px;
+
+        .card {
+            padding: 24px 20px;
+            gap: 20px;
+        }
+    }
+}

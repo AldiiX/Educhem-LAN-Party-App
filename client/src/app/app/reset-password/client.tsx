@@ -7,8 +7,10 @@ import toast from "react-hot-toast";
 import {Button} from "@/components/Button";
 import styles from "./client.module.scss";
 import {apiFetch} from "@/lib/apiClient";
+import {useOneTimeToken} from "@/hooks/useOneTimeToken";
 
-export default function ResetPasswordClient({token}: {token: string}) {
+export default function ResetPasswordClient() {
+    const token = useOneTimeToken();
     const router = useRouter();
     const [password, setPassword] = useState("");
     const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -22,12 +24,12 @@ export default function ResetPasswordClient({token}: {token: string}) {
         special: /[^a-zA-Z0-9]/.test(password),
     }), [password]);
 
-    const canSubmit = token.length > 0
+    const canSubmit = !!token
         && password === passwordConfirmation
         && Object.values(passwordValidations).every(Boolean);
 
     async function submitReset() {
-        if(!canSubmit) return;
+        if(!canSubmit || loading) return;
 
         setLoading(true);
         try {
@@ -63,7 +65,7 @@ export default function ResetPasswordClient({token}: {token: string}) {
             submitReset();
         }}>
             <h1>Reset hesla</h1>
-            {!token && <p className={styles.error}>Resetovací odkaz není platný.</p>}
+            {token === "" && <p className={styles.error}>Resetovací odkaz není platný.</p>}
 
             <label>
                 <span>Nové heslo</span>

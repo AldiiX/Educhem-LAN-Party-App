@@ -6,7 +6,7 @@
     ViewData["Preheader"] = "Přihlašovací údaje k účtu a vše potřebné pro rezervaci místa.";
 }
 <p style="margin:0 0 12px;color:#171717;line-height:24px">@Model.Greeting,</p>
-<p style="margin:0 0 20px;color:#45413b;line-height:24px">@(Model.IsFormal ? "děkujeme, že se účastníte LAN Party. Váš účet je připravený — přihlaste se a rezervujte si místo." : "díky, že se účastníš LAN Party. Tvůj účet je připravený — přihlas se a rezervuj si místo.")</p>
+<p style="margin:0 0 20px;color:#45413b;line-height:24px">@(Model.IsFormal ? "děkujeme, že se účastníte LAN Party. Váš účet je připravený. Přihlaste se a rezervujte si místo." : "díky, že se účastníš LAN Party. Tvůj účet je připravený — přihlas se a rezervuj si místo.")</p>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;table-layout:fixed;margin:0 0 20px;border:1px solid #e5e2da;border-radius:8px">
     <tr><td bgcolor="#f7f6f2" style="padding:14px 16px;background-color:#f7f6f2;border-bottom:1px solid #e5e2da">
         <p style="margin:0 0 4px;font-size:12px;line-height:18px;color:#625c50">Přihlašovací e-mail</p>
@@ -20,6 +20,7 @@
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:0 0 24px">
     <tr><td align="center" bgcolor="#ffb303" style="padding:14px 20px;background-color:#ffb303;border-radius:8px"><a href="@Model.WebLink" style="display:block;color:white;text-decoration:none;font-size:16px;line-height:22px;font-weight:700">Přihlásit se</a></td></tr>
 </table>
+<p style="margin:0 0 20px;color:#45413b;line-height:24px">@(Model.IsFormal ? "Na otevřené stránce zkontrolujte svůj e-mail a potvrďte přihlášení. Odkaz platí 24 hodin a lze jej použít jen jednou." : "Na otevřený stránce zkontroluj svůj e-mail a potvrď přihlášení. Odkaz platí 24 hodin a jde použít jen jednou.")</p>
 <h2 style="margin:0 0 12px;font-size:18px;line-height:24px;color:#171717">Jaké místo rezervovat?</h2>
 <p style="margin:0 0 12px;color:#45413b;font-size:14px;line-height:22px"><strong style="color:#171717">Bez vlastního setupu</strong><br>@(Model.IsFormal ? "Rezervujte si počítač, který budete během akce používat." : "Rezervuj si počítač, který budeš během akce používat.")</p>
 <p style="margin:0 0 12px;color:#45413b;font-size:14px;line-height:22px"><strong style="color:#171717">S vlastním setupem</strong><br>@(Model.IsFormal ? "Rezervujte si místo v místnosti. Přibalte monitor, příslušenství a prodlužovák." : "Rezervuj si místo v místnosti. Přibal monitor, příslušenství a prodlužovák.")</p>

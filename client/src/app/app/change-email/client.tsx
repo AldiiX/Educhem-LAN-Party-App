@@ -7,6 +7,7 @@ import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {phrase} from "@/lib/communicationStyle";
 import {emailChangeDate, emailChangeRequest, EmailChangeStatus} from "@/lib/emailChange";
 import styles from "./client.module.scss";
+import {takeOneTimeTokenFromUrl} from "@/lib/oneTimeToken";
 
 export default function ChangeEmailClient() {
     const {setAccount} = useAuth();
@@ -20,8 +21,7 @@ export default function ChangeEmailClient() {
     const currentAddress = token.current.split(".")[1];
 
     useEffect(() => {
-        token.current ||= new URLSearchParams(window.location.hash.slice(1)).get("token") ?? "";
-        window.history.replaceState(null, "", window.location.pathname);
+        token.current ||= takeOneTimeTokenFromUrl();
         setIsCancel(token.current.split(".")[1] === "cancel");
         let active = true;
         if (!token.current) { setError("Odkaz je neplatný. Otevřete odkaz z e-mailu."); setLoading(false); return; }
