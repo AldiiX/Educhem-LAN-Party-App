@@ -37,6 +37,11 @@ public sealed class AccountControllerV1(
 	private static readonly TimeSpan LoginLinkTokenLifetime = TimeSpan.FromMinutes(30);
 	private static readonly TimeSpan RegistrationLoginLinkTokenLifetime = TimeSpan.FromHours(24);
 
+	/// <summary>
+	/// minimalni prodleva mezi odeslanim dalsiho resetovaciho emailu na stejnou adresu (ochrana pred spamovanim schranky)
+	/// </summary>
+	private static readonly TimeSpan PasswordResetEmailCooldown = TimeSpan.FromMinutes(2);
+
 	[HttpGet]
 	[Authorize]
 	public async Task<IActionResult> GetMyAccount(CancellationToken ct = default) {
@@ -574,10 +579,15 @@ public sealed class AccountControllerV1(
 		var normalizedEmail = AccountEmail.TryNormalize(request.Email, out var normalized)
 			? normalized
 			: request.Email.Trim().ToLowerInvariant();
-		queue.QueueAsyncTask(async () => {
-			await using var scope = serviceProvider.CreateAsyncScope();
-			await SendPasswordResetEmailAsync(scope.ServiceProvider, normalizedEmail);
-		});
+
+		var cooldownKey = $"password-reset:cooldown:{normalizedEmail}";
+		if (!cache.TryGetValue(cooldownKey, out _)) {
+			cache.Set(cooldownKey, true, PasswordResetEmailCooldown);
+			queue.QueueAsyncTask(async () => {
+				await using var scope = serviceProvider.CreateAsyncScope();
+				await SendPasswordResetEmailAsync(scope.ServiceProvider, normalizedEmail);
+			});
+		}
 
 		return Ok(new PasswordResetResponse(true));
 	}

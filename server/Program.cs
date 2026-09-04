@@ -192,7 +192,7 @@ public static class Program {
 				_ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 			options.AddPolicy("auth-forgot-password", context => RateLimitPartition.GetFixedWindowLimiter(
 				context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-				_ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(15), QueueLimit = 0 }));
+				_ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(15), QueueLimit = 0 }));
 			options.AddPolicy("auth-change-password", context => RateLimitPartition.GetFixedWindowLimiter(
 				context.User.FindFirstValue("sub") ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
 				_ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
