@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@ViewData["Title"]</title>
+    <title>@Title</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f3ef;color:#171717;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%">
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;color:#f4f3ef;font-size:1px;line-height:1px">@ViewData["Preheader"]</div>
+    @if (!string.IsNullOrEmpty(Preheader))
+    {
+        <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;color:#f4f3ef;font-size:1px;line-height:1px">@Preheader</div>
+    }
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f4f3ef" style="width:100%;background-color:#f4f3ef">
         <tr>
             <td align="center" style="padding:24px 12px">
@@ -18,8 +21,8 @@
                     </tr>
                     <tr>
                         <td style="padding:24px 24px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#171717;overflow-wrap:anywhere;word-wrap:break-word">
-                            <h1 style="margin:0 0 22px;font-size:26px;line-height:32px;font-weight:700;color:#171717">@ViewData["Title"]</h1>
-                            @RenderBody()
+                            <h1 style="margin:0 0 22px;font-size:26px;line-height:32px;font-weight:700;color:#171717">@Title</h1>
+                            @ChildContent
                         </td>
                     </tr>
                     <tr>
@@ -33,3 +36,9 @@
     </table>
 </body>
 </html>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Preheader { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

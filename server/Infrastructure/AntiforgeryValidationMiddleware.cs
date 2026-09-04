@@ -25,7 +25,7 @@ public sealed class AntiforgeryValidationMiddleware(RequestDelegate next) {
 		if (!request.Path.StartsWithSegments("/api")) return false;
 		if (request.Path.StartsWithSegments("/api/v1/auth")) return false;
 		if (request.Path.Equals("/api/v1/account/forgot-password")) return false;
-		if (request.Path.Equals("/api/v1/account/reset-password")) return false;
+		if (request.Path.StartsWithSegments("/api/v1/account/reset-password")) return false;
 		if (HttpMethods.IsGet(request.Method) || HttpMethods.IsHead(request.Method)
 			|| HttpMethods.IsOptions(request.Method) || HttpMethods.IsTrace(request.Method)) return false;
 

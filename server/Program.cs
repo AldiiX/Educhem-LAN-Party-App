@@ -19,6 +19,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Net;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
+using Coravel;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace server;
@@ -61,7 +62,7 @@ public static class Program {
         var redis = await ConnectionMultiplexer.ConnectAsync(config);
         builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 
-        builder.Services.AddControllersWithViews();
+        builder.Services.AddControllers();
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddSignalR(options => {
             options.KeepAliveInterval = TimeSpan.FromSeconds(10);
@@ -92,8 +93,6 @@ public static class Program {
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-        builder.Services.AddControllers();
-        builder.Services.AddHttpContextAccessor();
 		builder.Services.AddSingleton(jwtConfiguration);
 		builder.Services.AddAntiforgery(options => {
 			options.HeaderName = "X-XSRF-TOKEN";
@@ -163,8 +162,7 @@ public static class Program {
 
         builder.Services.AddSingleton<AppCacheService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
-		builder.Services.AddScoped<EmailChangeService>();
-		builder.Services.AddScoped<IEmailChangeMailer, EmailChangeMailer>();
+		builder.Services.AddQueue();
 		builder.Services.AddRateLimiter(options => {
 			options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 			options.AddPolicy("email-change", context => RateLimitPartition.GetFixedWindowLimiter(
@@ -239,15 +237,7 @@ public static class Program {
         await Application.RunAsync();
     }
 
-	private static string GetFrontendOrigin() {
-		if (!ENV.TryGetValue("WEB_URL", out var webUrl) || !Uri.TryCreate(webUrl, UriKind.Absolute, out var uri)
-			|| uri.Scheme is not ("http" or "https") || !string.IsNullOrEmpty(uri.UserInfo)
-			|| !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment)) {
-			throw new InvalidOperationException("WEB_URL musi obsahovat platnou HTTP(S) originu.");
-		}
-
-		return uri.GetLeftPart(UriPartial.Authority);
-	}
+	private static string GetFrontendOrigin() => FrontendUrl.GetOrigin();
 
 	private static bool HasAccountType(ClaimsPrincipal principal, AccountType requiredType) {
 		var value = principal.FindFirstValue(ClaimTypes.Role);

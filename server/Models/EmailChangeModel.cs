@@ -3,6 +3,17 @@ using server.Services;
 
 namespace server.Models;
 
+public sealed record EmailChangeMessage(
+	string Recipient,
+	Account Account,
+	string OldEmail,
+	string NewEmail,
+	DateTime ExpiresAtUtc,
+	string? ConfirmLink = null,
+	string? CancelLink = null,
+	bool Completed = false
+);
+
 public sealed class EmailChangeModel(EmailChangeMessage message) {
 	public EmailChangeMessage Message { get; } = message;
 	public bool IsFormal => Message.Account.CommunicationStyle == CommunicationStyle.Formal;

@@ -13,6 +13,8 @@ using server.Dto.Requests;
 using server.Infrastructure;
 using server.Models;
 using server.Services;
+using server.Emails;
+using Coravel.Queuing.Interfaces;
 
 namespace server.Controllers;
 
@@ -26,11 +28,11 @@ public sealed class AccountControllerV1(
 	ReservationCacheService reservationCache,
 	IDbLoggerService dbLogger,
 	IOAuthService oauth,
-	IMemoryCache cache
+	IMemoryCache cache,
+	IQueue queue
 ) : Controller {
 	private const int AdministrationPageSize = 25;
 
-	private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromMinutes(15);
 	private static readonly TimeSpan LoginLinkTokenLifetime = TimeSpan.FromMinutes(30);
 	private static readonly TimeSpan RegistrationLoginLinkTokenLifetime = TimeSpan.FromHours(24);
 
@@ -239,11 +241,10 @@ public sealed class AccountControllerV1(
 		var created = await db.AccountsEf().AsNoTracking().FirstAsync(a => a.Id == account.Id, ct);
 		var emailSent = false;
 		if(request.SendLoginCredentialsEmail == true) {
-			emailSent = await SendCredentialsEmailAsync(
+			emailSent = await SendCredentialsEmailAsync<UserRegisteredEmail>(
 				created,
 				created.Email,
 				"EDUCHEM LAN Party - přihlašovací údaje",
-				"/Views/Emails/UserRegistered.cshtml",
 				password,
 				created.FirstName,
 				created.LastName,
@@ -337,11 +338,10 @@ public sealed class AccountControllerV1(
 			$"Admin zmenil email: {previousEmail} -> {updated.Email}.", "email-change-admin", user.Value.Id, updated.Id.ToString(), ct);
 		var emailSent = false;
 		if(request.SendLoginCredentialsEmail == true && passwordForEmail != null) {
-			emailSent = await SendCredentialsEmailAsync(
+			emailSent = await SendCredentialsEmailAsync<UserResetPasswordEmail>(
 				updated,
 				updated.Email,
 				"EDUCHEM LAN Party - nové přihlašovací údaje",
-				"/Views/Emails/UserResetPassword.cshtml",
 				passwordForEmail,
 				updated.FirstName,
 				updated.LastName,
@@ -423,11 +423,10 @@ public sealed class AccountControllerV1(
 			ct
 		);
 
-		var emailSent = await SendCredentialsEmailAsync(
+		var emailSent = await SendCredentialsEmailAsync<UserResetPasswordEmail>(
 			account,
 			account.Email,
 			"EDUCHEM LAN Party - nové heslo",
-			"/Views/Emails/UserResetPassword.cshtml",
 			password,
 			account.FirstName,
 			account.LastName,
@@ -500,6 +499,14 @@ public sealed class AccountControllerV1(
 		return updated == null ? NotFound() : Ok(updated.ToDto());
 	}
 
+	/// <summary>
+	/// zmeni heslo prihlasenyho usera.
+	/// hlida rate limit (max 5 failu za hodinu v cache), overi stary heslo pres bcrypt,
+	/// zakaze nastavit stejny heslo, ulozi novej hash a okamzite odhlasi a shodi vsechny jeho sessions.
+	/// </summary>
+	/// <param name="request">stary a novy heslo</param>
+	/// <param name="ct">cancellation token</param>
+	/// <returns>204 nocontent pri uspechu, 400 pri blbych datech nebo 429 pri moc failech</returns>
 	[HttpPost("me/password")]
 	[Authorize]
 	[EnableRateLimiting("auth-change-password")]
@@ -544,55 +551,37 @@ public sealed class AccountControllerV1(
 		return NoContent();
 	}
 
+	/// <summary>
+	/// zazada o reset hesla mailem.
+	/// vraci vzdycky 200 ok at nejde ocuchavat jestli email v db existuje nebo ne.
+	/// samotny vygenerovani tokenu a poslani mailu se hodi do coravel fronty na pozadi, at user nemusi cekat na smtp.
+	/// </summary>
+	/// <param name="request">zadanej email</param>
+	/// <returns>vzdycky 200 ok s true flagem</returns>
 	[HttpPost("forgot-password")]
 	[EnableRateLimiting("auth-forgot-password")]
-	public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct = default) {
+	public IActionResult ForgotPassword([FromBody] ForgotPasswordRequest request) {
 		if(string.IsNullOrWhiteSpace(request.Email))
 			return BadRequest("Missing email.");
 
 		var normalizedEmail = AccountEmail.TryNormalize(request.Email, out var normalized)
 			? normalized
 			: request.Email.Trim().ToLowerInvariant();
-		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Email == normalizedEmail, ct);
-		if(account == null) return Ok(new PasswordResetResponse(true));
-
-		var token = await CreateEmailTokenAsync(account, AccountEmailTokenPurpose.PasswordReset, PasswordResetTokenLifetime, ct);
-		if (token == null)
-			return Ok(new PasswordResetResponse(true));
-		var resetLink = BuildAbsoluteUrl($"/app/reset-password#token={Uri.EscapeDataString(token)}");
-
-		var emailSent = await SendPasswordResetLinkEmailAsync(
-			account.Email,
-			"EDUCHEM LAN Party - reset hesla",
-			"/Views/Emails/UserForgotPassword.cshtml",
-			resetLink,
-			account.FirstName,
-			account.LastName,
-			account.Gender,
-			account.CommunicationStyle
-		);
-
-		if(emailSent) {
-			await dbLogger.LogInfoAsync(
-				$"{UserNoun(account)} {FormatAccount(account)} si {PastVerb(account, "vyžádal", "vyžádala")} reset hesla; resetovací email byl odeslán.",
-				"user-password-reset-request",
-				null,
-				account.Id.ToString(),
-				ct
-			);
-		} else {
-			await dbLogger.LogWarnAsync(
-				$"{UserNoun(account)} {FormatAccount(account)} si {PastVerb(account, "vyžádal", "vyžádala")} reset hesla, ale resetovací email se nepodařilo odeslat.",
-				"user-password-reset-email-failed",
-				null,
-				account.Id.ToString(),
-				ct
-			);
-		}
+		queue.QueueAsyncTask(async () => {
+			await using var scope = serviceProvider.CreateAsyncScope();
+			await SendPasswordResetEmailAsync(scope.ServiceProvider, normalizedEmail);
+		});
 
 		return Ok(new PasswordResetResponse(true));
 	}
 
+	/// <summary>
+	/// dokonci reset hesla pomoci jednorazovyho tokenu z mailu.
+	/// v transakci overi a hned smaze pouzitej token, zahashuje novy heslo do db a shodi vsechny existujici sessions usera.
+	/// </summary>
+	/// <param name="request">token a novy heslo</param>
+	/// <param name="ct">cancellation token</param>
+	/// <returns>204 nocontent kdyz to klapne, 400 pri spatnym nebo explym tokenu</returns>
 	[HttpPost("reset-password")]
 	public async Task<IActionResult> ConfirmPasswordReset([FromBody] ConfirmPasswordResetRequest request, CancellationToken ct = default) {
 		if(string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword))
@@ -630,15 +619,29 @@ public sealed class AccountControllerV1(
 		return NoContent();
 	}
 
+	/// <summary>
+	/// vstupni redirect z mailu.
+	/// hodi no-referrer a presmeruje usera na frontend s tokenem v hash fragmentu (#token=...),
+	/// aby token neprosel na server ani do access logu.
+	/// </summary>
+	/// <param name="token">jednorazovej login token z query</param>
+	/// <returns>302 redirect na frontend login-link stranku</returns>
 	[HttpGet("login-link")]
 	[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 	public IActionResult LoginLinkRedirect([FromQuery] string? token) {
 		Response.Headers["Referrer-Policy"] = "no-referrer";
-		return Redirect(BuildAbsoluteUrl(string.IsNullOrWhiteSpace(token)
+		return Redirect(FrontendUrl.BuildAbsolute(string.IsNullOrWhiteSpace(token)
 			? "/app/login-link"
 			: $"/app/login-link#token={Uri.EscapeDataString(token)}"));
 	}
 
+	/// <summary>
+	/// nahled login linku bez konzumace tokenu.
+	/// vrati email prislusnyho uctu, aby frontend mohl ukazat userovi uvitalo pred prihlasenim.
+	/// </summary>
+	/// <param name="request">objekt s tokenem</param>
+	/// <param name="ct">cancellation token</param>
+	/// <returns>email uctu nebo 400 pri neplatnym tokenu</returns>
 	[HttpPost("login-link/preview")]
 	[ValidateAntiForgeryToken]
 	[EnableRateLimiting("auth-login")]
@@ -653,6 +656,13 @@ public sealed class AccountControllerV1(
 		return account == null ? BadRequest("Invalid login token.") : Ok(account);
 	}
 
+	/// <summary>
+	/// prihlaseni pres jednorazovej magic link.
+	/// v transakci token overi a atomicky smaze (aby nesel pouzit znova) a prihlasi usera pres auth service.
+	/// </summary>
+	/// <param name="request">objekt s tokenem</param>
+	/// <param name="ct">cancellation token</param>
+	/// <returns>204 nocontent s nastavenyma auth cookies</returns>
 	[HttpPost("login-link")]
 	[ValidateAntiForgeryToken]
 	[EnableRateLimiting("auth-login")]
@@ -859,44 +869,55 @@ public sealed class AccountControllerV1(
 		return passwordBuilder.ToString();
 	}
 
-	private async Task<bool> SendCredentialsEmailAsync(
+	/// <summary>
+	/// posle userovi registracni email s heslem a prihlasovacim odkazem.
+	/// </summary>
+	/// <typeparam name="TComponent">razor komponenta sablony mailu</typeparam>
+	/// <param name="account">ucet usera</param>
+	/// <param name="email">cilovej email</param>
+	/// <param name="subject">predmet mailu</param>
+	/// <param name="password">vygenerovany cisty heslo</param>
+	/// <param name="firstName">jmeno</param>
+	/// <param name="lastName">prijmeni</param>
+	/// <param name="gender">pohlavi pro cesky osloveni</param>
+	/// <param name="tokenLifetime">platnost prihlasovaciho tokenu (defaultne 30 min, u registrace 24 hodin)</param>
+	/// <returns>true kdyz se mail uspesne poslal</returns>
+	private async Task<bool> SendCredentialsEmailAsync<TComponent>(
 		Account account,
 		string email,
 		string subject,
-		string viewPath,
 		string password,
 		string? firstName,
 		string? lastName,
 		Gender? gender,
 		TimeSpan? tokenLifetime = null
-	) {
+	) where TComponent : Microsoft.AspNetCore.Components.IComponent {
 		var webLink = await GetLoginLinkAsync(account, tokenLifetime ?? LoginLinkTokenLifetime);
 		if (webLink == null) return false;
 		var model = new EmailUserRegisterModel(password, webLink, email, firstName, lastName, gender, account.CommunicationStyle);
 		var fallbackBody = $"Email: {email}\nHeslo: {password}\n{webLink}";
-		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
+		return await EmailService.SendHtmlEmailAsync<TComponent, EmailUserRegisterModel>(email, subject, model, serviceProvider, fallbackBody);
 	}
 
-	private async Task<bool> SendPasswordResetLinkEmailAsync(
-		string email,
-		string subject,
-		string viewPath,
-		string resetLink,
-		string? firstName,
-		string? lastName,
-		Gender? gender,
-		CommunicationStyle communicationStyle
-	) {
-		var model = new EmailPasswordResetLinkModel(resetLink, email, firstName, lastName, gender, communicationStyle);
-		var fallbackBody = $"Reset link: {resetLink}";
-		return await EmailService.SendHtmlEmailAsync(email, subject, viewPath, model, serviceProvider, fallbackBody);
-	}
-
+	/// <summary>
+	/// vyrobi absolutni login url s tokenem v hashi (#token=...).
+	/// </summary>
+	/// <param name="account">ucet usera</param>
+	/// <param name="tokenLifetime">jak dlouho ma token platit</param>
+	/// <returns>hotova url nebo null kdyz to selze</returns>
 	private async Task<string?> GetLoginLinkAsync(Account account, TimeSpan tokenLifetime) {
 		var token = await CreateEmailTokenAsync(account, AccountEmailTokenPurpose.Login, tokenLifetime, HttpContext.RequestAborted);
-		return token == null ? null : BuildAbsoluteUrl($"/app/login-link#token={Uri.EscapeDataString(token)}");
+		return token == null ? null : FrontendUrl.BuildAbsolute($"/app/login-link#token={Uri.EscapeDataString(token)}");
 	}
 
+	/// <summary>
+	/// vygeneruje a ulozi do db jednorazovej kryptografickej token pro mailovy operace (login, reset).
+	/// </summary>
+	/// <param name="account">ucet usera</param>
+	/// <param name="purpose">ucel tokenu (login, reset)</param>
+	/// <param name="lifetime">doba platnosti</param>
+	/// <param name="ct">cancellation token</param>
+	/// <returns>raw nehashovanej token pro link nebo null pri chybe</returns>
 	private async Task<string?> CreateEmailTokenAsync(Account account, AccountEmailTokenPurpose purpose, TimeSpan lifetime, CancellationToken ct) {
 		await using var transaction = await db.Database.BeginTransactionAsync(ct);
 		var current = await db.GetAccountForUpdateAsync(account.Id, ct, tracking: false);
@@ -910,17 +931,6 @@ public sealed class AccountControllerV1(
 		await db.SaveChangesAsync(ct);
 		await transaction.CommitAsync(ct);
 		return rawToken;
-	}
-
-	private static string BuildAbsoluteUrl(string pathAndQuery) {
-		if (!Program.ENV.TryGetValue("WEB_URL", out var webUrl) || !Uri.TryCreate(webUrl, UriKind.Absolute, out var uri)) {
-			throw new InvalidOperationException("WEB_URL musi byt nastavene jako absolutni URL.");
-		}
-		if (uri.Scheme is not ("http" or "https") || !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment)) {
-			throw new InvalidOperationException("WEB_URL musi obsahovat jen HTTP(S) originu.");
-		}
-
-		return $"{uri.GetLeftPart(UriPartial.Authority)}{pathAndQuery}";
 	}
 
 	private static string FormatAccount(Account account) {
@@ -986,5 +996,92 @@ public sealed class AccountControllerV1(
 
 	private static string PastVerb(Account account, string masculine, string feminine) {
 		return account.Gender == Gender.Female ? feminine : masculine;
+	}
+
+	/// <summary>
+	/// background worker co bezi ve fronte na pozadi pro odeslani resetovaciho mailu.
+	/// udela si vlastni scope, najde ucet, vygeneruje 15min token a posle html mail.
+	/// </summary>
+	/// <param name="services">service provider z background scope</param>
+	/// <param name="normalizedEmail">normalizovanej email prijemce</param>
+	private static async Task SendPasswordResetEmailAsync(IServiceProvider services, string normalizedEmail) {
+		var db = services.GetRequiredService<AppDbContext>();
+		var audit = services.GetRequiredService<IDbLoggerService>();
+		var logger = services.GetRequiredService<ILogger<AccountControllerV1>>();
+
+		try {
+			var account = await db.Accounts.AsNoTracking()
+				.FirstOrDefaultAsync(item => item.Email == normalizedEmail);
+			if (account == null) return;
+
+			var token = await CreatePasswordResetTokenAsync(db, account.Id, account.Email, account.PasswordHash);
+			if (token == null) return;
+
+			var resetLink = FrontendUrl.BuildAbsolute($"/app/reset-password#token={Uri.EscapeDataString(token)}");
+			var model = new EmailPasswordResetLinkModel(
+				resetLink,
+				account.Email,
+				account.FirstName,
+				account.LastName,
+				account.Gender,
+				account.CommunicationStyle
+			);
+
+			var emailSent = await EmailService.SendHtmlEmailAsync<UserForgotPasswordEmail, EmailPasswordResetLinkModel>(
+				account.Email,
+				"EDUCHEM LAN Party - reset hesla",
+				model,
+				services,
+				$"Reset link: {resetLink}"
+			);
+
+			var message = $"{UserNoun(account)} {FormatAccount(account)} si {PastVerb(account, "vyžádal", "vyžádala")} reset hesla";
+			if (emailSent) {
+				await audit.LogInfoAsync(
+					$"{message}; resetovací email byl odeslán.",
+					"user-password-reset-request",
+					null,
+					account.Id.ToString()
+				);
+			} else {
+				await audit.LogWarnAsync(
+					$"{message}, ale resetovací email se nepodařilo odeslat.",
+					"user-password-reset-email-failed",
+					null,
+					account.Id.ToString()
+				);
+			}
+		} catch (Exception ex) {
+			logger.LogError(ex, "Chyba při odesílání emailu pro reset hesla na adresu: {Email}", normalizedEmail);
+		}
+	}
+
+	/// <summary>
+	/// v transakci promaze stary tokeny a vyrobi novej jednorazovej token na reset hesla na 15 minut.
+	/// </summary>
+	/// <param name="db">databazovej kontext</param>
+	/// <param name="accountId">id uctu</param>
+	/// <param name="email">overeni puvodniho emailu</param>
+	/// <param name="passwordHash">overeni puvodniho hashe hesla</param>
+	/// <returns>raw token pro url odkaz nebo null pri selhani</returns>
+	private static async Task<string?> CreatePasswordResetTokenAsync(AppDbContext db, Guid accountId, string email, string passwordHash) {
+		await using var transaction = await db.Database.BeginTransactionAsync();
+		var current = await db.GetAccountForUpdateAsync(accountId, tracking: false);
+		if (current == null || current.Email != email || current.PasswordHash != passwordHash) return null;
+
+		await db.AccountEmailTokens
+			.Where(token => token.AccountId == accountId && token.ExpiresAtUtc <= DateTime.UtcNow)
+			.ExecuteDeleteAsync();
+		var rawToken = OneTimeToken.Create();
+		db.AccountEmailTokens.Add(new AccountEmailToken {
+			Id = Guid.NewGuid(),
+			AccountId = accountId,
+			ExpiresAtUtc = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15)),
+			TokenHash = OneTimeToken.Hash(rawToken),
+			Purpose = AccountEmailTokenPurpose.PasswordReset,
+		});
+		await db.SaveChangesAsync();
+		await transaction.CommitAsync();
+		return rawToken;
 	}
 }
