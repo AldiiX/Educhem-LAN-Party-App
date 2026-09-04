@@ -40,6 +40,7 @@ function applyProductionCssModuleHashing(rule: WebpackRule) {
 
 
 const nextConfig: NextConfig = {
+    poweredByHeader: false,
     output: "standalone",
     env: {
         NEXT_PUBLIC_APP_VERSION: packageJson.version,

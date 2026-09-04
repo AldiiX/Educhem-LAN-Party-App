@@ -36,18 +36,11 @@ Seznam otevřených bezpečnostních zranitelností, rizik a doporučených úpr
   - **Úkol:**
     - Přesunout odesílání e-mailů do asynchronní fronty / background úlohy (např. `Channel<T>` nebo `IBackgroundTaskQueue`), aby endpoint vracel odpověď v konstantním čase bez čekání na SMTP server.
 
-- [ ] **5. Doplnění bezpečnostních HTTP hlaviček (Clickjacking, MIME Sniffing) a odstranění `X-Powered-By`**
-  - **Soubory:** `server/Program.cs`, `nginx.conf`
-  - **Popis:** Aplikaci chybí ochrana proti vložení do `<iframe>` (Clickjacking) a hlavička proti MIME sniffingu. V `Program.cs` se navíc explicitně přidává `X-Powered-By: ASP.NET`.
-  - **Úkol:**
-    - Odstranit hlavičku `X-Powered-By`.
-    - Nastavit hlavičky `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`.
-
 ---
 
 ## 🟢 Nízká priorita & Architektonická čistota
 
-- [ ] **7. Přechod z URL Query parametrů na URL Fragment u citlivých tokenů**
+- [ ] **5. Přechod z URL Query parametrů na URL Fragment u citlivých tokenů**
   - **Soubory:** `server/Controllers/AccountControllerV1.cs`, e-mailové šablony (`UserForgotPassword.cshtml`, `UserRegistered.cshtml`)
   - **Popis:** U resetu hesla a přihlašovacího odkazu se tokeny posílají v query stringu (`?token=...`), což vede k jejich zápisu do access logů webových serverů, proxy a historie prohlížeče. U změny e-mailu byl zvolen bezpečnější přístup s URL fragmentem (`#token=...`), který se v HTTP požadavku neodesílá.
   - **Úkol:**

@@ -212,6 +212,13 @@ public static class Program {
         forwardedOptions.KnownProxies.Add(IPAddress.IPv6Loopback);
         Application.UseForwardedHeaders(forwardedOptions);
 
+        Application.Use(async (context, next) => {
+            context.Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
+            context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+            await next.Invoke();
+        });
+
         Application.UseDefaultFiles();
         Application.MapStaticAssets();
         Application.UseCors();
@@ -219,12 +226,6 @@ public static class Program {
 		Application.UseMiddleware<AntiforgeryValidationMiddleware>();
         Application.UseAuthorization();
 		Application.UseRateLimiter();
-
-        // pridani X-Powered-By
-        Application.Use(async (context, next) => {
-            context.Response.Headers.Append("X-Powered-By", "ASP.NET");
-            await next.Invoke();
-        });
 
         Application.MapControllers();
         Application.MapHub<ReservationsHub>("/hubs/reservations", options => options.CloseOnAuthenticationExpiration = true)
