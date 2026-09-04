@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +56,12 @@ public sealed class ProblemReportsControllerV1(
 
 		if(string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Description))
 			return BadRequest("Missing required problem report fields.");
+		if(request.Title.Trim().Length > 128)
+			return BadRequest("Název hlášení může mít nejvýše 128 znaků.");
+		if(request.Description.Trim().Length > 2048)
+			return BadRequest("Popis problému může mít nejvýše 2048 znaků.");
+		if(request.Contact?.Trim().Length > 128)
+			return BadRequest("Kontakt může mít nejvýše 128 znaků.");
 		if(!Enum.IsDefined(request.Category) || !Enum.IsDefined(request.Priority)) {
 			return BadRequest("Invalid problem report category or priority.");
 		}
@@ -120,6 +127,9 @@ public sealed class ProblemReportsControllerV1(
 		if(!Enum.IsDefined(request.Status)) {
 			return BadRequest("Invalid problem report status.");
 		}
+		if(request.ResolutionNote?.Trim().Length > 1024) {
+			return BadRequest("Poznámka k vyřešení může mít nejvýše 1024 znaků.");
+		}
 
 		var report = await db.ProblemReports.FirstOrDefaultAsync(r => r.Id == id, ct);
 		if(report == null) return NotFound();
@@ -177,14 +187,14 @@ public sealed class ProblemReportsControllerV1(
 	public sealed record CreateProblemReportRequest(
 		ProblemReportCategory Category,
 		ProblemReportPriority Priority,
-		string Title,
-		string Description,
-		string? Contact
+		[MaxLength(128)] string Title,
+		[MaxLength(2048)] string Description,
+		[MaxLength(128)] string? Contact
 	);
 
 	public sealed record UpdateProblemReportStatusRequest(
 		ProblemReportStatus Status,
-		string? ResolutionNote
+		[MaxLength(1024)] string? ResolutionNote
 	);
 
 	public sealed record ProblemReportsAvailabilityResponse(bool Enabled);

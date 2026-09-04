@@ -16,6 +16,7 @@ using server.Services;
 using server.Services.OAuth;
 using StackExchange.Redis;
 using Microsoft.IdentityModel.Tokens;
+using System.Net;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
@@ -169,6 +170,15 @@ public static class Program {
 			options.AddPolicy("email-change", context => RateLimitPartition.GetFixedWindowLimiter(
 				context.User.FindFirstValue("sub") ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
 				_ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+			options.AddPolicy("auth-login", context => RateLimitPartition.GetFixedWindowLimiter(
+				context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+				_ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+			options.AddPolicy("auth-forgot-password", context => RateLimitPartition.GetFixedWindowLimiter(
+				context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+				_ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(15), QueueLimit = 0 }));
+			options.AddPolicy("auth-change-password", context => RateLimitPartition.GetFixedWindowLimiter(
+				context.User.FindFirstValue("sub") ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+				_ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
 		});
         builder.Services.AddScoped<ReservationCacheService>();
         builder.Services.AddScoped<IDbLoggerService, DbLoggerService>();
@@ -194,10 +204,12 @@ public static class Program {
         }
 
         var forwardedOptions = new ForwardedHeadersOptions {
-            ForwardedHeaders = ForwardedHeaders.All,
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
         };
         forwardedOptions.KnownIPNetworks.Clear();
         forwardedOptions.KnownProxies.Clear();
+        forwardedOptions.KnownProxies.Add(IPAddress.Loopback);
+        forwardedOptions.KnownProxies.Add(IPAddress.IPv6Loopback);
         Application.UseForwardedHeaders(forwardedOptions);
 
         Application.UseDefaultFiles();

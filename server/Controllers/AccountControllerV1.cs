@@ -4,7 +4,9 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using server.Data;
 using server.Data.Entities;
 using server.Dto;
@@ -26,7 +28,8 @@ public sealed class AccountControllerV1(
 	IDataProtectionProvider dataProtectionProvider,
 	ReservationCacheService reservationCache,
 	IDbLoggerService dbLogger,
-	IOAuthService oauth
+	IOAuthService oauth,
+	IMemoryCache cache
 ) : Controller {
 	private const int AdministrationPageSize = 25;
 
@@ -207,6 +210,11 @@ public sealed class AccountControllerV1(
 		var enrollmentResult = await ResolveEnrollmentEntitiesAsync(request.Enrollment, ct);
 		if(enrollmentResult.Error != null) return BadRequest(enrollmentResult.Error);
 
+		if(!TryNormalizeUrlOptional(request.AvatarUrl, out var avatarUrl, out var avatarError))
+			return BadRequest(avatarError);
+		if(!TryNormalizeUrlOptional(request.BannerUrl, out var bannerUrl, out var bannerError))
+			return BadRequest(bannerError);
+
 		var password = string.IsNullOrWhiteSpace(request.Password) ? GenerateRandomPassword() : request.Password;
 		var account = new Account {
 			Id = Guid.Empty,
@@ -216,8 +224,8 @@ public sealed class AccountControllerV1(
 			PasswordHash = AuthService.HashPassword(password),
 			Gender = request.Gender,
 			AccountType = requestedAccountType,
-			AvatarUrl = NormalizeOptional(request.AvatarUrl),
-			BannerUrl = NormalizeOptional(request.BannerUrl),
+			AvatarUrl = avatarUrl,
+			BannerUrl = bannerUrl,
 			EnableReservations = request.EnableReservations ?? false,
 			CommunicationStyle = request.CommunicationStyle ?? (requestedAccountType >= AccountType.Teacher ? CommunicationStyle.Formal : CommunicationStyle.Informal),
 		};
@@ -286,10 +294,15 @@ public sealed class AccountControllerV1(
 			account.Email = normalizedEmail;
 		}
 
+		if(!TryNormalizeUrlOptional(request.AvatarUrl, out var avatarUrl, out var avatarError))
+			return BadRequest(avatarError);
+		if(!TryNormalizeUrlOptional(request.BannerUrl, out var bannerUrl, out var bannerError))
+			return BadRequest(bannerError);
+
 		account.Gender = request.Gender;
 		account.AccountType = requestedAccountType;
-		if (account.AvatarSyncPlatform == null) account.AvatarUrl = NormalizeOptional(request.AvatarUrl);
-		account.BannerUrl = NormalizeOptional(request.BannerUrl);
+		if (account.AvatarSyncPlatform == null) account.AvatarUrl = avatarUrl;
+		account.BannerUrl = bannerUrl;
 		account.EnableReservations = request.EnableReservations ?? account.EnableReservations;
 		account.CommunicationStyle = request.CommunicationStyle ?? account.CommunicationStyle;
 
@@ -443,6 +456,14 @@ public sealed class AccountControllerV1(
 		var signedInAccount = await auth.SignInAsAsync(account.Id, false, ct);
 		if(signedInAccount == null) return NotFound();
 
+		await dbLogger.LogWarnAsync(
+			$"Administrátor ({user.Value.Id}) převzal identitu uživatele {FormatAccount(account)} ({account.Id}).",
+			"user-impersonate",
+			user.Value.Id,
+			account.Id.ToString(),
+			ct
+		);
+
 		return Ok(signedInAccount.ToDto());
 	}
 
@@ -455,10 +476,15 @@ public sealed class AccountControllerV1(
 		var account = await db.AccountsEf().FirstOrDefaultAsync(a => a.Id == accountId.Value, ct);
 		if(account == null) return NotFound();
 
+		if(!TryNormalizeUrlOptional(request.AvatarUrl, out var avatarUrl, out var avatarError))
+			return BadRequest(avatarError);
+		if(!TryNormalizeUrlOptional(request.BannerUrl, out var bannerUrl, out var bannerError))
+			return BadRequest(bannerError);
+
 		account.Gender = request.Gender;
 		account.CommunicationStyle = request.CommunicationStyle ?? account.CommunicationStyle;
-		if (account.AvatarSyncPlatform == null) account.AvatarUrl = NormalizeOptional(request.AvatarUrl);
-		account.BannerUrl = NormalizeOptional(request.BannerUrl);
+		if (account.AvatarSyncPlatform == null) account.AvatarUrl = avatarUrl;
+		account.BannerUrl = bannerUrl;
 
 		await db.SaveChangesAsync(ct);
 		reservationCache.InvalidateReservations();
@@ -479,17 +505,28 @@ public sealed class AccountControllerV1(
 
 	[HttpPost("me/password")]
 	[Authorize]
+	[EnableRateLimiting("auth-change-password")]
 	public async Task<IActionResult> ChangeMyPassword([FromBody] ChangeMyPasswordRequest request, CancellationToken ct = default) {
 		var accountId = auth.GetCurrentAccountId();
 		if(accountId == null) return new UnauthorizedResult();
+
+		var lockoutKey = $"password-change:failed:{accountId.Value}";
+		if (cache.TryGetValue<int>(lockoutKey, out var failedAttempts) && failedAttempts >= 5) {
+			return StatusCode(StatusCodes.Status429TooManyRequests, "Příliš mnoho neúspěšných pokusů o změnu hesla. Zkuste to prosím za hodinu.");
+		}
 
 		if(string.IsNullOrWhiteSpace(request.OldPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
 			return BadRequest("Vyplň staré i nové heslo.");
 
 		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == accountId.Value, ct);
 		if(account == null) return NotFound();
-		if(!AuthService.VerifyPassword(request.OldPassword, account.PasswordHash))
+		if(!AuthService.VerifyPassword(request.OldPassword, account.PasswordHash)) {
+			var currentFailures = (cache.TryGetValue<int>(lockoutKey, out var f) ? f : 0) + 1;
+			cache.Set(lockoutKey, currentFailures, TimeSpan.FromHours(1));
 			return BadRequest("Nesprávné staré heslo.");
+		}
+		cache.Remove(lockoutKey);
+
 		if(AuthService.VerifyPassword(request.NewPassword, account.PasswordHash))
 			return BadRequest("Nové heslo nesmí být stejné jako staré heslo.");
 
@@ -511,12 +548,15 @@ public sealed class AccountControllerV1(
 	}
 
 	[HttpPost("forgot-password")]
+	[EnableRateLimiting("auth-forgot-password")]
 	public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct = default) {
 		if(string.IsNullOrWhiteSpace(request.Email))
 			return BadRequest("Missing email.");
 
-		var email = request.Email.Trim();
-		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Email == email.ToLower(), ct);
+		var normalizedEmail = AccountEmail.TryNormalize(request.Email, out var normalized)
+			? normalized
+			: request.Email.Trim().ToLowerInvariant();
+		var account = await db.Accounts.FirstOrDefaultAsync(a => a.Email == normalizedEmail, ct);
 		if(account == null) return Ok(new PasswordResetResponse(true));
 
 		var token = new PasswordResetToken(account.Id, account.PasswordHash, DateTime.UtcNow, Guid.NewGuid(), account.Email);
@@ -737,6 +777,20 @@ public sealed class AccountControllerV1(
 
 	private static string? NormalizeOptional(string? value) {
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+	}
+
+	private static bool TryNormalizeUrlOptional(string? value, out string? normalizedUrl, out string? error) {
+		normalizedUrl = null;
+		error = null;
+		if (string.IsNullOrWhiteSpace(value)) return true;
+		var trimmed = value.Trim();
+		if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
+			|| (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)) {
+			error = "URL adresa musí být platná absolutní adresa začínající http:// nebo https://.";
+			return false;
+		}
+		normalizedUrl = uri.ToString();
+		return true;
 	}
 
 	private async Task<EnrollmentEntitiesResult> ResolveEnrollmentEntitiesAsync(EnrollmentMutationRequest? request, CancellationToken ct) {

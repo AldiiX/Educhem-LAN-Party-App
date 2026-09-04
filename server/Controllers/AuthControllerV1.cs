@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using server.Dto.Mappers;
 using server.Dto.Requests;
 using server.Infrastructure;
@@ -29,6 +30,7 @@ public sealed class AuthControllerV1(IAuthService auth, IAntiforgery antiforgery
 
 	[AllowAnonymous]
 	[HttpPost("login")]
+	[EnableRateLimiting("auth-login")]
 	public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct = default) {
 		var account = await auth.LoginAsync(request.Email, request.PasswordPlain, request.RememberMe, ct);
 		return account == null ? Unauthorized("Nesprávný e-mail nebo heslo.") : Ok(account.ToDto());

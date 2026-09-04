@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using server.Data;
 using server.Dto.Mappers;
 using server.Infrastructure;
@@ -13,16 +14,16 @@ namespace server.Controllers;
 public sealed class ProfileControllerV1(AppDbContext db, IAuthService auth) : Controller {
 
 	[HttpGet]
-	public async Task<IActionResult> Get() {
-		var me = await auth.GetCurrentAccountFullAsync();
+	public async Task<IActionResult> Get(CancellationToken ct = default) {
+		var me = await auth.GetCurrentAccountFullAsync(ct);
 		if(me == null) return new UnauthorizedResult();
 
 		return Ok(me.ToProfileDto());
 	}
 
 	[HttpGet("{uuid:guid}")]
-	public async Task<IActionResult> GetProfile([FromRoute] Guid uuid) {
-		var profile = db.AccountsEf().FirstOrDefault(a => a.Id == uuid);
+	public async Task<IActionResult> GetProfile([FromRoute] Guid uuid, CancellationToken ct = default) {
+		var profile = await db.AccountsEf().AsNoTracking().FirstOrDefaultAsync(a => a.Id == uuid, ct);
 		if(profile == null) return NotFound();
 
 		return Ok(profile.ToProfileDto());

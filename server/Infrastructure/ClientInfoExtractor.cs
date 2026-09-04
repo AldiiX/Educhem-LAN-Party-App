@@ -42,6 +42,15 @@ public static class ClientInfoExtractor {
 			return cfConnectingIp.Trim();
 		}
 
+		var remoteIp = context.Connection.RemoteIpAddress?.ToString();
+		if (remoteIp == "::1") return "127.0.0.1";
+		if (!string.IsNullOrWhiteSpace(remoteIp)) return remoteIp;
+
+		var xRealIp = context.Request.Headers["X-Real-IP"].ToString();
+		if (!string.IsNullOrWhiteSpace(xRealIp)) {
+			return xRealIp.Trim();
+		}
+
 		var forwardedFor = context.Request.Headers["X-Forwarded-For"].ToString();
 		if (!string.IsNullOrWhiteSpace(forwardedFor)) {
 			var firstIp = forwardedFor.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
@@ -50,9 +59,7 @@ public static class ClientInfoExtractor {
 			}
 		}
 
-		var remoteIp = context.Connection.RemoteIpAddress?.ToString();
-		if (remoteIp == "::1") return "127.0.0.1";
-		return remoteIp;
+		return null;
 	}
 
 	private static string? ExtractHeader(HttpContext context, string headerName) {

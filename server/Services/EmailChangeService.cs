@@ -102,6 +102,7 @@ public sealed class EmailChangeService(AppDbContext db, IEmailChangeMailer maile
 		if (request == null || State(request) != "pending") return new(Error: InvalidLink, StatusCode: 400);
 		request.CancelledAtUtc = Now;
 		await LogAsync(request, "cancel", "Zrusena zadost", accountId, ct);
+		await db.SaveChangesAsync(ct);
 		await transaction.CommitAsync(ct);
 		return new(await ToStatusAsync(request, false, ct));
 	}
@@ -132,6 +133,7 @@ public sealed class EmailChangeService(AppDbContext db, IEmailChangeMailer maile
 				if (await db.Accounts.AnyAsync(a => a.Id != request.AccountId && a.Email == request.NewEmail, ct)) {
 					request.CancelledAtUtc = Now;
 					await LogAsync(request, "cancel", "Cilovy email uz nejde pouzit", null, ct);
+					await db.SaveChangesAsync(ct);
 					await transaction.CommitAsync(ct);
 					return new(Error: UnavailableEmail, StatusCode: 409);
 				}
@@ -140,6 +142,7 @@ public sealed class EmailChangeService(AppDbContext db, IEmailChangeMailer maile
 				await LogAsync(request, "complete", "Dokoncena zmena", null, ct);
 			}
 		}
+		await db.SaveChangesAsync(ct);
 		await transaction.CommitAsync(ct);
 		var sent = true;
 		if (request.CompletedAtUtc != null) {

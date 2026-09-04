@@ -31,7 +31,10 @@ public sealed class EmailChangeControllerV1(EmailChangeService service, IAuthSer
 	[HttpPost("confirm"), AllowAnonymous]
 	public Task<IActionResult> Confirm(TokenRequest request, CancellationToken ct) => Run(async () => {
 		var result = await service.ConfirmAsync(request.Token, ct);
-		if (result.CompletedAccountId is { } id && auth.GetCurrentAccountId() == id) await auth.LogoutAsync(ct);
+		if (result.CompletedAccountId is { } id) {
+			await auth.RevokeAllSessionsAsync(id, ct);
+			if (auth.GetCurrentAccountId() == id) await auth.LogoutAsync(ct);
+		}
 		return result;
 	});
 

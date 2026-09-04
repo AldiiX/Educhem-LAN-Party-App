@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using server.Data;
 using server.Data.Entities;
@@ -19,7 +20,8 @@ internal sealed class AuthService(
 	IServiceScopeFactory scopeFactory,
 	IOAuthService oauth,
 	ILogger<AuthService> logger,
-	JwtAuthConfiguration jwt
+	JwtAuthConfiguration jwt,
+	IMemoryCache cache
 ) : IAuthService {
 	private const HashType EnhancedType = HashType.SHA384;
 	private const string SessionIdClaim = "sid";
@@ -42,10 +44,26 @@ internal sealed class AuthService(
 	}
 
 	public async Task<Account?> LoginAsync(string identifier, string plainPassword, bool rememberMe, CancellationToken ct = default) {
+		var normalizedIdentifier = AccountEmail.TryNormalize(identifier, out var normalized)
+			? normalized
+			: identifier.Trim().ToLowerInvariant();
+
+		var failureKey = $"login:failed:{normalizedIdentifier}";
+		if (cache.TryGetValue<int>(failureKey, out var failures) && failures >= 5) {
+			logger.LogWarning("Příliš mnoho neúspěšných pokusů o přihlášení k účtu {Email}", normalizedIdentifier);
+			return null;
+		}
+
 		var account = await db.AccountsEf()
 			.AsNoTracking()
-			.FirstOrDefaultAsync(item => item.Email == identifier.Trim().ToLower(), ct);
-		if (account == null || !VerifyPassword(plainPassword, account.PasswordHash)) return null;
+			.FirstOrDefaultAsync(item => item.Email == normalizedIdentifier, ct);
+		if (account == null || !VerifyPassword(plainPassword, account.PasswordHash)) {
+			var currentFailures = (cache.TryGetValue<int>(failureKey, out var f) ? f : 0) + 1;
+			cache.Set(failureKey, currentFailures, TimeSpan.FromMinutes(5));
+			return null;
+		}
+
+		cache.Remove(failureKey);
 
 		var verifiedPasswordHash = account.PasswordHash;
 		var verifiedEmail = account.Email;
