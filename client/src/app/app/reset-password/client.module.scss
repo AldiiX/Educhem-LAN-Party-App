@@ -1,8 +1,9 @@
 .page {
-    min-height: 100vh;
+    min-height: 100svh;
     display: grid;
     place-items: center;
-    padding: 32px;
+    padding: 128px 24px 48px;
+    color: var(--text-color);
     background-repeat: no-repeat;
     background-size: cover;
     background-position: center;
@@ -18,7 +19,7 @@
     }
 
     .logo {
-        position: fixed;
+        position: absolute;
         top: 38px;
         left: 42px;
         display: flex;
@@ -40,64 +41,175 @@
     }
 
     .card {
-        width: min(420px, calc(100vw - 32px));
+        width: min(100%, 460px);
+        min-width: 0;
         display: grid;
-        gap: 18px;
-        padding: 28px;
+        gap: 24px;
+        padding: 32px;
         border-radius: var(--radius-panel);
         border: 1px solid var(--border-color);
         background: var(--element-bg);
         box-shadow: 0 18px 44px var(--shadow-color);
 
-        >h1 {
-            font-size: 32px;
-            line-height: 1;
-        }
-
-        label {
+        .header {
             display: grid;
-            gap: 4px;
+            justify-items: start;
+            gap: 10px;
 
-            >span {
-                font-weight: 700;
+            .resetIcon {
+                display: grid;
+                place-items: center;
+                width: 44px;
+                height: 44px;
+                margin-bottom: 8px;
+                border: 1px solid var(--accent-line);
+                border-radius: 12px;
+                background: var(--accent-soft);
+
+                &::before {
+                    content: "";
+                    width: 24px;
+                    height: 24px;
+                    background: var(--accent-color);
+                    mask: url('/icons/reset_password.svg') center / contain no-repeat;
+                }
+            }
+
+            h1 {
+                font-size: clamp(24px, 4.5vw, 28px);
+                line-height: 1.2;
+                letter-spacing: -.025em;
+            }
+
+            p {
+                font-size: 14px;
+                line-height: 1.5;
+                font-weight: 400;
+                color: var(--text-color-secondary);
             }
         }
 
-        input {
-            height: 46px;
-            padding: 0 14px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--background-bg);
-            color: var(--text-color);
+        .account {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            border: 1px solid var(--accent-line);
+            border-radius: 10px;
+            background: var(--accent-soft-filled);
 
-            &:focus {
-                outline: none;
-                border-color: var(--accent-color);
+            .accountIcon {
+                flex: 0 0 24px;
+                height: 24px;
+                background: var(--text-color-secondary);
+                mask: url('/icons/account_outline.svg') center / contain no-repeat;
             }
+
+            .accountDetails {
+                display: grid;
+                gap: 4px;
+                min-width: 0;
+
+                >span {
+                    font-size: 12px;
+                    line-height: 1.4;
+                    font-weight: 400;
+                    color: var(--text-color-secondary);
+                }
+
+                >strong {
+                    font-size: 16px;
+                    line-height: 1.5;
+                    font-weight: 600;
+                    overflow-wrap: anywhere;
+                }
+            }
+        }
+
+        .form {
+            display: grid;
+            gap: 24px;
+        }
+
+        .fields {
+            display: grid;
+            gap: 16px;
+
+            label {
+                display: grid;
+                gap: 6px;
+
+                >span {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: var(--text-color);
+                }
+            }
+
+            input {
+                height: 48px;
+                padding: 0 16px;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                background: var(--background-bg);
+                color: var(--text-color);
+                font-size: 15px;
+                transition: border-color .2s ease, box-shadow .2s ease;
+
+                &:focus {
+                    outline: none;
+                    border-color: var(--accent-color);
+                    box-shadow: 0 0 0 3px var(--accent-soft);
+                }
+            }
+        }
+
+        .notice, .status {
+            font-size: 13px;
+            line-height: 1.65;
+            font-weight: 400;
+            color: var(--text-color-secondary);
         }
 
         .error {
+            padding: 12px 14px;
+            border: 1px solid color-mix(in srgb, var(--error-color) 30%, transparent);
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--error-color) 7%, transparent);
             color: var(--error-color);
-            margin-top: -16px;
-            margin-bottom: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            font-weight: 400;
         }
 
         .rules {
             display: grid;
-            gap: 2px;
+            gap: 6px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            background: var(--element-subtle, rgba(255, 255, 255, 0.03));
+            border: 1px solid var(--border-color);
 
             >p {
+                display: flex;
+                align-items: center;
+                gap: 8px;
                 color: var(--text-color-darker);
-                font-size: 14px;
-                line-height: 1.3;
+                font-size: 13px;
+                line-height: 1.4;
+                transition: color .2s ease;
 
                 &::before {
-                    content: "x";
-                    display: inline-block;
+                    content: "✕";
+                    display: inline-flex;
+                    justify-content: center;
+                    align-items: center;
                     width: 16px;
-                    color: var(--error-color);
+                    height: 16px;
+                    flex: 0 0 16px;
+                    font-size: 11px;
                     font-weight: 800;
+                    color: var(--error-color);
                 }
 
                 &.valid {
@@ -105,27 +217,55 @@
 
                     &::before {
                         content: "✓";
+                        font-size: 13px;
                         color: var(--accent-color);
                     }
                 }
             }
         }
 
-        .backLink {
-            justify-self: center;
-            color: var(--text-color-secondary);
-            font-weight: 700;
-            transition: color .2s ease;
+        .actions {
+            display: grid;
+            gap: 16px;
 
-            &:hover {
-                color: var(--accent-color);
+            .submitButton {
+                width: 100%;
+                min-height: 48px;
+            }
+
+            .backLink {
+                display: inline-flex;
+                justify-self: center;
+                align-items: center;
+                gap: 6px;
+                min-height: 32px;
+                color: var(--text-color-secondary);
+                font-size: 14px;
+                font-weight: 500;
+                transition: color .2s ease;
+
+                >span {
+                    width: 16px;
+                    height: 16px;
+                    background: currentColor;
+                    mask: url('/icons/arrowhead_single_left.svg') center / contain no-repeat;
+                }
+
+                &:hover {
+                    color: var(--accent-color);
+                }
+
+                &:focus-visible {
+                    outline: 2px solid var(--accent-color);
+                    outline-offset: 4px;
+                    border-radius: 4px;
+                }
             }
         }
     }
 
     @media (max-width: 640px) {
-        align-content: center;
-        padding-top: 140px;
+        padding: 112px 16px 32px;
 
         .logo {
             left: 24px;
@@ -136,6 +276,11 @@
                 width: 54px;
                 height: 54px;
             }
+        }
+
+        .card {
+            padding: 24px 20px;
+            gap: 20px;
         }
     }
 }

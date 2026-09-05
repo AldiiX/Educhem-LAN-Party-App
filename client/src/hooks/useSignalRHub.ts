@@ -6,9 +6,12 @@ import {
     HubConnectionState,
     HttpTransportType,
     IHttpConnectionOptions,
-    LogLevel
+    LogLevel,
+    NullLogger
 } from "@microsoft/signalr";
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {AuthenticatedHubHttpClient} from "@/lib/AuthenticatedHubHttpClient";
+import {AuthenticationRequiredError} from "@/lib/apiClient";
 
 type HubStatus =
     | "idle"
@@ -16,6 +19,7 @@ type HubStatus =
     | "connected"
     | "reconnecting"
     | "disconnected"
+    | "authentication-required"
     | "error";
 
 type HubEventHandler = (...args: any[]) => void;
@@ -24,6 +28,7 @@ type HubEventHandlers = Record<string, HubEventHandler>;
 
 type UseSignalRHubOptions = {
     enabled?: boolean;
+    requireAuthentication?: boolean;
     baseUrl?: string;
     handlers?: HubEventHandlers;
     logLevel?: LogLevel;
@@ -77,6 +82,7 @@ function useLatestRef<T>(value: T) {
 export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
     const {
         enabled = true,
+        requireAuthentication = false,
         baseUrl,
         handlers = {},
         logLevel = LogLevel.Warning,
@@ -121,8 +127,22 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
         }
 
         let disposed = false;
+        let authenticationError: AuthenticationRequiredError | null = null;
 
         const connectionOptions: IHttpConnectionOptions = {};
+        let connectionUrl = fullUrl;
+
+        if(requireAuthentication) {
+            const authenticatedUrl = new URL(fullUrl, window.location.origin);
+            authenticatedUrl.searchParams.set("requireAuthentication", "true");
+            connectionUrl = authenticatedUrl.toString();
+            connectionOptions.httpClient = new AuthenticatedHubHttpClient(NullLogger.instance, error => {
+                authenticationError = error;
+                if(disposed) return;
+                setStatus("authentication-required");
+                setLastError(error);
+            });
+        }
 
         if(accessTokenFactoryRef.current) {
             connectionOptions.accessTokenFactory = () => {
@@ -141,10 +161,16 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
         if(typeof skipNegotiation === "boolean") {
             connectionOptions.skipNegotiation = skipNegotiation;
         }
+        // kontrola expirace bezi pred negotiate i pri reconnectu, ten se nesmi preskocit
+        if(requireAuthentication) connectionOptions.skipNegotiation = false;
 
         const builder = new HubConnectionBuilder()
-            .withUrl(fullUrl, connectionOptions)
-            .withAutomaticReconnect(reconnectDelays)
+            .withUrl(connectionUrl, connectionOptions)
+            .withAutomaticReconnect({
+                nextRetryDelayInMilliseconds: context => authenticationError || disposed
+                    ? null
+                    : reconnectDelays[context.previousRetryCount] ?? null
+            })
             .configureLogging(logLevel);
 
         if(typeof serverTimeout === "number") {
@@ -192,6 +218,11 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
         newConnection.onclose(error => {
             if(disposed) return;
 
+            if(authenticationError) {
+                setStatus("authentication-required");
+                setLastError(authenticationError);
+                return;
+            }
             setStatus(error ? "error" : "disconnected");
             setLastError(error ? toError(error) : null);
         });
@@ -203,6 +234,7 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
                 if(delay > 0) {
                     await wait(delay);
                 }
+                if(disposed || authenticationError) return;
 
                 try {
                     setStatus("connecting");
@@ -221,7 +253,7 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
                     setLastError(null);
                     return;
                 } catch(error) {
-                    if(disposed) return;
+                    if(disposed || authenticationError) return;
 
                     setLastError(toError(error));
                 }
@@ -256,6 +288,7 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
         };
     }, [
         enabled,
+        requireAuthentication,
         fullUrl,
         logLevel,
         handlersKey,
@@ -316,6 +349,7 @@ export function useSignalRHub(url: string, options: UseSignalRHubOptions = {}) {
         isConnecting: status === "connecting",
         isReconnecting: status === "reconnecting",
         isDisconnected: status === "disconnected",
+        isAuthenticationRequired: status === "authentication-required",
         hasError: status === "error"
     };
 }

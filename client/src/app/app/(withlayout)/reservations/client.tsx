@@ -48,7 +48,7 @@ export default function Client({
         "reservationsLegendCollapsed",
     );
 
-    const { reservations, connectedIds, isConnected, isDisconnected, isConnecting, isReconnecting, reserve, unbook, isReservationMutationPending } = useReservationsHub();
+    const { reservations, connectedIds, isConnected, isDisconnected, isConnecting, isReconnecting, isAuthenticationRequired, hasError, reserve, unbook, isReservationMutationPending } = useReservationsHub();
     const { roomsCapacity, maxCapacity, computersCapacity, rooms, computers } = useRoomsAndComputers();
     const {reservationStatus, mutateReservationStatus} = useReservationStatus();
     const refreshReservationStatus = useCallback(() => {
@@ -56,8 +56,8 @@ export default function Client({
     }, [mutateReservationStatus]);
     const reservationsEnabled = useLiveReservationsEnabled(reservationStatus, refreshReservationStatus);
     const isConnectionLost = useMemo(() =>{
-        return isReconnecting || isDisconnected;
-    }, [isDisconnected, isReconnecting])
+        return isReconnecting || isDisconnected || isAuthenticationRequired || hasError;
+    }, [isDisconnected, isReconnecting, isAuthenticationRequired, hasError])
     const reservationDisplay = useReservationsDisplay(rooms, computers, reservations);
     const {account} = useAuth();
     const reservationStats = useReservationStats(reservations, computersCapacity, roomsCapacity, maxCapacity);
@@ -123,12 +123,17 @@ export default function Client({
                     bottomRight={
                         <div className={style.statusBadges}>
                             <Switch>
+                                <Case when={isAuthenticationRequired} as="div" className={`${style.badge} ${style.disconnected}`}>
+                                    <div className={style.icon} style={{ '--icon': 'url(/icons/disconnected.svg)'} as React.CSSProperties}></div>
+                                    <p>Přihlášení vypršelo. <Link href="/app/login">Přihlásit znovu</Link></p>
+                                </Case>
+
                                 <Case when={isReconnecting} as="div" className={`${style.badge} ${style.disconnected}`}>
                                     <div className={style.icon} style={{ '--icon': 'url(/icons/loading.svg)'} as React.CSSProperties}></div>
                                     <p>Připojení bylo ztraceno! Připojování...</p>
                                 </Case>
 
-                                <Case when={isDisconnected} as="div" className={`${style.badge} ${style.disconnected}`}>
+                                <Case when={isDisconnected || hasError} as="div" className={`${style.badge} ${style.disconnected}`}>
                                     <div className={style.icon} style={{ '--icon': 'url(/icons/disconnected.svg)'} as React.CSSProperties}></div>
                                     <p>Připojení bylo ztraceno! Obnovte stránku.</p>
                                 </Case>
@@ -167,7 +172,7 @@ export default function Client({
                     }
                 </MovableMap>
 
-                <SelectedRoomOrComputer reservations={reservations} reserve={reserve} unbook={unbook} isReservationMutationPending={isReservationMutationPending} reservationsEnabled={reservationsEnabled}/>
+                <SelectedRoomOrComputer reservations={reservations} reserve={reserve} unbook={unbook} isReservationMutationPending={isReservationMutationPending} reservationsEnabled={reservationsEnabled && isConnected}/>
             </div>
 
             <aside className={`${style.right} ${isRightPanelCollapsed ? style.collapsed : ""}`}>

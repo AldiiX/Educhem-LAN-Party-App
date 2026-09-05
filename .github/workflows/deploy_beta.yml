@@ -2,7 +2,7 @@
 
 on:
   push:
-    branches: [ 'v4.5.0' ]
+    branches: [ '49-app---přidat-změnu-emailu-v-accountu' ]
   workflow_dispatch:
 
 jobs:

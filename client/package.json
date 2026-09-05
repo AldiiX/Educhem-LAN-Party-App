@@ -1,6 +1,16 @@
 {
-    "name": "educhemlanpartyapp.client",
-    "version": "26.9.0",
+    "name": "educhemlanpartyapp.client", 
+    "author": {
+        "name": "Stanislav Škudrna",
+        "email": "contact@skudrna.com"
+    },
+    "contributors": [
+      {
+        "name": "Serhii Yavorskyi",
+        "email": "serhii@yavorskyi.cz"
+      }
+    ],
+    "version": "26.9.1",
     "private": true,
     "scripts": {
         "dev": "next dev --turbopack -p 3547",

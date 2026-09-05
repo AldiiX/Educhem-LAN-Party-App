@@ -40,9 +40,19 @@ export default function() {
     async function submitLogin() {
         if(loginLoading) return;
 
+        const trimmedEmail = email.trim();
+        if(!trimmedEmail) {
+            toast.error("Zadejte e-mail.");
+            return;
+        }
+        if(!password) {
+            toast.error("Zadejte heslo.");
+            return;
+        }
+
         setLoginLoading(true);
         try {
-            await login(email, password, rememberMe);
+            await login(trimmedEmail, password, rememberMe);
         } finally {
             setLoginLoading(false);
         }
@@ -70,9 +80,17 @@ export default function() {
                     event.preventDefault();
                     submitLogin().then();
                 }}>
+                    {searchParams.get("email-changed") === "1" && <p role="status">E-mail byl změněn. Přihlaste se novým e-mailem a stejným heslem.</p>}
                     <div>
                         <p>E-mail</p>
-                        <input type="text" placeholder="karel@honsig.eu" onChange={(e) => setEmail(e.currentTarget.value)} />
+                        <input
+                            type="email"
+                            placeholder="karel@honsig.eu"
+                            value={email}
+                            autoComplete="email"
+                            required
+                            onChange={(e) => setEmail(e.currentTarget.value)}
+                        />
                     </div>
 
                     <div>
@@ -83,7 +101,14 @@ export default function() {
                                 setResetOpen(true);
                             }}>Zapomenuté heslo?</button>
                         </div>
-                        <input type="password" placeholder="•••••••" onChange={(e) => setPassword(e.currentTarget.value)} />
+                        <input
+                            type="password"
+                            placeholder="•••••••"
+                            value={password}
+                            autoComplete="current-password"
+                            required
+                            onChange={(e) => setPassword(e.currentTarget.value)}
+                        />
                     </div>
                     <label className={style.rememberMe}>
                         <input

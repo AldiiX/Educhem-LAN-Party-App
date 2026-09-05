@@ -11,3 +11,4 @@ node_modules
 **.user
 .projectatlas/*
 !.projectatlas/config.toml
+.DS_Store

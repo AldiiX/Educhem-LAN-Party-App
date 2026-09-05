@@ -1,4 +1,4 @@
-﻿import { toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import {redirect} from "next/navigation"
 import {useAuth} from "@/app/app/_providers/AuthProvider";
 import {AccountSchema} from "@/schemas/AccountSchema";
@@ -58,13 +58,17 @@ export default function useLogin() {
         });
 
         await toast.promise(promise, {
-            loading: "Generuji nové heslo...",
+            loading: "Odesílám odkaz...",
         });
 
         const res = await promise;
 
         if(!res.ok) {
-            toast.error("Reset hesla se nepodařil.");
+            if (res.status === 429) {
+                toast.error("Příliš mnoho požadavků na obnovu hesla. Zkuste to za chvíli.");
+            } else {
+                toast.error(await getErrorMessage(res, "Reset hesla se nepodařil."));
+            }
             return false;
         }
 
