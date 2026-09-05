@@ -212,6 +212,11 @@ public static class Program {
 
         Application = builder.Build();
         
+        Application.Services.ConfigureQueue()
+            .OnError(ex => {
+                Application.Logger.LogError(ex, "Chyba při zpracování úlohy v Coravel frontě.");
+            });
+        
         await AppSettingsItemSeeder.SeedAsync(Application);
         
         using (var scope = Application.Services.CreateScope()) {

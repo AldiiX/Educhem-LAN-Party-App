@@ -26,6 +26,7 @@ public sealed class AccountControllerV1(
 	IAuthService auth,
 	AppDbContext db,
 	IServiceProvider serviceProvider,
+	IServiceScopeFactory scopeFactory,
 	ReservationCacheService reservationCache,
 	IDbLoggerService dbLogger,
 	IOAuthService oauth,
@@ -584,7 +585,7 @@ public sealed class AccountControllerV1(
 		if (!cache.TryGetValue(cooldownKey, out _)) {
 			cache.Set(cooldownKey, true, PasswordResetEmailCooldown);
 			queue.QueueAsyncTask(async () => {
-				await using var scope = serviceProvider.CreateAsyncScope();
+				await using var scope = scopeFactory.CreateAsyncScope();
 				await SendPasswordResetEmailAsync(scope.ServiceProvider, normalizedEmail);
 			});
 		}
@@ -1094,12 +1095,17 @@ public sealed class AccountControllerV1(
 		try {
 			var account = await db.Accounts.AsNoTracking()
 				.FirstOrDefaultAsync(item => item.Email == normalizedEmail);
-			if (account == null) return;
+			if (account == null) {
+				logger.LogInformation("Žádost o reset hesla pro neexistující email: {Email}", normalizedEmail);
+				return;
+			}
 
-			var token = await CreatePasswordResetTokenAsync(db, account.Id, account.Email, account.PasswordHash);
+			var token = await CreatePasswordResetTokenAsync(db, account.Id, account.Email, account.PasswordHash, logger);
 			if (token == null) return;
 
 			var resetLink = FrontendUrl.BuildAbsolute($"/app/reset-password#token={Uri.EscapeDataString(token)}");
+			logger.LogInformation("Resetovací odkaz pro uživatele {Email}: {ResetLink}", account.Email, resetLink);
+
 			var model = new EmailPasswordResetLinkModel(
 				resetLink,
 				account.Email,
@@ -1145,14 +1151,19 @@ public sealed class AccountControllerV1(
 	/// <param name="accountId">id uctu</param>
 	/// <param name="email">overeni puvodniho emailu</param>
 	/// <param name="passwordHash">overeni puvodniho hashe hesla</param>
+	/// <param name="logger">volitelny logger pro zaznam chyb</param>
 	/// <returns>raw token pro url odkaz nebo null pri selhani</returns>
-	private static async Task<string?> CreatePasswordResetTokenAsync(AppDbContext db, Guid accountId, string email, string passwordHash) {
+	private static async Task<string?> CreatePasswordResetTokenAsync(AppDbContext db, Guid accountId, string email, string passwordHash, ILogger? logger = null) {
 		await using var transaction = await db.Database.BeginTransactionAsync();
 		var current = await db.GetAccountForUpdateAsync(accountId, tracking: false);
-		if (current == null || current.Email != email || current.PasswordHash != passwordHash) return null;
+		if (current == null || current.Email != email || current.PasswordHash != passwordHash) {
+			logger?.LogWarning("CreatePasswordResetTokenAsync selhalo pro účet {AccountId}. Current != null: {HasCurrent}, EmailMatch: {EmailMatch}, PwdMatch: {PwdMatch}",
+				accountId, current != null, current?.Email == email, current?.PasswordHash == passwordHash);
+			return null;
+		}
 
 		await db.AccountEmailTokens
-			.Where(token => token.AccountId == accountId && token.ExpiresAtUtc <= DateTime.UtcNow)
+			.Where(token => token.AccountId == accountId && (token.ExpiresAtUtc <= DateTime.UtcNow || token.Purpose == AccountEmailTokenPurpose.PasswordReset))
 			.ExecuteDeleteAsync();
 		var rawToken = OneTimeToken.Create();
 		db.AccountEmailTokens.Add(new AccountEmailToken {
