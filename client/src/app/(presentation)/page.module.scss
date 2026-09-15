@@ -70,16 +70,24 @@
         animation: heroContentEnter 780ms 120ms cubic-bezier(0.22, 1, 0.36, 1) both;
 
         .heroTitle {
-            max-width: 900px;
+            max-width: min(100%, 1150px);
             margin-top: 18px;
-            font-size: clamp(4rem, 13vw, 10rem);
-            line-height: 0.82;
+            font-size: clamp(2.3rem, 9.2vw, 8.2rem);
+            line-height: 0.88;
             font-weight: 800;
             text-transform: uppercase;
+            overflow-wrap: normal;
+            word-break: keep-all;
+
+            .heroMainTitle {
+                display: block;
+                white-space: nowrap;
+            }
 
             .heroAccent {
                 display: block;
                 color: var(--accent-color);
+                white-space: nowrap;
             }
         }
 
