@@ -1,14 +1,37 @@
+import type {PaymentStatus} from '@/lib/payments'
+
 interface PaymentQrProps {
-    enabled: boolean
+    enabled?: boolean
+    status?: PaymentStatus
+    startDateFormatted?: string
+    message?: string
     imageClassName: string
     placeholderClassName: string
 }
 
-export function PaymentQr({enabled, imageClassName, placeholderClassName}: PaymentQrProps) {
-    if (!enabled) {
+export function PaymentQr({
+    enabled,
+    status,
+    startDateFormatted,
+    message,
+    imageClassName,
+    placeholderClassName,
+}: PaymentQrProps) {
+    const resolvedStatus: PaymentStatus =
+        status ?? (enabled === false ? 'closed' : 'active')
+
+    if (resolvedStatus === 'upcoming') {
         return (
             <div className={placeholderClassName} role="status">
-                Platby již nejsou povoleny.
+                {message ?? (startDateFormatted ? `Platby budou spuštěny ${startDateFormatted}.` : 'Platby ještě nebyly spuštěny.')}
+            </div>
+        )
+    }
+
+    if (resolvedStatus === 'closed') {
+        return (
+            <div className={placeholderClassName} role="status">
+                {message ?? 'Platby již nejsou povoleny.'}
             </div>
         )
     }
@@ -21,3 +44,4 @@ export function PaymentQr({enabled, imageClassName, placeholderClassName}: Payme
         />
     )
 }
+

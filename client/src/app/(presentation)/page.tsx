@@ -7,14 +7,15 @@ import {Header} from "@/components/header";
 import {Footer} from "@/components/footer";
 import {PaymentQr} from '@/components/paymentQr'
 import {connection} from 'next/server'
-import {arePaymentsAllowed, formatPaymentDeadline} from '@/lib/payments'
+import {getPaymentStatus, formatPaymentDate} from '@/lib/payments'
 
 export default async function HomePage() {
     await connection()
 
     const event = siteConfig.currentEvent
-    const paymentsAllowed = arePaymentsAllowed(event.paymentDeadline)
-    const paymentDeadline = formatPaymentDeadline(event.paymentDeadline)
+    const paymentStatus = getPaymentStatus(event.paymentDeadline, event.paymentStartDate)
+    const paymentStartDateFormatted = event.paymentStartDate ? formatPaymentDate(event.paymentStartDate) : ''
+    const paymentDeadline = formatPaymentDate(event.paymentDeadline)
 
     return (
         <>
@@ -29,12 +30,12 @@ export default async function HomePage() {
                 <div className={styles.heroContent}>
                     <span className={shell.eyebrow}>{event.dateLong}</span>
                     <h1 className={styles.heroTitle}>
-                        {event.heroTitle}
+                        <span className={styles.heroMainTitle}>{event.heroTitle}</span>
                         <span className={styles.heroAccent}>{event.heroAccent}</span>
                     </h1>
                     <p className={styles.heroDescription}>
                         {event.venueFull}. Přijď si zahrát, rezervovat si místo v LAN Party
-                        systému a užít letní akci s kamarády.
+                        systému a užít akci s kamarády.
                     </p>
                     <div className={styles.heroButtons}>
                         {/*<a href="/app/" className={`${shell.button} ${shell.primaryButton}`}>*/}
@@ -109,16 +110,20 @@ export default async function HomePage() {
                             <div className={styles.step}>
                                 <div className={styles.stepNumber}>1</div>
                                 <div>
-                                     <h3 className={styles.stepTitle}>Zaplatit vstupné</h3>
+                                    <h3 className={styles.stepTitle}>Zaplatit vstupné</h3>
                                     <p className={styles.stepText}>
-                                        {paymentsAllowed ? (
-                                            <>
-                                                Převodem {event.fee} na účet {event.bankAccount} nebo QR kódem. Do
-                                                zprávy napište {event.paymentMessage}.
-                                            </>
-                                        ) : (
-                                            <>Převodem {event.fee} na účet nebo QR kódem. Termín pro platbu skončil {paymentDeadline}.</>
-                                        )}
+                                         {paymentStatus === 'upcoming' ? (
+                                             <>
+                                                 Převodem {event.fee} na účet nebo QR kódem. Platby budou spuštěny {paymentStartDateFormatted}.
+                                             </>
+                                         ) : paymentStatus === 'active' ? (
+                                             <>
+                                                 Převodem {event.fee} na účet {event.bankAccount} nebo QR kódem. Do
+                                                 zprávy napište {event.paymentMessage}.
+                                             </>
+                                         ) : (
+                                             <>Převodem {event.fee} na účet nebo QR kódem. Termín pro platbu skončil {paymentDeadline}.</>
+                                         )}
                                     </p>
                                 </div>
                             </div>
@@ -126,21 +131,27 @@ export default async function HomePage() {
                                 <div>
                                     <p className={styles.homeQrKicker}>Platba QR kódem</p>
                                     <p className={styles.homeQrText}>
-                                        {paymentsAllowed ? (
-                                            <>
-                                                Naskenujte QR kód a před odesláním zkontrolujte zprávu pro příjemce.
-                                                Platba musí být odeslaná do {paymentDeadline}.
-                                            </>
-                                        ) : (
-                                            <>
-                                                Naskenujte QR kód a před odesláním zkontrolujte zprávu pro příjemce.
-                                                Termín pro platbu skončil {paymentDeadline}.
-                                            </>
-                                        )}
+                                         {paymentStatus === 'upcoming' ? (
+                                             <>
+                                                 Platba QR kódem bude spuštěna {paymentStartDateFormatted}. Před odesláním
+                                                 zkontrolujte zprávu pro příjemce.
+                                             </>
+                                         ) : paymentStatus === 'active' ? (
+                                             <>
+                                                 Naskenujte QR kód a před odesláním zkontrolujte zprávu pro příjemce.
+                                                 Platba musí být odeslaná do {paymentDeadline}.
+                                             </>
+                                         ) : (
+                                             <>
+                                                 Naskenujte QR kód a před odesláním zkontrolujte zprávu pro příjemce.
+                                                 Termín pro platbu skončil {paymentDeadline}.
+                                             </>
+                                         )}
                                     </p>
                                 </div>
                                 <PaymentQr
-                                    enabled={paymentsAllowed}
+                                    status={paymentStatus}
+                                    startDateFormatted={paymentStartDateFormatted}
                                     imageClassName={styles.homeQrImage}
                                     placeholderClassName={styles.homeQrPlaceholder}
                                 />
