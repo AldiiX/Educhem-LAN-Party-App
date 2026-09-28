@@ -3,6 +3,33 @@ using server.Dto;
 
 namespace server.Services;
 
+/// <summary>
+/// stav vysledku pokusu o prihlaseni
+/// </summary>
+public enum LoginStatus {
+	/// <summary>
+	/// prihlaseni probehlo v poradku
+	/// </summary>
+	Success,
+	/// <summary>
+	/// spatny email nebo heslo
+	/// </summary>
+	InvalidCredentials,
+	/// <summary>
+	/// ucet je docasne uzamcen kvuli prekroceni limitu pokusu
+	/// </summary>
+	LockedOut
+}
+
+/// <summary>
+/// vysledek prihlaseni vcetne pripadneho uctu nebo lockout zpravy
+/// </summary>
+public sealed record LoginResult(LoginStatus Status, Account? Account = null, string? LockoutMessage = null) {
+	public static LoginResult Success(Account account) => new(LoginStatus.Success, account);
+	public static LoginResult InvalidCredentials() => new(LoginStatus.InvalidCredentials);
+	public static LoginResult LockedOut(string message) => new(LoginStatus.LockedOut, LockoutMessage: message);
+}
+
 public readonly record struct CurrentUserContext(
 	Guid Id,
 	AccountType Role,
@@ -11,7 +38,7 @@ public readonly record struct CurrentUserContext(
 );
 
 public interface IAuthService {
-	Task<Account?> LoginAsync(string identifier, string plainPassword, bool rememberMe, CancellationToken ct = default);
+	Task<LoginResult> LoginAsync(string identifier, string plainPassword, bool rememberMe, CancellationToken ct = default);
 	Task<Account?> SignInAsAsync(Guid accountId, bool rememberMe, CancellationToken ct = default);
 	CurrentUserContext? GetCurrentUser();
 	Guid? GetCurrentAccountId();

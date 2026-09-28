@@ -11,6 +11,7 @@ import {useAccountPageContext} from "@/app/app/(withlayout)/account/layoutclient
 import {ModalDestructive} from "@/components/ModalDialog";
 import {phrase} from "@/lib/communicationStyle";
 import {useState} from "react";
+import {EmailChangeSettings} from "./_components/EmailChangeSettings";
 
 const genderOptions = [
     {value: "Male", label: "Muž", disabled: false},
@@ -143,10 +144,7 @@ export default function AccountSettings() {
                     <span>Jméno</span>
                     <input type="text" value={account.fullName} disabled />
                 </label>
-                <label>
-                    <span>Email</span>
-                    <input type="text" value={account.email ?? ""} disabled />
-                </label>
+                <EmailChangeSettings account={account} />
                 <label>
                     <span>Třída</span>
                     <input type="text" value={account.enrollment?.class ?? "Žádná"} disabled />

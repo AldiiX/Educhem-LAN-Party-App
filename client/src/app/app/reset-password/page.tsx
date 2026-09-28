@@ -3,9 +3,10 @@ import ResetPasswordClient from "./client";
 
 export const metadata: Metadata = {
     title: "Reset hesla",
+    robots: {index: false, follow: false},
+    referrer: "no-referrer",
 };
 
-export default async function ResetPasswordPage({searchParams}: {searchParams: Promise<{token?: string}>}) {
-    const params = await searchParams;
-    return <ResetPasswordClient token={params.token ?? ""} />;
+export default function ResetPasswordPage() {
+    return <ResetPasswordClient />;
 }

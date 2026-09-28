@@ -18,9 +18,14 @@ public sealed class Account : AuditableEntity<Guid> {
 	public required string LastName { get; set; }
 
 	[MaxLength(96)]
-	public required string Email { get; set; }
+	[ConcurrencyCheck]
+	public required string Email {
+		get;
+		set => field = value.Trim().ToLowerInvariant();
+	}
 
 	[MaxLength(512)]
+	[ConcurrencyCheck]
 	public required string PasswordHash { get; set; }
 
 	public Gender? Gender { get; set; }

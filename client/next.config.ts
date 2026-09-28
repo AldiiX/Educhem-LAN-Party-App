@@ -40,9 +40,20 @@ function applyProductionCssModuleHashing(rule: WebpackRule) {
 
 
 const nextConfig: NextConfig = {
+    poweredByHeader: false,
     output: "standalone",
     env: {
         NEXT_PUBLIC_APP_VERSION: packageJson.version,
+    },
+
+    async headers() {
+        return [{
+            source: "/app/login-link",
+            headers: [
+                {key: "Content-Security-Policy", value: "frame-ancestors 'none'"},
+                {key: "X-Frame-Options", value: "DENY"},
+            ],
+        }];
     },
 
     webpack(config, { dev }) {

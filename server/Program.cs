@@ -2,6 +2,7 @@ using dotenv.net;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
@@ -12,11 +13,16 @@ using server.Data.Entities;
 using server.Data.Seeders;
 using server.Hubs;
 using server.Infrastructure;
+using server.Infrastructure.HubRateLimiting;
 using server.Services;
 using server.Services.OAuth;
 using StackExchange.Redis;
 using Microsoft.IdentityModel.Tokens;
+using System.Net;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
+using Coravel;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace server;
 
@@ -46,33 +52,50 @@ public static class Program {
         var rport = ENV["REDIS_PORT"];
         var rpassword = ENV["REDIS_PASSWORD"];
 
+        var rawPrefix = (ENV.TryGetValue("REDIS_KEY_PREFIX", out var prefixVal) && !string.IsNullOrWhiteSpace(prefixVal)
+            ? prefixVal
+            : (ENV.TryGetValue("REDIS_PREFIX", out var legacyPrefix) && !string.IsNullOrWhiteSpace(legacyPrefix) ? legacyPrefix : "edulp")).Trim();
+        var redisPrefix = rawPrefix.EndsWith(':') ? rawPrefix : $"{rawPrefix}:";
+
         var config = new ConfigurationOptions {
             EndPoints = { $"{rhost}:{rport}" },
-            AbortOnConnectFail = false
+            AbortOnConnectFail = false,
+            ChannelPrefix = RedisChannel.Literal(redisPrefix)
         };
 
         if (rpassword != null!) {
             config.Password = rpassword;
         }
 
+        if ((ENV.TryGetValue("REDIS_DATABASE", out var dbVal) || ENV.TryGetValue("REDIS_DB", out dbVal))
+            && int.TryParse(dbVal, out var defaultDb) && defaultDb >= 0) {
+            config.DefaultDatabase = defaultDb;
+        }
+
         var redis = await ConnectionMultiplexer.ConnectAsync(config);
         builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 
-        builder.Services.AddControllersWithViews();
+        builder.Services.AddControllers();
         builder.Services.AddHttpContextAccessor();
+        builder.Services.AddSingleton<HubRateLimitManager>();
+        builder.Services.AddSingleton<HubRateLimitFilter>();
         builder.Services.AddSignalR(options => {
             options.KeepAliveInterval = TimeSpan.FromSeconds(10);
             options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
             options.HandshakeTimeout = TimeSpan.FromSeconds(15);
+            options.AddFilter<HubRateLimitFilter>();
         });
         builder.Services.AddDataProtection()
-            .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
+            .PersistKeysToStackExchangeRedis(redis, $"{redisPrefix}DataProtection-Keys")
+            .AddKeyManagementOptions(options => {
+                options.XmlEncryptor = new DataProtectionKeyEncryptor(jwtConfiguration);
+            })
             .SetApplicationName("EduchemLANPartyApp");
 
         builder.Services.AddSingleton<IDistributedCache>(sp =>
             new RedisCache(new RedisCacheOptions {
                 ConfigurationOptions = ConfigurationOptions.Parse(redis.Configuration),
-                InstanceName = "EduchemLANParty_session"
+                InstanceName = $"{redisPrefix}cache:"
             })
         );
 
@@ -89,8 +112,6 @@ public static class Program {
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-        builder.Services.AddControllers();
-        builder.Services.AddHttpContextAccessor();
 		builder.Services.AddSingleton(jwtConfiguration);
 		builder.Services.AddAntiforgery(options => {
 			options.HeaderName = "X-XSRF-TOKEN";
@@ -160,6 +181,22 @@ public static class Program {
 
         builder.Services.AddSingleton<AppCacheService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
+		builder.Services.AddQueue();
+		builder.Services.AddRateLimiter(options => {
+			options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+			options.AddPolicy("email-change", context => RateLimitPartition.GetFixedWindowLimiter(
+				context.User.FindFirstValue("sub") ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+				_ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+			options.AddPolicy("auth-login", context => RateLimitPartition.GetFixedWindowLimiter(
+				context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+				_ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+			options.AddPolicy("auth-forgot-password", context => RateLimitPartition.GetFixedWindowLimiter(
+				context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+				_ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(15), QueueLimit = 0 }));
+			options.AddPolicy("auth-change-password", context => RateLimitPartition.GetFixedWindowLimiter(
+				context.User.FindFirstValue("sub") ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+				_ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
+		});
         builder.Services.AddScoped<ReservationCacheService>();
         builder.Services.AddScoped<IDbLoggerService, DbLoggerService>();
         builder.Services.AddScoped<IAppSettingsService, AppSettingsService>();
@@ -175,6 +212,11 @@ public static class Program {
 
         Application = builder.Build();
         
+        Application.Services.ConfigureQueue()
+            .OnError(ex => {
+                Application.Logger.LogError(ex, "Chyba při zpracování úlohy v Coravel frontě.");
+            });
+        
         await AppSettingsItemSeeder.SeedAsync(Application);
         
         using (var scope = Application.Services.CreateScope()) {
@@ -184,11 +226,20 @@ public static class Program {
         }
 
         var forwardedOptions = new ForwardedHeadersOptions {
-            ForwardedHeaders = ForwardedHeaders.All,
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
         };
         forwardedOptions.KnownIPNetworks.Clear();
         forwardedOptions.KnownProxies.Clear();
+        forwardedOptions.KnownProxies.Add(IPAddress.Loopback);
+        forwardedOptions.KnownProxies.Add(IPAddress.IPv6Loopback);
         Application.UseForwardedHeaders(forwardedOptions);
+
+        Application.Use(async (context, next) => {
+            context.Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
+            context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+            await next.Invoke();
+        });
 
         Application.UseDefaultFiles();
         Application.MapStaticAssets();
@@ -196,30 +247,21 @@ public static class Program {
         Application.UseAuthentication();
 		Application.UseMiddleware<AntiforgeryValidationMiddleware>();
         Application.UseAuthorization();
-
-        // pridani X-Powered-By
-        Application.Use(async (context, next) => {
-            context.Response.Headers.Append("X-Powered-By", "ASP.NET");
-            await next.Invoke();
-        });
+		Application.UseRateLimiter();
 
         Application.MapControllers();
-        Application.MapHub<ReservationsHub>("/hubs/reservations");
+        Application.MapHub<ReservationsHub>("/hubs/reservations", options => options.CloseOnAuthenticationExpiration = true)
+            .RequireAuthorization(policy => policy.RequireAssertion(context =>
+                context.User.Identity?.IsAuthenticated == true
+                || context.Resource is HttpContext httpContext
+                    && httpContext.Request.Query["requireAuthentication"] != "true"));
 
         //app.MapFallbackToFile("/index.html");
 
         await Application.RunAsync();
     }
 
-	private static string GetFrontendOrigin() {
-		if (!ENV.TryGetValue("WEB_URL", out var webUrl) || !Uri.TryCreate(webUrl, UriKind.Absolute, out var uri)
-			|| uri.Scheme is not ("http" or "https") || !string.IsNullOrEmpty(uri.UserInfo)
-			|| !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment)) {
-			throw new InvalidOperationException("WEB_URL musi obsahovat platnou HTTP(S) originu.");
-		}
-
-		return uri.GetLeftPart(UriPartial.Authority);
-	}
+	private static string GetFrontendOrigin() => FrontendUrl.GetOrigin();
 
 	private static bool HasAccountType(ClaimsPrincipal principal, AccountType requiredType) {
 		var value = principal.FindFirstValue(ClaimTypes.Role);

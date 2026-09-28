@@ -61,6 +61,7 @@ namespace server.Migrations
                         .HasDefaultValueSql("now()");
 
                     b.Property<string>("Email")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
@@ -89,6 +90,7 @@ namespace server.Migrations
                         .HasColumnType("character varying(32)");
 
                     b.Property<string>("PasswordHash")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
@@ -103,7 +105,10 @@ namespace server.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Accounts", "public");
+                    b.ToTable("Accounts", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_Accounts_Email_Normalized", "\"Email\" = lower(btrim(\"Email\"))");
+                        });
                 });
 
             modelBuilder.Entity("server.Data.Entities.AccountAchievement", b =>
@@ -182,6 +187,35 @@ namespace server.Migrations
                         .IsUnique();
 
                     b.ToTable("AccountBadges", "achievements");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.AccountEmailToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Purpose")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("AccountEmailLinks", "public");
                 });
 
             modelBuilder.Entity("server.Data.Entities.Achievement", b =>
@@ -439,6 +473,92 @@ namespace server.Migrations
                     b.HasIndex("RoomId");
 
                     b.ToTable("Computers", "reservations");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.EmailChangeAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId", "CreatedAtUtc");
+
+                    b.ToTable("EmailChangeAttempts", "public");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.EmailChangeRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CancelTokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("NewConfirmedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NewEmail")
+                        .IsRequired()
+                        .HasMaxLength(96)
+                        .HasColumnType("character varying(96)");
+
+                    b.Property<string>("NewTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("OldConfirmedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OldEmail")
+                        .IsRequired()
+                        .HasMaxLength(96)
+                        .HasColumnType("character varying(96)");
+
+                    b.Property<string>("OldTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId")
+                        .IsUnique();
+
+                    b.HasIndex("CancelTokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("NewTokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("OldTokenHash")
+                        .IsUnique();
+
+                    b.ToTable("EmailChangeRequests", "public");
                 });
 
             modelBuilder.Entity("server.Data.Entities.Enrollment", b =>
@@ -803,6 +923,17 @@ namespace server.Migrations
                     b.Navigation("Badge");
                 });
 
+            modelBuilder.Entity("server.Data.Entities.AccountEmailToken", b =>
+                {
+                    b.HasOne("server.Data.Entities.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
             modelBuilder.Entity("server.Data.Entities.AttendanceEntry", b =>
                 {
                     b.HasOne("server.Data.Entities.Account", "Account")
@@ -860,6 +991,28 @@ namespace server.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.EmailChangeAttempt", b =>
+                {
+                    b.HasOne("server.Data.Entities.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("server.Data.Entities.EmailChangeRequest", b =>
+                {
+                    b.HasOne("server.Data.Entities.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
                 });
 
             modelBuilder.Entity("server.Data.Entities.Enrollment", b =>
