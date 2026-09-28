@@ -30,7 +30,7 @@ internal static class EmailService {
 
 		var secureSocketOptions = port == 465
 			? SecureSocketOptions.SslOnConnect
-			: SecureSocketOptions.Auto;
+			: SecureSocketOptions.StartTls;
 
 		using var client = new SmtpClient();
 		await client.ConnectAsync(host, port, secureSocketOptions);
