@@ -6,7 +6,7 @@ import {siteConfig} from '@/data/site'
 import shell from '../page-shell.module.scss'
 import styles from './info.module.scss'
 import {PaymentQr} from '@/components/paymentQr'
-import {arePaymentsAllowed, formatPaymentDeadline} from '@/lib/payments'
+import {getPaymentStatus, formatPaymentDate, type PaymentStatus} from '@/lib/payments'
 
 interface RuleCategory {
     id: string
@@ -17,10 +17,24 @@ interface RuleCategory {
 
 const event = siteConfig.currentEvent
 
-const getReservationSteps = (paymentsAllowed: boolean, paymentDeadline: string) => [
+const getReservationSteps = (
+    paymentStatus: PaymentStatus,
+    paymentStartDateFormatted: string,
+    paymentDeadline: string
+) => [
     {
         title: `Zaplaťte vstupné ${event.fee}`,
-        details: paymentsAllowed
+        details: paymentStatus === 'upcoming'
+            ? [
+                `Číslo účtu: [NEDOSTUPNÉ, PLATBY BUDOU SPUŠTĚNY ${paymentStartDateFormatted}]`,
+                `Částka: ${event.feeDecimal}`,
+                `Zpráva pro příjemce: ${event.paymentMessage}`,
+                'Dodržujte prosím tento formát.',
+                `Termín: od ${paymentStartDateFormatted} do ${paymentDeadline}`,
+                'Můžete zaplatit ručním zadáním, nebo pomocí QR kódu.',
+                'Platby k účastníkům přiřazujeme ručně, proto se přístup může objevit až do 2 pracovních dnů.',
+            ]
+            : paymentStatus === 'active'
             ? [
                 `Číslo účtu: ${event.bankAccount}`,
                 `Částka: ${event.feeDecimal}`,
@@ -57,7 +71,11 @@ const getReservationSteps = (paymentsAllowed: boolean, paymentDeadline: string) 
     },
 ]
 
-const getReservationFaq = (paymentsAllowed: boolean, paymentDeadline: string) => [
+const getReservationFaq = (
+    paymentStatus: PaymentStatus,
+    paymentStartDateFormatted: string,
+    paymentDeadline: string
+) => [
     {
         question: 'Musím si rezervovat místo?',
         answer: 'Kvůli velkému počtu účastníků je ideální rezervovat si počítač nebo místo pro vlastní setup. Pokud si neplánujete brát s sebou PC ani být na školním PC, nemusíte si místo rezervovat.',
@@ -76,7 +94,9 @@ const getReservationFaq = (paymentsAllowed: boolean, paymentDeadline: string) =>
     },
     {
         question: 'Do kdy musím zaplatit?',
-        answer: paymentsAllowed
+        answer: paymentStatus === 'upcoming'
+            ? `Platby budou spuštěny ${paymentStartDateFormatted}. Vstupné ${event.fee} bude nutné zaplatit do ${paymentDeadline}.`
+            : paymentStatus === 'active'
             ? `Vstupné ${event.fee} je nutné zaplatit do ${paymentDeadline}.`
             : `Termín pro platbu skončil ${paymentDeadline}.`,
     },
@@ -201,10 +221,11 @@ const tocItems = [
 ]
 
 export default function() {
-    const paymentsAllowed = arePaymentsAllowed(event.paymentDeadline)
-    const paymentDeadline = formatPaymentDeadline(event.paymentDeadline)
-    const reservationSteps = getReservationSteps(paymentsAllowed, paymentDeadline)
-    const reservationFaq = getReservationFaq(paymentsAllowed, paymentDeadline)
+    const paymentStatus = getPaymentStatus(event.paymentDeadline, event.paymentStartDate)
+    const paymentStartDateFormatted = event.paymentStartDate ? formatPaymentDate(event.paymentStartDate) : ''
+    const paymentDeadline = formatPaymentDate(event.paymentDeadline)
+    const reservationSteps = getReservationSteps(paymentStatus, paymentStartDateFormatted, paymentDeadline)
+    const reservationFaq = getReservationFaq(paymentStatus, paymentStartDateFormatted, paymentDeadline)
     const [search, setSearch] = useState('')
     const query = search.toLowerCase()
     const filteredCategories = categories
@@ -278,7 +299,12 @@ export default function() {
                                                     <div>
                                                         <p className={styles.stepQrTitle}>Platba QR kódem</p>
                                                         <p className={styles.stepQrText}>
-                                                            {paymentsAllowed ? (
+                                                            {paymentStatus === 'upcoming' ? (
+                                                                <>
+                                                                    Platba QR kódem bude spuštěna {paymentStartDateFormatted}. Před odesláním
+                                                                    zkontrolujte zprávu pro příjemce.
+                                                                </>
+                                                            ) : paymentStatus === 'active' ? (
                                                                 <>
                                                                     Naskenujte QR kód a před odesláním zkontrolujte
                                                                     zprávu pro příjemce. Platba musí být odeslaná
@@ -293,7 +319,8 @@ export default function() {
                                                         </p>
                                                     </div>
                                                     <PaymentQr
-                                                        enabled={paymentsAllowed}
+                                                        status={paymentStatus}
+                                                        startDateFormatted={paymentStartDateFormatted}
                                                         imageClassName={styles.qrCode}
                                                         placeholderClassName={styles.qrPlaceholder}
                                                     />
@@ -316,7 +343,18 @@ export default function() {
                             </figure>
 
                             <div className={styles.alerts}>
-                                {paymentsAllowed && (
+                                {paymentStatus === 'upcoming' && (
+                                    <div className={shell.alert}>
+                                        <div className={shell.alertIcon} aria-hidden="true">i</div>
+                                        <div>
+                                            <p className={shell.alertTitle}>Platby ještě nebyly spuštěny</p>
+                                            <p className={shell.alertDescription}>
+                                                Platby vstupného budou otevřeny dne {paymentStartDateFormatted}. Do té doby nelze platby přijímat.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                {paymentStatus === 'active' && (
                                     <div className={`${shell.alert} ${shell.alertError}`}>
                                         <div className={shell.alertIcon} aria-hidden="true">!</div>
                                         <div>
@@ -325,6 +363,17 @@ export default function() {
                                                 Ve zprávě pro příjemce dodržujte formát: {event.paymentMessage}. Bez
                                                 správného formátu nemusí být platba přiřazena. Potvrzení může kvůli
                                                 ručnímu přiřazování trvat až 2 pracovní dny.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                {paymentStatus === 'closed' && (
+                                    <div className={`${shell.alert} ${shell.alertError}`}>
+                                        <div className={shell.alertIcon} aria-hidden="true">!</div>
+                                        <div>
+                                            <p className={shell.alertTitle}>Platby byly ukončeny</p>
+                                            <p className={shell.alertDescription}>
+                                                Termín pro zaplacení vstupného skončil {paymentDeadline}.
                                             </p>
                                         </div>
                                     </div>

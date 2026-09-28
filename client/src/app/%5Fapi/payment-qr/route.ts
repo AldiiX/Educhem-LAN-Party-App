@@ -12,7 +12,7 @@ const paymentIban = 'CZ7220100000002603033660'
 export async function GET() {
     const event = siteConfig.currentEvent
 
-    if (!arePaymentsAllowed(event.paymentDeadline)) {
+    if (!arePaymentsAllowed(event.paymentDeadline, event.paymentStartDate)) {
         return new Response(null, {
             status: 410,
             headers: {

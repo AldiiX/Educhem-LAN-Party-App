@@ -5,7 +5,7 @@ import type {Metadata} from "next";
 import {Header} from "@/components/header";
 import {Footer} from "@/components/footer";
 import {connection} from 'next/server'
-import {arePaymentsAllowed, formatPaymentDeadline} from '@/lib/payments'
+import {getPaymentStatus, formatPaymentDate, type PaymentStatus} from '@/lib/payments'
 
 const event = siteConfig.currentEvent
 
@@ -14,10 +14,16 @@ export const metadata: Metadata = {
     description: `Odpovědi na nejčastější otázky o ${event.title}. Všechny informace vycházejí z oficiálního info PDF.`,
 }
 
-const getFaqItems = (paymentsAllowed: boolean, paymentDeadline: string) => [
+const getFaqItems = (
+    paymentStatus: PaymentStatus,
+    paymentStartDateFormatted: string,
+    paymentDeadline: string
+) => [
     {
         question: 'Kolik stojí vstupné a jak zaplatit?',
-        answer: paymentsAllowed
+        answer: paymentStatus === 'upcoming'
+            ? `Vstupné je ${event.fee}. Platby budou spuštěny ${paymentStartDateFormatted} a potrvají do ${paymentDeadline}. Následně bude možné zaplatit převodem na účet nebo pomocí QR kódu.`
+            : paymentStatus === 'active'
             ? `Vstupné je ${event.fee}. Zaplaťte převodem na účet ${event.bankAccount} se zprávou: ${event.paymentMessage}. Můžete také použít QR kód na stránce Rezervace. Termín platby: do ${paymentDeadline}. Platby přiřazujeme ručně, takže potvrzení může trvat až 2 pracovní dny.`
             : `Vstupné je ${event.fee}. Platby již nejsou povoleny.`
     },
@@ -70,9 +76,10 @@ const getFaqItems = (paymentsAllowed: boolean, paymentDeadline: string) => [
 export default async function() {
     await connection()
 
-    const paymentsAllowed = arePaymentsAllowed(event.paymentDeadline)
-    const paymentDeadline = formatPaymentDeadline(event.paymentDeadline)
-    const faqItems = getFaqItems(paymentsAllowed, paymentDeadline)
+    const paymentStatus = getPaymentStatus(event.paymentDeadline, event.paymentStartDate)
+    const paymentStartDateFormatted = event.paymentStartDate ? formatPaymentDate(event.paymentStartDate) : ''
+    const paymentDeadline = formatPaymentDate(event.paymentDeadline)
+    const faqItems = getFaqItems(paymentStatus, paymentStartDateFormatted, paymentDeadline)
 
     return (
         <>
