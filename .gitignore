@@ -12,3 +12,4 @@ node_modules
 .projectatlas/*
 !.projectatlas/config.toml
 .DS_Store
+.npm-cache

@@ -1104,7 +1104,6 @@ public sealed class AccountControllerV1(
 			if (token == null) return;
 
 			var resetLink = FrontendUrl.BuildAbsolute($"/app/reset-password#token={Uri.EscapeDataString(token)}");
-			logger.LogInformation("Resetovací odkaz pro uživatele {Email}: {ResetLink}", account.Email, resetLink);
 
 			var model = new EmailPasswordResetLinkModel(
 				resetLink,
