@@ -38,7 +38,7 @@ internal sealed class NetuvioOAuthPlatform : IOAuthPlatform {
 			options.SignInScheme = AuthSchemes.ExternalCookie;
 			options.ResponseType = OpenIdConnectResponseType.Code;
 			options.UsePkce = true;
-			options.SaveTokens = true;
+			options.SaveTokens = false;
 			options.GetClaimsFromUserInfoEndpoint = true;
 			options.RequireHttpsMetadata = authority.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 			options.Scope.Clear();
