@@ -47,5 +47,6 @@ public enum OAuthProvider {
 	GitHub,
 	Google,
 	Apple,
+	Netuvio,
 	Steam,
 }

@@ -21,7 +21,19 @@ export default function({ account }: { account: Account }) {
 
         <div className={style.flex}>
             <div className={style.left}>
-                <h1>{ profile.fullName }</h1>
+                <div className={style.nameRow}>
+                    <h1>{ profile.fullName }</h1>
+                    {account.netuvioName && (
+                        <span
+                            className={style.netuvioVip}
+                            tabIndex={0}
+                            aria-label={`Netuvio Identity: ${account.netuvioName}`}
+                            data-tooltip={`Netuvio Identity: ${account.netuvioName}`}
+                        >
+                            <span style={{maskImage: "url(/icons/netuvio.svg)"}} />
+                        </span>
+                    )}
+                </div>
                 {/*<p>{ els.join("   •   ") }</p>*/}
                 <p>{ accountTypeLabel(profile.accountType, profile.gender) }</p>
 
@@ -51,9 +63,9 @@ export default function({ account }: { account: Account }) {
 						<a className={style.githubLink} href={profile.steamProfileUrl ?? undefined} target="_blank" rel="noreferrer">{ profile.steamUsername }</a>
 					</If>
 
-                    <If condition={profile.createdAtUtc != null} as="div" className={style.item} title={`Datum registrace: ${profile.createdAtUtc.toLocaleDateString()}`}>
+                    <If condition={profile.createdAtUtc != null} as="div" className={style.item} title={`Datum registrace: ${profile.createdAtUtc.toLocaleDateString("cs-CZ")}`}>
                         <div className={style.icon} style={{ maskImage: `url(/icons/login.svg)` }}></div>
-                        <p>{ profile.createdAtUtc.toLocaleDateString() }</p>
+                        <p>{ profile.createdAtUtc.toLocaleDateString("cs-CZ") }</p>
                     </If>
                 </div>
             </div>

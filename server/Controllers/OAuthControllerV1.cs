@@ -140,14 +140,16 @@ public sealed class OAuthControllerV1(IAuthService auth, IOAuthService oauth) : 
 			"discord" => OAuthProvider.Discord,
 			"github" => OAuthProvider.GitHub,
 			"google" => OAuthProvider.Google,
-			"apple" => OAuthProvider.Apple,
+			"netuvio" => OAuthProvider.Netuvio,
+			// "apple" => OAuthProvider.Apple,
 			"steam" => OAuthProvider.Steam,
 			_ => default,
 		};
 		return value.Equals("discord", StringComparison.OrdinalIgnoreCase)
 			|| value.Equals("github", StringComparison.OrdinalIgnoreCase)
 			|| value.Equals("google", StringComparison.OrdinalIgnoreCase)
-			|| value.Equals("apple", StringComparison.OrdinalIgnoreCase)
+			|| value.Equals("netuvio", StringComparison.OrdinalIgnoreCase)
+			// || value.Equals("apple", StringComparison.OrdinalIgnoreCase)
 			|| value.Equals("steam", StringComparison.OrdinalIgnoreCase);
 	}
 

@@ -57,7 +57,7 @@ export default function AccountSettings() {
 		discord: account.discordUsername ?? undefined,
 		github: account.githubUsername ?? undefined,
 		google: account.googleName ?? undefined,
-		apple: account.appleName ?? undefined,
+		netuvio: account.netuvioName ?? undefined,
 		steam: account.steamUsername ?? undefined,
 	};
 

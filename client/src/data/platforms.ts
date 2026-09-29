@@ -2,7 +2,8 @@ export const platforms = [
     {id: "discord", name: "Discord", icon: "/icons/discord.svg", iconBackground: "#5865f2", disabled: false, avatarSyncPlatform: "Discord"},
     {id: "github", name: "GitHub", icon: "/icons/github.svg", iconBackground: "#f0f6fc", disabled: false, avatarSyncPlatform: "GitHub"},
     {id: "google", name: "Google", icon: "/icons/google.svg", iconBackground: "conic-gradient(from -45deg, #4285f4 0 25%, #34a853 25% 50%, #fbbc05 50% 75%, #ea4335 75% 100%)", disabled: false, avatarSyncPlatform: "Google"},
-	{id: "apple", name: "Apple", icon: "/icons/apple.svg", iconBackground: "#000", disabled: true, avatarSyncPlatform: null},
+	{id: "netuvio", name: "Netuvio", icon: "/icons/netuvio.svg", iconBackground: "#abed31", disabled: false, avatarSyncPlatform: "Netuvio"},
+	// {id: "apple", name: "Apple", icon: "/icons/apple.svg", iconBackground: "#000", disabled: true, avatarSyncPlatform: null},
 	{id: "steam", name: "Steam", icon: "/icons/steam.svg", iconBackground: "#171a21", disabled: false, avatarSyncPlatform: "Steam"},
 ] as const satisfies readonly {
     id: string;

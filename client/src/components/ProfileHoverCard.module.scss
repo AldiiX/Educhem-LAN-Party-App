@@ -65,11 +65,65 @@
             justify-content: space-between;
             gap: 10px;
 
+            .nameRow {
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: 7px;
+            }
+
             h3 {
                 margin: 0;
                 color: var(--text-color);
                 font-size: 20px;
                 line-height: 1.05;
+            }
+
+            .netuvioVip {
+                display: block;
+                width: 18px;
+                height: 18px;
+                flex: 0 0 18px;
+                cursor: help;
+                outline: none;
+            }
+
+            .netuvioIcon {
+                display: block;
+                width: 100%;
+                height: 100%;
+                background: var(--text-color);
+                mask-image: url("/icons/netuvio.svg");
+                mask-position: center;
+                mask-repeat: no-repeat;
+                mask-size: contain;
+            }
+
+            .netuvioTooltip {
+                position: absolute;
+                top: calc(100% + 7px);
+                left: 0;
+                z-index: 3;
+                width: max-content;
+                max-width: 260px;
+                padding: 7px 9px;
+                border: 1px solid var(--border-color);
+                border-radius: 7px;
+                background: var(--background-bg-2);
+                color: var(--text-color);
+                font-size: 11px;
+                font-weight: 650;
+                line-height: 1.3;
+                opacity: 0;
+                pointer-events: none;
+                transform: translateY(-3px);
+                transition: opacity .15s ease, transform .15s ease;
+            }
+
+            .netuvioVip:hover .netuvioTooltip,
+            .netuvioVip:focus-visible .netuvioTooltip {
+                opacity: 1;
+                transform: translateY(0);
             }
 
             p {

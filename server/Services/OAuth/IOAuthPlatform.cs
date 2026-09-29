@@ -77,14 +77,16 @@ public static class OAuthServiceCollectionExtensions {
 		services.AddScoped<IOAuthPlatform, Platforms.GoogleOAuthPlatform>();
 		services.AddScoped<IOAuthPlatform, Platforms.GitHubOAuthPlatform>();
 		services.AddScoped<IOAuthPlatform, Platforms.SteamOAuthPlatform>();
-		services.AddScoped<IOAuthPlatform, Platforms.AppleOAuthPlatform>();
+		services.AddScoped<IOAuthPlatform, Platforms.NetuvioOAuthPlatform>();
+		// services.AddScoped<IOAuthPlatform, Platforms.AppleOAuthPlatform>();
 		services.AddScoped<IOAuthService, OAuthService>();
 
 		Platforms.DiscordOAuthPlatform.ConfigureAuthentication(authBuilder);
 		Platforms.GoogleOAuthPlatform.ConfigureAuthentication(authBuilder);
 		Platforms.GitHubOAuthPlatform.ConfigureAuthentication(authBuilder);
 		Platforms.SteamOAuthPlatform.ConfigureAuthentication(authBuilder);
-		Platforms.AppleOAuthPlatform.ConfigureAuthentication(authBuilder);
+		Platforms.NetuvioOAuthPlatform.ConfigureAuthentication(authBuilder);
+		// Platforms.AppleOAuthPlatform.ConfigureAuthentication(authBuilder);
 
 		return services;
 	}

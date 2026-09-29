@@ -261,7 +261,22 @@ function ProfileHoverCardContent({account, closing, position, onMouseEnter, onMo
         <div className={styles.body}>
             <div className={styles.header}>
                 <div>
-                    <h3>{account.fullName}</h3>
+                    <div className={styles.nameRow}>
+                        <h3>{account.fullName}</h3>
+                        {account.netuvioName && (
+                            <span
+                                className={styles.netuvioVip}
+                                role="img"
+                                tabIndex={0}
+                                aria-label={`Netuvio Identity: ${account.netuvioName}`}
+                            >
+                                <span className={styles.netuvioIcon} aria-hidden="true" />
+                                <span className={styles.netuvioTooltip} role="tooltip">
+                                    Netuvio Identity: {account.netuvioName}
+                                </span>
+                            </span>
+                        )}
+                    </div>
                     <p>{accountTypeLabel(account.accountType, account.gender)}</p>
                 </div>
                 

@@ -23,7 +23,7 @@ export default function() {
     const [loginLoading, setLoginLoading] = useState(false);
 
     useEffect(() => {
-        const socialProvider = (["discord", "github", "google", "apple", "steam"] as const).find(provider => searchParams.get(provider) != null);
+        const socialProvider = (["discord", "github", "google", "netuvio", "steam"] as const).find(provider => searchParams.get(provider) != null);
         if(!socialProvider) return;
 
         const socialStatus = searchParams.get(socialProvider);

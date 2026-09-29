@@ -367,7 +367,12 @@ WEB_URL=http://localhost:3547
 
 STEAM_WEB_API_KEY=change-me
 
-# apple je ted vypnuty, tyhle hodnoty se budou hodit az pak
+# Netuvio Identity (lokalne proti netuvio-identity dev serveru)
+NETUVIO_AUTHORITY=http://localhost:3471
+NETUVIO_CLIENT_ID=educhem-lanparty
+NETUVIO_CLIENT_SECRET=stejna-hodnota-jako-v-netuvio-identity/secrets/educhem-lanparty-oidc
+
+# Apple je vypnuty a jeho registrace zustava v kodu zakomentovana
 # APPLE_CLIENT_ID=cz.example.educhemlanparty.web
 # APPLE_TEAM_ID=change-me
 # APPLE_KEY_ID=change-me
@@ -432,6 +437,9 @@ Backend načítá proměnné z `server/.env` přes `dotenv.net`.
 | `JWT_SECRET` | Náhodný Base64 secret pro podepisování access JWT; po dekódování musí mít alespoň 32 bajtů |
 | `WEB_URL` | Pevný veřejný HTTP(S) origin aplikace pro emailové odkazy a OAuth callbacky |
 | `STEAM_WEB_API_KEY` | Steam Web API klíč pro načtení jména a avataru propojeného Steam účtu |
+| `NETUVIO_AUTHORITY` | Origin Netuvio Identity; lokálně `http://localhost:3471`, v produkci `https://auth.netuvio.com` |
+| `NETUVIO_CLIENT_ID` | OIDC client ID `educhem-lanparty` |
+| `NETUVIO_CLIENT_SECRET` | OIDC client secret shodný se souborem `secrets/educhem-lanparty-oidc` v Netuvio Identity |
 | `APPLE_CLIENT_ID` | Apple Services ID použité jako OAuth `client_id` |
 | `APPLE_TEAM_ID` | Team ID z Apple Developer účtu |
 | `APPLE_KEY_ID` | ID privátního klíče s povoleným Sign in with Apple |
@@ -443,9 +451,22 @@ Backend načítá proměnné z `server/.env` přes `dotenv.net`.
 
 Nastavení jako `ChatEnabled`, `ReservationsStatus`, `ReservationsEnabledFrom`, `ReservationsEnabledTo` a `ReservationsEnabledRightNow` se ukládají do databázové tabulky `administration.AppSettings` a při startu aplikace se seedují výchozí hodnoty.
 
-### Sign in with Apple
+### Přihlášení přes Netuvio Identity
 
-Integrace je v kódu připravená a v UI záměrně vypnutá. Pro pozdější zpřístupnění změň u Apple platformy v `client/src/data/platforms.ts` hodnotu `disabled` na `false` a nastav níže popsané `APPLE_*` proměnné. Backend Apple provider automaticky zaregistruje, jakmile najde úplnou konfiguraci.
+Netuvio používá OpenID Connect authorization-code flow s PKCE a scopes `openid`, `profile` a `email`. V Netuvio Identity musí být klient `educhem-lanparty` zapnutý a jeho secret musí odpovídat `NETUVIO_CLIENT_SECRET`.
+
+Registrované callbacky jsou:
+
+```text
+http://localhost:3547/api/v1/netuvio/callback
+https://lanparty.educhem.it/api/v1/netuvio/callback
+```
+
+Secret vygeneruj alespoň 32 znaků dlouhý, například `openssl rand -base64 48`, a nikdy ho neukládej do Gitu.
+
+### Sign in with Apple (vypnuto)
+
+Integrace zůstává v kódu připravená, ale registrace backend provideru i položka v UI jsou záměrně zakomentované. Pro pozdější zpřístupnění je odkomentuj a nastav níže popsané `APPLE_*` proměnné.
 
 Sign in with Apple neposkytuje profilovou fotku ani URL avataru. Apple proto zůstává mimo nabídku synchronizace avataru a propojení může sloužit jen k přihlášení a identifikaci účtu.
 

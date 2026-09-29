@@ -38,58 +38,17 @@ function getServerResolvedTheme(theme: WebTheme): ResolvedWebTheme {
     return "light";
 }
 
-function createThemeInitScript(initialTheme: WebTheme) {
-    return `
-    
-    
-    
-    
-    
-    
-    
-    
-    /*
-    
-        EDUCHEM LAN Party
+const copyrightTemplateHtml = `<script type="text/plain" data-purpose="copyright">
+/*
+    EDUCHEM LAN Party
 
-        Vytvořili:
-            Stanislav Škudrna
-            Serhii Yavorskyi
-    
-        v roce 2024
-    
-    */
-    
-    
-    
-    
-    
-    
-    
-    
-(function() {
-    try {
-        var theme = ${JSON.stringify(initialTheme)};
+    Vytvořili:
+        Stanislav Škudrna
+        Serhii Yavorskyi
 
-        if(theme !== "light" && theme !== "dark" && theme !== "auto") {
-            theme = "auto";
-        }
-
-        var resolvedTheme = theme;
-
-        if(theme === "auto") {
-            resolvedTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light";
-        }
-
-        document.documentElement.dataset.theme = resolvedTheme;
-    } catch(error) {
-        document.documentElement.dataset.theme = "light";
-    }
-})();
-`;
-}
+    v roce 2024
+*/
+</script>`;
 
 export default async function RootLayout({
                                              children,
@@ -107,15 +66,11 @@ export default async function RootLayout({
             data-theme={initialResolvedTheme}
             suppressHydrationWarning
         >
-        <head>
-            <script
-                dangerouslySetInnerHTML={{
-                    __html: createThemeInitScript(initialTheme),
-                }}
-            />
-        </head>
-
         <body>
+        <template
+            id="educhem-copyright"
+            dangerouslySetInnerHTML={{__html: copyrightTemplateHtml}}
+        />
         <WebThemeProvider
             initialTheme={initialTheme}
             initialResolvedTheme={initialResolvedTheme}
