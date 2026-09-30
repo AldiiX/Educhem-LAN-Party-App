@@ -38,6 +38,32 @@ function getServerResolvedTheme(theme: WebTheme): ResolvedWebTheme {
     return "light";
 }
 
+function createThemeInitScript(initialTheme: WebTheme) {
+    return `
+(function() {
+    try {
+        var theme = ${JSON.stringify(initialTheme)};
+
+        if(theme !== "light" && theme !== "dark" && theme !== "auto") {
+            theme = "auto";
+        }
+
+        var resolvedTheme = theme;
+
+        if(theme === "auto") {
+            resolvedTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+        }
+
+        document.documentElement.dataset.theme = resolvedTheme;
+    } catch(error) {
+        document.documentElement.dataset.theme = "light";
+    }
+})();
+`;
+}
+
 const copyrightTemplateHtml = `<script type="text/plain" data-purpose="copyright">
 /*
     EDUCHEM LAN Party
@@ -66,6 +92,14 @@ export default async function RootLayout({
             data-theme={initialResolvedTheme}
             suppressHydrationWarning
         >
+        <head>
+            <script
+                dangerouslySetInnerHTML={{
+                    __html: createThemeInitScript(initialTheme),
+                }}
+            />
+        </head>
+
         <body>
         <template
             id="educhem-copyright"
