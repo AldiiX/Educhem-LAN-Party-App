@@ -54,7 +54,7 @@ const organizers: Organizer[] = [ // TODO: tahat toto z db, ne takto hardcoded
     {name: 'Stanislav Škudrna', role: 'Správce LAN Party systému', instagram: 'stanley.sku', discord: 'aldiix', category: 'admin', avatarUrl: "https://cloud02.emsio.cz/public/avatars/stanislavskudrna.png"},
     {name: 'Serhii Yavorskyi', role: 'Správce LAN Party systému', discord: '_.yavorskiy.s._', instagram: '_.yavorskiy.s._', category: 'admin', avatarUrl: "https://cloud02.emsio.cz/public/avatars/serhii.png"},
     {name: 'Prokop Veselý', role: 'Organizátor CS2 turnaje', discord: 'prokyss', instagram: 'prokyzz', category: 'tournaments', avatarUrl: "https://cloud02.emsio.cz/public/avatars/proky.webp" },
-    {name: 'Jan Brenner', role: 'Správce LAN Party systému', discord: 'honzatko', instagram: '_brennyyy_', category: 'admin', avatarUrl: "https://cloud02.emsio.cz/public/avatars/brenny.png" }, 
+    {name: 'Jan Brenner', role: 'Správce LAN Party systému', discord: 'honzatko', instagram: '_brennyyy_', category: 'admin', avatarUrl: "http://s3.netuvio.com/public/avatars/brenny.png" }, 
     //{name: 'Jáchym Klír', role: 'Organizátor CS2 turnaje', instagram: '@klirakk', category: 'tournaments', avatarUrl: "https://cloud02.emsio.cz/public/avatars/DSC_4222.jpg"},
     //{name: 'Sebastien Prejza', role: 'Organizátor CS2 turnaje', instagram: null, discord: null, category: 'tournaments', avatarUrl: null},
 ]
